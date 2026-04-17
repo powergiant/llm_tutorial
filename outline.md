@@ -1,6 +1,12 @@
-# Goal
+# Outline
 
-understand everything in Nemotron
+The ultimate goal is to cover everything required to reproduce Nemotron -- the sota completely open source model
+
+repository of Nemotron
+
+olmo
+
+shanghai ai lab
 
 1. Deep learning. [deep_learning.md](./sections/deep_learning.md)
 

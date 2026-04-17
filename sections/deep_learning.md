@@ -2,6 +2,11 @@
 
 [1] Chapter 1-2
 
+
+TODO: expressiveness, convergence and generalization
+
+TODO: case studies of expressiveness, transformer, Turing completeness of prompt (in-context learning, difference between linearization), Turing completeness of parameters (meta knowledge, some prompt implies something, then accumulant prompts. even meta meta knowledge, some prompt implies some meta knowledge)
+
 ## Tasks and loss function
 
 regression, classification, generation
