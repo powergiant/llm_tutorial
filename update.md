@@ -6,12 +6,13 @@ The document must:
 
 - explain what NVIDIA has released for Nemotron
 - explain what has not been released and would need to be reproduced independently
-- survey the full training stack of a general LLM
+- your survey should cover every aspect of the full training stack of a general llm
 - for each released aspect, attach references to the relevant codebases and publications
 
 The goal is to make it clear what is already open and what work remains to fully reproduce Nemotron.
 
 ## Full Training Stack Of A General LLM
+
 
 - data sourcing, licensing, collection, cleaning, deduplication, filtering, and mixture design
 - tokenizer design and vocabulary construction
