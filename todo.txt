@@ -1,0 +1,1 @@
+how to check at which stage of SFT that we can do RL
