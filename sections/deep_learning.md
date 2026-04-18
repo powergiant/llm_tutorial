@@ -435,11 +435,6 @@ how to normalize each layer, layer normalization, batch normalization
 
 ## Training strategies
 
-TODO: dropout, hyperparameter tuning, order of batch, batch size, ..., mini-batch, epoch
-
-
-
-
 # Deep learning models
 
 [1] Chapter 4-7
@@ -447,6 +442,106 @@ TODO: dropout, hyperparameter tuning, order of batch, batch size, ..., mini-batc
 ## Convolutional neural network
 
 [1] Chapter 4
+
+### todo first explain some basic of image explain why mlp is too complicated, and CNN is to solve this problem
+
+TODO: find or draw a picture to explain RGD
+
+Convolutional neural networks (CNNs) are designed for data with spatial or local structure, especially images. An image can be represented as a tensor
+
+$$
+x \in \mathbb{R}^{H \times W \times C},
+$$
+
+where $H$ is height, $W$ is width, and $C$ is the number of channels. For an RGB image, $C=3$.
+
+If we flatten the image and feed it into a fully connected layer, the number of parameters becomes very large. For example, an image of size $100 \times 100 \times 3$ has $30000$ input numbers. A fully connected layer with $1000$ neurons would need
+
+$$
+1000 \times 100 \times 100 \times 3
+$$
+
+weights in the first layer alone. This gives the model high flexibility, but also makes it easy to overfit. CNNs reduce this parameter explosion by using the structure of images.
+
+### Derivation of convolution from expressiveness analysis
+
+**Observation 1: local patterns**
+
+Many important visual patterns can be detected from a small local region. To recognize a bird, for example, a model may first detect local patterns such as a beak, an eye, or a claw. Detecting these patterns does not require looking at the entire image.
+
+This motivates the idea of a **receptive field**. Instead of connecting every neuron to every pixel, each neuron only looks at a local patch of the image, such as a $3 \times 3$ or $5 \times 5$ region. If the input has $C$ channels, a $k \times k$ receptive field contains
+
+$$
+k \times k \times C
+$$
+
+numbers.
+
+The size of the receptive field is called the **kernel size**. A common choice in image models is $3 \times 3$. Even though one layer only sees a small local region, stacking many convolutional layers increases the effective receptive field, so deeper layers can represent larger patterns.
+
+**Observation 2: the same pattern can appear anywhere**
+
+The same local pattern may appear in different parts of the image. A beak detector should work whether the beak appears in the upper-left corner or near the center. Therefore, it is wasteful to learn a different detector for every location.
+
+CNNs solve this with **parameter sharing**. The same set of weights is reused across spatial locations. This shared weight tensor is called a **filter** or **kernel**. A convolution layer slides the filter across the image and computes a local weighted sum at each position.
+
+For one output channel, the convolution has the form
+
+$$
+z_{i,j}
+=
+\sum_{a=1}^{k}
+\sum_{b=1}^{k}
+\sum_{c=1}^{C}
+W_{a,b,c} x_{i+a,j+b,c}
++ b.
+$$
+
+Here $W$ is the filter, $b$ is the bias, and $z_{i,j}$ is the output at spatial location $(i,j)$. Applying the same filter at all positions produces a **feature map**. If a convolution layer has $M$ filters, it produces $M$ feature maps, so the output has $M$ channels.
+
+Stride and padding
+
+The **stride** controls how far the filter moves each step. A stride of $1$ moves the filter one pixel at a time; a stride of $2$ skips every other position and produces a smaller output.
+
+**Padding** adds extra values around the boundary of the image, often zeros. Padding is useful because otherwise patterns near the image boundary may be ignored, and the spatial size shrinks after each convolution.
+
+**Observation 3: downsampling can preserve useful patterns**
+
+For image classification, reducing spatial resolution often does not change the object identity. This motivates **pooling**, which downsamples a feature map without learning new parameters.
+
+In **max pooling**, each local block is replaced by its maximum value:
+
+$$
+y_{i,j} = \max_{(a,b) \in R_{i,j}} x_{a,b}.
+$$
+
+In **average pooling**, each local block is replaced by its average. Pooling reduces computation and makes later layers cheaper, but it can also discard fine-grained information. For tasks where exact position matters, pooling may be harmful.
+
+### A typical CNN
+
+TODO: summarize everything and write down the formula
+
+A classical image classification CNN alternates convolution and pooling:
+
+$$
+\text{image}
+\rightarrow
+\text{convolution}
+\rightarrow
+\text{activation}
+\rightarrow
+\text{pooling}
+\rightarrow
+\cdots
+\rightarrow
+\text{flatten}
+\rightarrow
+\text{fully connected layers}
+\rightarrow
+\text{softmax}.
+$$
+
+The convolution layers extract local feature maps. Pooling reduces spatial size. Flattening turns the final feature maps into a vector. The final fully connected layers and softmax produce a probability distribution over classes.
 
 ## Recurrent neural network
 
