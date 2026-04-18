@@ -137,13 +137,21 @@ $$
 \end{aligned}
 $$
 
-and the final output is
+and the final output for regression problem is
 
 $$
 f_\theta(x) = z^{(L)} \quad \text{or} \quad f_\theta(x) = h^{(L)},
 $$
 
-depending on the task. Here $W^{(\ell)}$ are the weights, $b^{(\ell)}$ are the **biases**, and $\sigma$ is an **activation function** such as ReLU, sigmoid, or tanh.
+depending on the task. Here $W^{(\ell)}$ are the weights, $b^{(\ell)}$ are the **biases**, and $\sigma$ is an **activation function** such as **ReLU** $(\operatorname{ReLU}(x)=\max(x,0))$, **sigmoid** $(\sigma(x)=\frac{1}{1+e^{-x}})$, or **tanh**.
+
+For classification, the output of the final layer is usually called the **logits**. These logits are then converted into a probability distribution over classes by the softmax function:
+
+$$
+p_\theta(y_c \mid x)
+=
+\frac{\exp(z_c)}{\sum_{c'=1}^C \exp(z_{c'})}.
+$$
 
 In a more compact form, $f_\theta(x)$ can be written as
 $$
@@ -168,7 +176,6 @@ The key point is that the composition of many simple nonlinear steps can represe
 The following picture shows a simple MLP. The **weights** correspond to the edges between layers, and each node applies an activation function to the weighted sum coming from the previous layer.
 
 ![A simple multi-layer perceptron](../pictures/mlp_graph.png)
-
 
 ## Optimization
 
@@ -202,7 +209,7 @@ This gives a stable and accurate descent direction, but every update is expensiv
 
 ### Stochastic gradient descent 
 
-In **stochastic gradient descent (SGD)**, we replace the full gradient by the gradient on a randomly sampled mini-batch $B_t$:
+In **stochastic gradient descent (SGD)**, we replace the full gradient by the gradient on a randomly sampled **mini-batch** $B_t$:
 
 $$
 \theta_{t+1} = \theta_t - \eta \frac{1}{|B_t|} \sum_{i \in B_t} \nabla_\theta \ell\bigl(f_\theta(x_i), y_i\bigr).
@@ -212,7 +219,7 @@ This makes each update much cheaper, which is essential for large datasets. The 
 
 ### AdaGrad
 
-AdaGrad changes the learning rate coordinate-wise according to past gradient magnitudes:
+**AdaGrad** changes the learning rate coordinate-wise according to past gradient magnitudes:
 
 $$
 g_t = \nabla_\theta \mathcal{L}(\theta_t), \qquad
@@ -229,7 +236,7 @@ Coordinates that have received many large gradients get smaller future steps, wh
 
 ### Momentum
 
-Momentum smooths the update direction by accumulating a running average of past gradients:
+**Momentum** smooths the update direction by accumulating a running average of past gradients:
 
 $$
 v_{t+1} = \beta v_t + \nabla_\theta \mathcal{L}(\theta_t),
@@ -245,7 +252,7 @@ This helps accelerate movement along consistent directions and reduces oscillati
 
 ### Weight regularization
 
-Weight regularization modifies the objective so that excessively large parameters are penalized. A standard choice is $\ell_2$ regularization:
+**Weight regularization** modifies the objective so that excessively large parameters are penalized. A standard choice is $\ell_2$ regularization:
 
 $$
 \mathcal{L}_{\mathrm{reg}}^{\lambda}(\theta)
@@ -257,7 +264,7 @@ This biases the optimizer toward smaller weights, which often improves generaliz
 
 ### Adam/AdamW
 
-Adam combines momentum with coordinate-wise adaptive scaling. With
+**Adam** combines momentum with coordinate-wise adaptive scaling. With
 
 $$
 g_t = \nabla_\theta \mathcal{L}(\theta_t),
@@ -275,7 +282,7 @@ $$
 
 and updates parameters using a normalized direction. Adam is usually easier to tune and converges faster early in training than plain SGD.
 
-AdamW separates weight decay from the adaptive gradient step, which makes the effect of regularization cleaner. This is the standard optimizer in much of modern deep learning, including large language models.
+**AdamW** separates weight decay from the adaptive gradient step, which makes the effect of regularization cleaner. This is the standard optimizer in much of modern deep learning, including large language models.
 
 ### Auto-differentiation
 
@@ -310,7 +317,7 @@ $$
 \frac{\partial \mathcal{L}}{\partial b^{(\ell)}} = \delta^{(\ell)}.
 $$
 
-This same idea works for any computational graph, not just for MLPs. A computational graph is a directed acyclic graph whose nodes are intermediate variables and whose edges indicate data dependence. The left panel below shows a simple example:
+This same idea works for any computational graph, not just for MLPs. A **computational graph** is a directed acyclic graph whose nodes are intermediate variables and whose edges indicate data dependence. The left panel below shows a simple example:
 
 $$
 u = wx, \qquad s = u^2, \qquad t = u + b, \qquad \mathcal{L} = s + t.
@@ -420,11 +427,36 @@ As we discussed before, convex models usually have good convergence properties, 
 
 Later sections will revisit this tradeoff through specific architectures such as CNNs, RNNs, ResNets, and transformers.
 
+## Initialization and normalization
+
+how to initialize weights (estimate the size in probability)
+
+how to normalize each layer, layer normalization, batch normalization
+
+## Training strategies
+
+TODO: dropout, hyperparameter tuning, order of batch, batch size, ..., mini-batch, epoch
+
+
 
 
 # Deep learning models
 
 [1] Chapter 4-7
+
+## Convolutional neural network
+
+[1] Chapter 4
+
+## Recurrent neural network
+
+[1] Chapter 5
+
+LSTM
+
+## Attention and transformer
+
+[1] Chapter 6, 7
 
 ## Every model solves some problem
 
