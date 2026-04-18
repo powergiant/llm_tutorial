@@ -70,7 +70,7 @@ For example, if $x$ is an email and $y$ is whether it is spam, then $f_\theta(x)
 
 Once we choose a model and a loss, finding the parameter becomes an optimization problem. We adjust the parameters $\theta$ so that the loss on the training data becomes small.
 
-The basic gradient descent update is:
+The basic **gradient descent** update is:
 
 $$
 \theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t),
@@ -84,15 +84,15 @@ where $\eta$ is the learning rate. This means we move the parameters in the nega
 
 Three ideas appear throughout machine learning.
 
-Expressiveness asks whether the model family we choose is broad enough to contain, or at least approximate, the ground-truth function.
+**Expressiveness** asks whether the model family we choose is broad enough to contain, or at least approximate, the ground-truth function.
 
-Convergence asks: assuming there exists a good parameter, is the optimization process numerically stable and convergent enough to actually find it in practice?
+**Convergence** asks: assuming there exists a good parameter, is the optimization process numerically stable and convergent enough to actually find it in practice?
 
-Generalization asks whether a small loss on the observed samples really means that the model is close to the ground truth on unseen data as well. A model that fits the training samples but fails on new examples is overfitting.
+**Generalization** asks whether a small loss on the observed samples really means that the model is close to the ground truth on unseen data as well. A model that fits the training samples but fails on new examples is overfitting.
 
 ### Linear/convex model and their restriction
 
-Linear models are an important starting point because they often lead to convex optimization problems, and convex losses usually have good convergence behavior. More generally, when the loss as a function of the parameters is convex, optimization is numerically more stable and it is easier to find a global optimum. This is one reason linear and other convex models were so popular before neural networks.
+**Linear models** are an important starting point because they often lead to convex optimization problems, and convex losses usually have good convergence behavior. More generally, when the loss as a function of the parameters is convex, optimization is numerically more stable and it is easier to find a global optimum. This is one reason linear and other convex models were so popular before neural networks.
 
 A linear model has the form
 
@@ -119,35 +119,64 @@ Deep learning becomes necessary because many important problems require much ric
 
 # General deep learning problem
 
-* model: multi-layer deep nets, compositional function
+## Multi-layer perceptron
 
-    * expressiveness: multi-step problem/intrisic simplicity
+expressiveness consideration, a linear function cannot express complicated function. but many realistic functions are compositions of simple functions. multi-step problem/intrisic simplicity. like recognition of a cat, first what, then what, ... each step is a simple function, **multi-layer perceptron**
 
-* optimization
+the formula of MLP, **weights** **biases**, **activation functions**
 
-    * Gradient
+draw a graph of MLP and explain weights correspond to edges and node correspond to activation functions
 
-    * SGD (batch, random batch)
 
-    * AdaGrad
-
-    * Momentum
-
-    * weight regularization
-
-    * Adam/AdamW
-
-    * Auto-differentiation
+## Optimization
 
 [1] Chapter 3 + Auto-differentiation
 
+### Full gradient descent
 
-* convergence: 
+### Stochastic gradient descent 
+
+(batch, random batch)
+
+### AdaGrad
+
+faster convergence
+
+### Momentum
+
+can avoid saddle points, see explanation below
+
+
+
+### Weight regularization
+
+SGD may have better generalization, weight regularization increase the generalization
+
+### Adam/AdamW
+
+### Auto-differentiation
+
+we need to compute derivative
+
+explain how to use chain rule for mlp to compute derivative
+
+explain why and how this works for arbitrary computational graph, this is backward propagation
+
+explain what is numerical and symbolic derivative and why BP is much more efficient than numerical and symbolic derivative
+
+
+## Design choice
+
+* expressiveness: neural network capture compositional structure and more expressive
+
+* convergence: worse than convex model but still often work
+
     shape of loss landscope, SGD avoid some saddle points, but not all (think of optimal for most sample but a small portion). need Momentum. speed need AdaGrad
 
-    gradient vanishing/exposion resnet transformer
+    gradient vanishing/exposion resnet transformer see below
 
-* generalization: shape of loss landscope, flat minima, implicit regularization
+* generalization: neural network seems to be overparametrization. but the sample are from low complexity ground truth function $f$, which can be approximated by small neural networks. and gradient prefer small neural networks. so actually not overparametrize. see below
+
 
 
 # Deep learning models
@@ -177,6 +206,10 @@ TODO: case studies of expressiveness, deep learning fits finite step function
 TODO: case studies of expressiveness, cnn fits locality function, more efficient
 
 TODO: case studies of expressiveness, transformer, Turing completeness of prompt (in-context learning, difference between linearization), Turing completeness of parameters (meta knowledge, some prompt implies something, then accumulant prompts. even meta meta knowledge, some prompt implies some meta knowledge)
+
+TODO: shape of loss landscope, flat minima, implicit regularization
+
+TODO: mean field limit
 
 # What next?
 
