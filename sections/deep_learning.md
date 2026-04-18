@@ -481,63 +481,106 @@ Thus, a plain MLP is usually too complicated for raw images: it has too many par
 
 ### Derivation of convolution from expressiveness analysis
 
-TODO: assume that we want to learn the ground truth function of an image. we know mlp is inefficient to approximate, now we use some observation of the common ground truth function to find more efficient
+Assume that we want to learn the ground-truth function for an image task, such as image classification. A fully connected MLP is expressive enough in principle, but it is inefficient because it treats the image as an arbitrary long vector. To get a more efficient model family, we use observations about the structure of common image functions.
 
-**Observation 1: local patterns**
+**Observation 1: detecting a pattern does not require the whole image**
 
-Many important visual patterns can be detected from a small local region. To recognize a bird, for example, a model may first detect local patterns such as a beak, an eye, or a claw. Detecting these patterns does not require looking at the entire image.
+The intermediate steps of a typical image function often compute key visual patterns. Many important visual patterns can be detected from a small local region. To recognize a bird, for example, a model may first detect local patterns such as a beak, an eye, or a claw. Detecting whether one of these patterns appears at one location does not require seeing the whole image.
 
-This motivates the idea of a **receptive field**. Instead of connecting every neuron to every pixel, each neuron only looks at a local patch of the image, such as a $3 \times 3$ or $5 \times 5$ region. If the input has $C$ channels, a $k \times k$ receptive field contains
+![Figure 4.5: pattern detection does not need the whole image](../pictures/cnn_fig_4_5_local_pattern.png)
 
-$$
-k \times k \times C
-$$
+**Simplification 1: receptive field**
 
-numbers.
-
-The size of the receptive field is called the **kernel size**. A common choice in image models is $3 \times 3$. Even though one layer only sees a small local region, stacking many convolutional layers increases the effective receptive field, so deeper layers can represent larger patterns.
-
-**Observation 2: the same pattern can appear anywhere**
-
-The same local pattern may appear in different parts of the image. A beak detector should work whether the beak appears in the upper-left corner or near the center. Therefore, it is wasteful to learn a different detector for every location.
-
-CNNs solve this with **parameter sharing**. The same set of weights is reused across spatial locations. This shared weight tensor is called a **filter** or **kernel**. A convolution layer slides the filter across the image and computes a local weighted sum at each position.
-
-For one output channel, the convolution has the form
+Instead of connecting every neuron to every pixel, each neuron only looks at a local patch of the image. This local patch is called its **receptive field**. If the input has $C_{\mathrm{in}}$ channels and the local patch has size $k_h \times k_w$, then one receptive field contains
 
 $$
-z_{i,j}
+k_h \times k_w \times C_{\mathrm{in}}
+$$
+
+input numbers.
+
+![Figure 4.6: receptive field](../pictures/cnn_fig_4_6_receptive_field.png)
+
+The size $k_h \times k_w$ is called the **kernel size**. A common choice in image models is $3 \times 3$. Even though one layer only sees a small local region, stacking many convolutional layers increases the effective receptive field, so deeper layers can represent larger patterns.
+
+**Observation 2: the same pattern can appear in different places**
+
+The same local pattern may appear in different parts of the image. A beak detector should work whether the beak appears in the upper-left corner, near the center, or near the bottom of the image. Therefore, it is wasteful to learn a different detector for every spatial location.
+
+**Simplification 2: parameter sharing**
+
+Use the same local detector at every spatial location. This means the same weights are reused as the detector slides over the image. The shared weight tensor is called a **filter** or **kernel**. The output produced by one filter is called a **feature map**.
+
+Let the input be
+
+$$
+x \in \mathbb{R}^{H \times W \times C_{\mathrm{in}}}.
+$$
+
+For the simplest case, assume stride $1$ and no padding. A convolution layer with $C_{\mathrm{out}}$ filters has parameters
+
+$$
+K \in \mathbb{R}^{k_h \times k_w \times C_{\mathrm{in}} \times C_{\mathrm{out}}},
+\qquad
+b \in \mathbb{R}^{C_{\mathrm{out}}}.
+$$
+
+The output is
+
+$$
+z \in \mathbb{R}^{H' \times W' \times C_{\mathrm{out}}},
+$$
+
+where
+
+$$
+H' = H - k_h + 1,
+\qquad
+W' = W - k_w + 1.
+$$
+
+The convolution formula is
+
+$$
+z_{i,j,m}
 =
-\sum_{a=1}^{k}
-\sum_{b=1}^{k}
-\sum_{c=1}^{C}
-W_{a,b,c} x_{i+a,j+b,c}
-+ b.
+\sum_{u=0}^{k_h-1}
+\sum_{v=0}^{k_w-1}
+\sum_{c=1}^{C_{\mathrm{in}}}
+K_{u,v,c,m}
+\,
+x_{i+u,\, j+v,\, c}
++ b_m.
 $$
 
-Here $W$ is the filter, $b$ is the bias, and $z_{i,j}$ is the output at spatial location $(i,j)$. Applying the same filter at all positions produces a **feature map**. If a convolution layer has $M$ filters, it produces $M$ feature maps, so the output has $M$ channels.
+Here $(i,j)$ indexes the spatial output location and $m$ indexes the output channel. For each fixed $m$, the same kernel $K_{\cdot,\cdot,\cdot,m}$ is used at every location. This is parameter sharing.
 
-Stride and padding
+In many deep learning libraries this formula is technically cross-correlation rather than mathematical convolution, because the kernel is not flipped. The operation is still conventionally called convolution.
 
-The **stride** controls how far the filter moves each step. A stride of $1$ moves the filter one pixel at a time; a stride of $2$ skips every other position and produces a smaller output.
+**Observation 3: downsampling often preserves the detected pattern**
 
-**Padding** adds extra values around the boundary of the image, often zeros. Padding is useful because otherwise patterns near the image boundary may be ignored, and the spatial size shrinks after each convolution.
+For image classification, small shifts usually do not change the label. If a local feature is detected nearby, the exact pixel location is often less important than the fact that the feature is present. Therefore, after we have produced feature maps, we can often reduce their spatial resolution while preserving the useful information.
 
-**Observation 3: downsampling can preserve useful patterns**
+**Simplification 3: pooling**
 
-For image classification, reducing spatial resolution often does not change the object identity. This motivates **pooling**, which downsamples a feature map without learning new parameters.
-
-In **max pooling**, each local block is replaced by its maximum value:
+**Pooling** downsamples a feature map without learning new parameters. In **max pooling**, each local region is replaced by its maximum value:
 
 $$
 y_{i,j} = \max_{(a,b) \in R_{i,j}} x_{a,b}.
 $$
 
-In **average pooling**, each local block is replaced by its average. Pooling reduces computation and makes later layers cheaper, but it can also discard fine-grained information. For tasks where exact position matters, pooling may be harmful.
+In average pooling, each local region is replaced by its average:
+
+$$
+y_{i,j}
+=
+\frac{1}{|R_{i,j}|}
+\sum_{(a,b) \in R_{i,j}} x_{a,b}.
+$$
+
+Pooling reduces spatial size, reduces computation, and makes later layers cheaper. It can also discard fine-grained position information, so for tasks where exact position matters, pooling must be used carefully.
 
 ### A typical CNN
-
-TODO: summarize everything and write down the formula
 
 A classical image classification CNN alternates convolution and pooling:
 
@@ -559,17 +602,93 @@ $$
 \text{softmax}.
 $$
 
+In practice, convolution layers usually include **stride** and **padding**. The stride controls how far the filter moves each step. A stride of $1$ moves the filter one pixel at a time; a stride of $2$ skips every other position and produces a smaller output. Padding adds extra values around the boundary of the image, often zeros. Padding is useful because otherwise patterns near the image boundary may be ignored, and the spatial size shrinks after each convolution.
+
+For the general case, let the padding be $(p_h,p_w)$ and the stride be $(s_h,s_w)$. After padding, write the padded input as $\tilde x$. Then
+
+$$
+z \in \mathbb{R}^{H' \times W' \times C_{\mathrm{out}}},
+$$
+
+where
+
+$$
+H' =
+\left\lfloor \frac{H + 2p_h - k_h}{s_h} \right\rfloor + 1,
+\qquad
+W' =
+\left\lfloor \frac{W + 2p_w - k_w}{s_w} \right\rfloor + 1.
+$$
+
+The layer computes
+
+$$
+z_{i,j,m}
+=
+\sum_{u=0}^{k_h-1}
+\sum_{v=0}^{k_w-1}
+\sum_{c=1}^{C_{\mathrm{in}}}
+K_{u,v,c,m}
+\,
+\tilde x_{i s_h + u,\, j s_w + v,\, c}
++ b_m.
+$$
+
+With this notation, one CNN block has the form
+
+$$
+h^{(\ell)}
+=
+\operatorname{Pool}
+\left(
+\sigma
+\left(
+\operatorname{Conv}_{K^{(\ell)}, b^{(\ell)}}
+\left(h^{(\ell-1)}\right)
+\right)
+\right),
+$$
+
+where $h^{(0)}=x$, $\operatorname{Conv}$ applies the shared filters, $\sigma$ is a nonlinear activation such as ReLU, and $\operatorname{Pool}$ reduces spatial resolution. After several such blocks, the final feature maps are flattened into a vector and passed through fully connected layers:
+
+$$
+\hat y
+=
+\operatorname{softmax}
+\left(
+W \operatorname{flatten}(h^{(L)}) + b
+\right).
+$$
+
 The convolution layers extract local feature maps. Pooling reduces spatial size. Flattening turns the final feature maps into a vector. The final fully connected layers and softmax produce a probability distribution over classes.
 
 ## Recurrent neural network
 
 [1] Chapter 5
 
+### Seq2seq problem
+
+translation, nlp, decision, AGI
+
+### Simple RNN
+
+### Long-short memory
+
 LSTM
 
 ## Attention and transformer
 
 [1] Chapter 6, 7
+
+### Long term memory
+
+explosion of hidden state, memory, either forget or explosion
+
+### Attention
+
+### Transformer
+
+tokenization, positional encoding, ... architectural framework
 
 ## Every model solves some problem
 
