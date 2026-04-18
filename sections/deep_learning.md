@@ -288,7 +288,7 @@ z^{(\ell)} = W^{(\ell)} h^{(\ell-1)} + b^{(\ell)}, \qquad
 h^{(\ell)} = \sigma\bigl(z^{(\ell)}\bigr),
 $$
 
-then the gradient at layer $\ell$ depends on the gradient from layer $\ell + 1$. If we define
+then the gradient at layer $\ell$ depends only the gradient from layer $\ell + 1$. If we define
 
 $$
 \delta^{(\ell)} = \frac{\partial \mathcal{L}}{\partial z^{(\ell)}},
@@ -320,7 +320,9 @@ The important feature is that the variable $u$ is reused twice: once to form $s$
 
 ![Forward and backward computation graph](../pictures/computational_graph_backprop.png)
 
-Now write a general computation as intermediate variables
+Now we consider general computation graph as demonstrated by the picture below.
+
+We have intermediate variables associated with each node
 
 $$
 v_1, v_2, \dots, v_m,
@@ -338,9 +340,11 @@ $$
 v_m = \mathcal{L}.
 $$
 
-TODO: draw a local graph for the general case
+![Abstract computational graph for reverse-mode differentiation](../pictures/computational_graph_general.png)
 
-The **forward pass** computes all values $v_j$ in topological order and stores the intermediate quantities needed later. In the **backward pass**, we define the adjoint
+The picture above should be read in two directions. In the **forward pass**, information flows from left to right: the parent nodes $v_{p_1(j)}, \dots, v_{p_{k_j}(j)}$ are first computed, then the node $v_j$ is evaluated by applying the local rule $\phi_j$, and finally $v_j$ is used by later child nodes until the final loss $\mathcal{L}$ is produced. The forward pass therefore computes all values $v_1, \dots, v_m$ in topological order and stores whatever intermediate quantities are needed later.
+
+In the **backward pass**, information flows in the opposite direction because the chain rule expresses the derivative at an earlier node in terms of derivatives at later nodes. If a variable $v_j$ affects the loss only through the nodes that use it, then to compute $\frac{\partial \mathcal{L}}{\partial v_j}$ we must first know how the loss depends on those later nodes. This is why differentiation naturally starts from the final output and moves backward through the graph. For each node we define the adjoint
 
 $$
 \bar v_j = \frac{\partial \mathcal{L}}{\partial v_j}.
@@ -352,7 +356,7 @@ $$
 \bar v_m = 1.
 $$
 
-Now consider a node $v_j$. Its value may be used by several later nodes, just like $u$ in the picture above. Therefore its derivative must collect contributions from every child that depends on it. If $\mathrm{child}(j)$ denotes the set of nodes that directly use $v_j$, then the chain rule gives
+Now consider the central node $v_j$ in the picture. In the forward pass, one value of $v_j$ is reused by several children. Therefore, in the backward pass, the derivative with respect to $v_j$ must collect contributions from all children that depend on it. If $\mathrm{child}(j)$ denotes the set of nodes that directly use $v_j$, then the chain rule gives
 
 $$
 \bar v_j
@@ -367,11 +371,9 @@ $$
 \bar v_k \frac{\partial v_k}{\partial v_j},
 $$
 
-which measures how a perturbation in $v_j$ affects the loss through that child. The total derivative is the sum of all such routes from the loss back to $v_j$.
+which measures how a perturbation in $v_j$ affects the loss through that particular child. The total derivative is obtained by summing these contributions over all outgoing edges of $v_j$. This is exactly what the right-to-left arrows in the picture represent.
 
-This is efficient because each local derivative $\frac{\partial v_k}{\partial v_j}$ is computed only for directly connected nodes, and intermediate results from the forward pass are reused. The total cost of the backward pass is therefore usually only a small constant factor larger than the forward pass.
-
-TODO: count the complexity for the three cases, also in the BP case explain the forward value is stored (the diff between BP and SD)
+The key point is locality. To propagate gradients, we never differentiate the whole computation from scratch. We only need the local derivative along each edge, namely $\frac{\partial v_k}{\partial v_j}$ for directly connected nodes, and then we combine these local pieces by the chain rule. Because the forward pass has already stored the needed intermediate values, the backward pass reuses them instead of recomputing everything. This is why reverse-mode automatic differentiation is efficient: the total cost of the backward pass is usually only a small constant factor larger than the cost of the forward pass.
 
 There are three common ways to compute derivatives:
 
@@ -381,40 +383,40 @@ There are three common ways to compute derivatives:
   \approx
   \frac{\mathcal{L}(\theta + \varepsilon e_i) - \mathcal{L}(\theta)}{\varepsilon}.
   $$
-  This is simple but requires a separate forward evaluation for each parameter, so it is far too expensive for large models and is also numerically inaccurate.
-- **Symbolic differentiation** manipulates formulas exactly and applies the chain rule algebraically. This works for small expressions, but for large programs it often creates huge intermediate formulas.
-- **Automatic differentiation** keeps the program as a computational graph and applies the chain rule locally along that graph. It gives exact derivatives up to floating-point error and avoids the inefficiency of both finite differences and large symbolic expansions.
+  This is simple but very expensive. To compute the full gradient with respect to $d$ parameters, numerical differentiation needs roughly $d$ separate forward evaluations, one for each coordinate. When $d$ is large, this is far more expensive than training can afford, and the finite-difference approximation is also numerically unstable when $\varepsilon$ is too small or too large.
+- **Symbolic differentiation** manipulates formulas exactly and applies the chain rule algebraically. The problem is that intermediate formulas can become very large. A simple example is the recursion
+  $$
+  f_{n+1}(x) = f_n(x)\,f_n(x^2), \qquad f_0(x)=x.
+  $$
+  Then
+  $$
+  f'_{n+1}(x) = f_n'(x) f_n(x^2) + 2x f_n(x) f_n'(x^2).
+  $$
+  If we keep substituting the full symbolic expression for $f_n(x)$ and then for $f_{n-1}(x)$ and so on, the expression quickly becomes enormous, because the same subexpression is copied again and again. This repeated duplication of identical intermediate terms is the classical **term explosion** problem.
+
+  The reason concrete values help is that once we evaluate an intermediate quantity numerically, we can store just its value instead of carrying around its full symbolic formula. For example, after computing a number for $f_n(x)$ at a given input $x$, the derivative formula only needs that number, not the entire expanded expression that produced it. Automatic differentiation exploits exactly this idea: it keeps intermediate values from the forward pass and reuses them during the backward pass, rather than repeatedly expanding symbolic formulas.
+- **Automatic differentiation** keeps the program as a computational graph and applies the chain rule locally along that graph. In the forward pass, each edge is used once to compute the next intermediate quantity. In the backward pass, the same edge is visited once again to send back the corresponding local derivative contribution. Therefore the total backward cost is proportional to the size of the graph, just like the forward cost. This is why reverse-mode automatic differentiation usually requires only a small constant factor more work than one forward pass. It is therefore much more efficient than numerical differentiation, which needs one forward pass per parameter, and it avoids the formula explosion that can appear in symbolic differentiation.
 
 For training neural networks, we therefore use reverse-mode automatic differentiation, which is exactly backpropagation.
 
 
 ## Design choice
 
-TODO: revise below according to 
+As we discussed before, convex models usually have good convergence properties, but they are often limited in expressiveness. Deep learning enlarges the model family enough to capture much more complicated functions, while still admitting convergent optimization methods and often achieving good generalization despite overparameterization.
 
-* expressiveness: neural network capture compositional structure and more expressive
+* **Expressiveness.** From the viewpoint of expressiveness, neural networks are attractive because they capture compositional structure and can represent functions that are far outside the reach of simple convex models.
 
-* convergence: worse than convex model but still often work
+* **Convergence.** From the viewpoint of convergence, deep models are harder than convex models because the loss landscape is non-convex. Even so, gradient-based methods often work surprisingly well in practice. To improve convergence, invent the following methods
 
-    shape of loss landscope, SGD avoid some saddle points, but not all (think of optimal for most sample but a small por
-tion). need Momentum. speed need AdaGrad
+    * SGD use noise to help avoid some bad saddle-type regions, 
+    
+    * momentum can stabilize difficult optimization paths 
+    
+    * adaptive methods can speed up progress when coordinates have very different scales. 
+    
+    * for deep nets in layer or time, At the same time, deep networks introduce additional optimization difficulties such as gradient vanishing and gradient explosion, which motivate later architectural ideas such as ResNets and transformers. see below
 
-    gradient vanishing/exposion resnet transformer see below
-
-* generalization: neural network seems to be overparametrization. but the sample are from low complexity ground truth fu
-nction $f$, which can be approximated by small neural networks. and gradient prefer small neural networks. so actually n
-ot overparametrize. see below
-
-TODO: END
-
-
-Deep learning is a design choice that trades the clean theory of convex models for a much richer hypothesis class.
-
-From the viewpoint of **expressiveness**, neural networks are attractive because they capture compositional structure and can represent functions that are far outside the reach of simple convex models.
-
-From the viewpoint of **convergence**, deep models are harder than convex models because the loss landscape is non-convex. Even so, gradient-based methods such as SGD, momentum, and Adam often work surprisingly well in practice.
-
-From the viewpoint of **generalization**, modern neural networks are often highly overparameterized, but they still generalize well on many real tasks. Understanding why this happens is one of the main conceptual questions of deep learning.
+* **Generalization.** From the viewpoint of generalization, deep learning helps overcome the usual underfitting-overfitting contradiction of classical convex models. In those models, enlarging the parameter space often improves expressiveness but tends to hurt generalization. In modern neural networks, by contrast, heavy overparameterization does not typically damage generalization, and large models often still perform well on unseen data. One possible intuition is that the observed samples come from a low-complexity ground-truth function $f$ that can actually be approximated by a relatively small neural network, while the optimization process may implicitly prefer simpler solutions inside a much larger parameter space. Understanding why this happens is one of the main conceptual questions of deep learning.
 
 Later sections will revisit this tradeoff through specific architectures such as CNNs, RNNs, ResNets, and transformers.
 
