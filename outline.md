@@ -25,21 +25,18 @@ we need the following background
 
 3. Large language models [llm.md](./sections/llm.md)
 
-4. Reinforcement learning
+4. Reinforcement learning [rl.md](./sections/rl.md)
 
-5. Agentic large language models
+5. Agentic large language models [agents.md](./sections/agents.md)
 
-6. Large scale training infra
+6. Large scale training infra [infra.md](./sections/infra.md)
 
-7. Data engineering
+7. Data engineering [data.md](./sections/data.md)
 
-8. Multi-modal and physical models
+8. Multi-modal and physical models [multimodal.md](./sections/multimodal.md)
 
-9. Background knowledge in computer science
+9. Background knowledge in computer science [cs_background.md](./sections/cs_background.md)
 
-10. Advanced topics (multi-modal and Omni, long context (memory), efficient transformer, reasoning agentic verification, self-evolution and boostrap)
-
-
-TODO: meta learning, meta and non-meta PL theory
+10. Advanced topics (multi-modal and Omni, long context (memory), efficient transformer, reasoning agentic verification, self-evolution and boostrap, meta learning) [adv_topics.md](./sections/adv_topics.md)
 
 
