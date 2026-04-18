@@ -33,6 +33,12 @@ def main() -> None:
         box=(170, 145, 555, 365),
         out_name="cnn_fig_4_6_receptive_field.png",
     )
+    extract_figure(
+        pdf,
+        page_index=78,
+        box=(215, 315, 580, 490),
+        out_name="cnn_fig_4_12_parameter_sharing_motivation.png",
+    )
 
 
 if __name__ == "__main__":

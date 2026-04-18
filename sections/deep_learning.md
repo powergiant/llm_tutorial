@@ -499,13 +499,15 @@ $$
 
 input numbers.
 
-![Figure 4.6: receptive field](../pictures/cnn_fig_4_6_receptive_field.png)
-
 The size $k_h \times k_w$ is called the **kernel size**. A common choice in image models is $3 \times 3$. Even though one layer only sees a small local region, stacking many convolutional layers increases the effective receptive field, so deeper layers can represent larger patterns.
+
+![Figure 4.6: receptive field](../pictures/cnn_fig_4_6_receptive_field.png)
 
 **Observation 2: the same pattern can appear in different places**
 
 The same local pattern may appear in different parts of the image. A beak detector should work whether the beak appears in the upper-left corner, near the center, or near the bottom of the image. Therefore, it is wasteful to learn a different detector for every spatial location.
+
+![Figure 4.12: each receptive field uses a beak detector](../pictures/cnn_fig_4_12_parameter_sharing_motivation.png)
 
 **Simplification 2: parameter sharing**
 
@@ -582,85 +584,139 @@ Pooling reduces spatial size, reduces computation, and makes later layers cheape
 
 ### A typical CNN
 
-A classical image classification CNN alternates convolution and pooling:
+A typical CNN for image classification has two parts:
+
+* a **feature extractor**, which uses convolution blocks to turn the raw image into feature maps;
+* a **classifier head**, which turns the final feature maps into class probabilities using MLP.
+
+The overall structure is
 
 $$
 \text{image}
 \rightarrow
-\text{convolution}
+\text{convolution block}
 \rightarrow
-\text{activation}
-\rightarrow
-\text{pooling}
+\text{convolution block}
 \rightarrow
 \cdots
 \rightarrow
 \text{flatten}
 \rightarrow
-\text{fully connected layers}
+\text{fully connected classifier}
 \rightarrow
 \text{softmax}.
 $$
 
-In practice, convolution layers usually include **stride** and **padding**. The stride controls how far the filter moves each step. A stride of $1$ moves the filter one pixel at a time; a stride of $2$ skips every other position and produces a smaller output. Padding adds extra values around the boundary of the image, often zeros. Padding is useful because otherwise patterns near the image boundary may be ignored, and the spatial size shrinks after each convolution.
-
-For the general case, let the padding be $(p_h,p_w)$ and the stride be $(s_h,s_w)$. After padding, write the padded input as $\tilde x$. Then
+Let the input image be
 
 $$
-z \in \mathbb{R}^{H' \times W' \times C_{\mathrm{out}}},
+h^{(0)} = x \in \mathbb{R}^{H_0 \times W_0 \times C_0}.
 $$
 
-where
+For an RGB image, $C_0=3$. A convolution block usually contains three operations:
 
 $$
-H' =
-\left\lfloor \frac{H + 2p_h - k_h}{s_h} \right\rfloor + 1,
-\qquad
-W' =
-\left\lfloor \frac{W + 2p_w - k_w}{s_w} \right\rfloor + 1.
+\text{convolution}
+\rightarrow
+\text{activation}
+\rightarrow
+\text{pooling}.
 $$
 
-The layer computes
+The convolution step produces new feature maps. If the input to layer $\ell$ is
 
 $$
-z_{i,j,m}
+h^{(\ell-1)}
+\in
+\mathbb{R}^{H_{\ell-1} \times W_{\ell-1} \times C_{\ell-1}},
+$$
+
+then a convolution with $C_\ell$ filters produces
+
+$$
+z^{(\ell)}
+\in
+\mathbb{R}^{H'_\ell \times W'_\ell \times C_\ell}.
+$$
+
+Each output channel is one feature map. Early feature maps may detect simple local patterns such as edges or colors. Later feature maps can combine earlier ones into more abstract patterns.
+
+After convolution, we apply a nonlinear activation, usually ReLU:
+
+$$
+a^{(\ell)}
 =
-\sum_{u=0}^{k_h-1}
-\sum_{v=0}^{k_w-1}
-\sum_{c=1}^{C_{\mathrm{in}}}
-K_{u,v,c,m}
-\,
-\tilde x_{i s_h + u,\, j s_w + v,\, c}
-+ b_m.
+\sigma(z^{(\ell)}),
+\qquad
+\sigma(t)=\max(t,0).
 $$
 
-With this notation, one CNN block has the form
+The activation is important because without nonlinearities, a stack of convolution layers would still be only a linear operation.
+
+Then pooling may reduce the spatial size:
 
 $$
 h^{(\ell)}
 =
-\operatorname{Pool}
+\operatorname{Pool}(a^{(\ell)}).
+$$
+
+Putting the block together,
+
+$$
+h^{(\ell)}
+=
+\operatorname{Pool}_{\ell}
 \left(
 \sigma
 \left(
-\operatorname{Conv}_{K^{(\ell)}, b^{(\ell)}}
-\left(h^{(\ell-1)}\right)
+\operatorname{Conv}_{K^{(\ell)}, b^{(\ell)}}(h^{(\ell-1)})
 \right)
-\right),
-$$
-
-where $h^{(0)}=x$, $\operatorname{Conv}$ applies the shared filters, $\sigma$ is a nonlinear activation such as ReLU, and $\operatorname{Pool}$ reduces spatial resolution. After several such blocks, the final feature maps are flattened into a vector and passed through fully connected layers:
-
-$$
-\hat y
-=
-\operatorname{softmax}
-\left(
-W \operatorname{flatten}(h^{(L)}) + b
 \right).
 $$
 
-The convolution layers extract local feature maps. Pooling reduces spatial size. Flattening turns the final feature maps into a vector. The final fully connected layers and softmax produce a probability distribution over classes.
+After several blocks, the tensor shape typically changes like
+
+$$
+H_0 \times W_0 \times 3
+\rightarrow
+H_1 \times W_1 \times C_1
+\rightarrow
+H_2 \times W_2 \times C_2
+\rightarrow
+\cdots
+\rightarrow
+H_L \times W_L \times C_L.
+$$
+
+Usually $H_\ell$ and $W_\ell$ decrease as the network goes deeper, while $C_\ell$ increases. This means the network gradually trades spatial resolution for a larger number of learned feature channels.
+
+For classification, the final feature tensor is turned into a vector:
+
+$$
+r = \operatorname{flatten}(h^{(L)}).
+$$
+
+The classifier head is usually one or more fully connected layers. In the simplest case,
+
+$$
+o
+=
+W r + b,
+\qquad
+o \in \mathbb{R}^{N_{\mathrm{class}}},
+$$
+
+where $o$ is the vector of **logits**. The softmax function converts logits into class probabilities:
+
+$$
+\hat y_c
+=
+\frac{\exp(o_c)}
+{\sum_{c'=1}^{N_{\mathrm{class}}} \exp(o_{c'})}.
+$$
+
+Thus, convolution layers learn local feature detectors, activation functions make the model nonlinear, pooling reduces spatial resolution, and the classifier head maps the final learned features to a probability distribution over classes.
 
 ## Recurrent neural network
 
