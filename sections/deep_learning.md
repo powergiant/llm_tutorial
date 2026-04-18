@@ -443,11 +443,9 @@ how to normalize each layer, layer normalization, batch normalization
 
 [1] Chapter 4
 
-### todo first explain some basic of image explain why mlp is too complicated, and CNN is to solve this problem
+### Images processing
 
-TODO: find or draw a picture to explain RGD
-
-Convolutional neural networks (CNNs) are designed for data with spatial or local structure, especially images. An image can be represented as a tensor
+Mathematically, an image can be represented as a tensor
 
 $$
 x \in \mathbb{R}^{H \times W \times C},
@@ -455,13 +453,31 @@ $$
 
 where $H$ is height, $W$ is width, and $C$ is the number of channels. For an RGB image, $C=3$.
 
-If we flatten the image and feed it into a fully connected layer, the number of parameters becomes very large. For example, an image of size $100 \times 100 \times 3$ has $30000$ input numbers. A fully connected layer with $1000$ neurons would need
+For example, an RGB image has three channels: red, green, and blue. Each pixel is represented by three numbers, one for each channel. These numbers describe how much red, green, and blue light should be mixed to display that pixel. In a common 8-bit image, each channel value is an integer between $0$ and $255$. Thus a pixel can be written as
 
 $$
-1000 \times 100 \times 100 \times 3
+(R, G, B).
 $$
 
-weights in the first layer alone. This gives the model high flexibility, but also makes it easy to overfit. CNNs reduce this parameter explosion by using the structure of images.
+For example, $(255, 0, 0)$ is pure red, $(0, 255, 0)$ is pure green, $(0, 0, 255)$ is pure blue, and $(0, 0, 0)$ is black.
+
+![RGB channel values combine to form one pixel color](../pictures/rgb_channels.png)
+
+An MLP processes vectors, so to feed an image into an MLP we usually first flatten the tensor into one long vector. For example, a $100 \times 100 \times 3$ image becomes a vector with
+
+$$
+100 \times 100 \times 3 = 30000
+$$
+
+input numbers. A fully connected layer with $1000$ hidden units would need
+
+$$
+1000 \times 30000 = 30000000
+$$
+
+weights in the first layer alone, not counting biases. This is expensive, but the deeper problem is that flattening destroys the two-dimensional geometry of the image. Two pixels that are neighbors in the image may become just two coordinates in a long vector, and the MLP has to learn from data that nearby pixels should be treated together.
+
+Thus, a plain MLP is usually too complicated for raw images: it has too many parameters, ignores the image geometry after flattening, and must relearn many simple spatial patterns from scratch. To solve this problem, we need a model architecture designed for image structure. This motivates convolutional neural networks (CNNs).
 
 ### Derivation of convolution from expressiveness analysis
 
