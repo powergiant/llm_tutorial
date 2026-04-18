@@ -6,7 +6,7 @@
 
 * Tasks, ground truth and loss function
 
-    regression, classification, generation
+    regression and classification (discrete label and continuous label)
 
 
 * Model
