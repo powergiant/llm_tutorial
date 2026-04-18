@@ -4,9 +4,15 @@ The ultimate goal is to cover everything required to reproduce Nemotron -- the s
 
 repository of Nemotron
 
-olmo
+Allenai: olmo
 
-shanghai ai lab
+Shanghai AI lab: daVinci-LLM
+
+LLM360: K2-V2
+
+SwissAI / Open LLM: Apertus
+
+deepseek, qwen, kimi, glm, gemma, gpt-oss
 
 1. Deep learning. [deep_learning.md](./sections/deep_learning.md)
 
@@ -30,9 +36,5 @@ shanghai ai lab
 
 
 TODO: meta learning, meta and non-meta PL theory
-
-# References
-
-[1] LeeDL Tutorial
 
 

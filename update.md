@@ -13,7 +13,6 @@ The goal is to make it clear what is already open and what work remains to fully
 
 ## Full Training Stack Of A General LLM
 
-
 - data sourcing, licensing, collection, cleaning, deduplication, filtering, and mixture design
 - tokenizer design and vocabulary construction
 - data formatting, document packing, sharding, and dataloading
