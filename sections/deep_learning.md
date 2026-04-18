@@ -461,7 +461,7 @@ $$
 
 For example, $(255, 0, 0)$ is pure red, $(0, 255, 0)$ is pure green, $(0, 0, 255)$ is pure blue, and $(0, 0, 0)$ is black.
 
-![RGB channel values combine to form one pixel color](../pictures/rgb_channels.png)
+![Red, green, and blue arrays combine to form an RGB image](../pictures/rgb_channels.png)
 
 An MLP processes vectors, so to feed an image into an MLP we usually first flatten the tensor into one long vector. For example, a $100 \times 100 \times 3$ image becomes a vector with
 
