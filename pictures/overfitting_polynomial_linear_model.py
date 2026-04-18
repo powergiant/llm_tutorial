@@ -28,14 +28,16 @@ def main() -> None:
     root = Path(__file__).resolve().parent
     output_path = root / "overfitting_polynomial_linear_model.png"
 
-    x_train = np.array([0.02, 0.08, 0.15, 0.23, 0.34, 0.5, 0.66, 0.79, 0.9, 0.97])
-    y_train = ground_truth(x_train) + rng.normal(0.0, 0.08, size=x_train.shape)
+    # Use a small, unevenly spaced sample so a high-degree polynomial fit
+    # becomes visibly unstable between noisy observations.
+    x_train = np.array([0.03, 0.08, 0.16, 0.27, 0.43, 0.61, 0.78, 0.92])
+    y_train = ground_truth(x_train) + rng.normal(0.0, 0.14, size=x_train.shape)
 
     x_plot = np.linspace(0.0, 1.0, 1200)
     y_true = ground_truth(x_plot)
 
     underfit_degree = 1
-    overfit_degree = 18
+    overfit_degree = 14
 
     y_underfit = fit_polynomial_features(x_train, y_train, underfit_degree, x_plot)
     y_overfit = fit_polynomial_features(x_train, y_train, overfit_degree, x_plot)
@@ -60,7 +62,7 @@ def main() -> None:
         ax.set_title(title)
         ax.set_xlabel("x")
         ax.set_xlim(0.0, 1.0)
-        ax.set_ylim(-2.8, 2.8)
+        ax.set_ylim(-4.0, 4.0)
         ax.grid(alpha=0.2)
 
     axes[0].set_ylabel("y")

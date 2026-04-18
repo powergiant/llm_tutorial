@@ -47,7 +47,7 @@ $$
 A standard **loss** for classification is cross-entropy:
 
 $$
-\begin{split}
+\begin{aligned}
 \mathcal{L}_{\mathrm{cls}}(\theta) =&
 - \frac{1}{N} \sum_{i=1}^{N}
 \mathbb{E}_{p(\cdot \mid x_i)} \log p_\theta(\cdot \mid x_i)
@@ -55,7 +55,7 @@ $$
 =&
 - \frac{1}{N} \sum_{i=1}^{N}
 \sum_{c=1}^C p(y_c \mid x_i) \log p_\theta(y_c \mid x_i).
-\end{split}
+\end{aligned}
 $$
 
 where $p(y \mid x_i) = \delta_{y = y_i}$ equals $1$ if $y$ is the ground truth label and $0$ otherwise.
@@ -119,63 +119,304 @@ Deep learning becomes necessary because many important problems require much ric
 
 # General deep learning problem
 
+[1] Chapter 3 + Auto-differentiation
+
 ## Multi-layer perceptron
 
-expressiveness consideration, a linear function cannot express complicated function. but many realistic functions are compositions of simple functions. multi-step problem/intrisic simplicity. like recognition of a cat, first what, then what, ... each step is a simple function, **multi-layer perceptron**
+From the viewpoint of expressiveness, linear models are limited because they only apply one affine map to the input. Many realistic functions are more naturally written as a composition of simple steps. For example, recognizing a cat may involve first detecting edges, then parts such as ears or eyes, and then assembling these local features into a final concept. This compositional structure motivates the **multi-layer perceptron (MLP)**.
 
-the formula of MLP, **weights** **biases**, **activation functions**
+An MLP alternates affine maps and nonlinear activation functions. For an $L$-layer MLP, we write
 
-draw a graph of MLP and explain weights correspond to edges and node correspond to activation functions
+$$
+\begin{aligned}
+&h^{(0)} = x,
+\\
+&z^{(\ell)} = W^{(\ell)} h^{(\ell-1)} + b^{(\ell)}, \qquad &&\ell = 1, \dots, L,
+\\
+&h^{(\ell)} = \sigma\bigl(z^{(\ell)}\bigr), \qquad &&\ell = 1, \dots, L-1,
+\end{aligned}
+$$
+
+and the final output is
+
+$$
+f_\theta(x) = z^{(L)} \quad \text{or} \quad f_\theta(x) = h^{(L)},
+$$
+
+depending on the task. Here $W^{(\ell)}$ are the weights, $b^{(\ell)}$ are the **biases**, and $\sigma$ is an **activation function** such as ReLU, sigmoid, or tanh.
+
+In a more compact form, $f_\theta(x)$ can be written as
+$$
+f_\theta(x) =
+W^{(L)}
+\sigma\!\Bigl(
+W^{(L-1)}
+\sigma\bigl(
+\cdots
+\sigma\bigl(
+W^{(1)} x + b^{(1)}
+\bigr)
+\cdots
+\bigr)
++ b^{(L-1)}
+\Bigr)
++ b^{(L)}.
+$$
+
+The key point is that the composition of many simple nonlinear steps can represent functions that are much more complicated than a single linear layer.
+
+The following picture shows a simple MLP. The **weights** correspond to the edges between layers, and each node applies an activation function to the weighted sum coming from the previous layer.
+
+![A simple multi-layer perceptron](../pictures/mlp_graph.png)
 
 
 ## Optimization
 
-[1] Chapter 3 + Auto-differentiation
-
 ### Full gradient descent
+
+In both regression and classification, the total loss can be written as a sum of local contributions from individual samples:
+
+$$
+\mathcal{L}(\theta) = \frac{1}{N} \sum_{i=1}^N \ell_i(\theta),
+$$
+
+where each term $\ell_i(\theta)$ depends only on the $i$-th sample $(x_i, y_i)$. For example, in regression,
+
+$$
+\ell_i(\theta) = \left( f_\theta(x_i) - y_i \right)^2,
+$$
+
+and in classification,
+
+$$
+\ell_i(\theta) = - \mathbb{E}_{p(\cdot \mid x_i)} \log p_\theta(\cdot \mid x_i).
+$$
+
+Because the full loss is a sum over all samples, its gradient is also a sum over all samples. **Full gradient descent** uses this exact full-data gradient at every update:
+
+$$
+\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t).
+$$
+
+This gives a stable and accurate descent direction, but every update is expensive because it requires one full pass over the dataset.
 
 ### Stochastic gradient descent 
 
-(batch, random batch)
+In **stochastic gradient descent (SGD)**, we replace the full gradient by the gradient on a randomly sampled mini-batch $B_t$:
+
+$$
+\theta_{t+1} = \theta_t - \eta \frac{1}{|B_t|} \sum_{i \in B_t} \nabla_\theta \ell\bigl(f_\theta(x_i), y_i\bigr).
+$$
+
+This makes each update much cheaper, which is essential for large datasets. The gradient estimate is noisy, but this noise is often helpful in practice because it can prevent the optimization from getting stuck too easily in bad regions.
 
 ### AdaGrad
 
-faster convergence
+AdaGrad changes the learning rate coordinate-wise according to past gradient magnitudes:
+
+$$
+g_t = \nabla_\theta \mathcal{L}(\theta_t), \qquad
+G_t = \sum_{s=1}^t g_s \odot g_s,
+$$
+
+where $\odot$ denotes element-wise multiplication.
+
+$$
+\theta_{t+1} = \theta_t - \eta \frac{g_t}{\sqrt{G_t} + \varepsilon}.
+$$
+
+Coordinates that have received many large gradients get smaller future steps, while rarely updated coordinates keep relatively large steps. This can speed up convergence, especially when different coordinates have very different scales.
 
 ### Momentum
 
-can avoid saddle points, see explanation below
+Momentum smooths the update direction by accumulating a running average of past gradients:
+
+$$
+v_{t+1} = \beta v_t + \nabla_\theta \mathcal{L}(\theta_t),
+$$
+
+$$
+\theta_{t+1} = \theta_t - \eta v_{t+1}.
+$$
+
+This helps accelerate movement along consistent directions and reduces oscillation across steep directions. In practice, it can also help optimization move through shallow saddle regions more effectively than plain gradient descent.
 
 
 
 ### Weight regularization
 
-SGD may have better generalization, weight regularization increase the generalization
+Weight regularization modifies the objective so that excessively large parameters are penalized. A standard choice is $\ell_2$ regularization:
+
+$$
+\mathcal{L}_{\mathrm{reg}}^{\lambda}(\theta)
+=
+\mathcal{L}(\theta) + \lambda \|\theta\|_2^2.
+$$
+
+This biases the optimizer toward smaller weights, which often improves generalization. In practice, plain SGD itself also has an implicit regularization effect, and explicit regularization is often used together with it.
 
 ### Adam/AdamW
 
+Adam combines momentum with coordinate-wise adaptive scaling. With
+
+$$
+g_t = \nabla_\theta \mathcal{L}(\theta_t),
+$$
+
+it keeps first and second moment estimates
+
+$$
+m_{t+1} = \beta_1 m_t + (1-\beta_1) g_t,
+$$
+
+$$
+v_{t+1} = \beta_2 v_t + (1-\beta_2) (g_t \odot g_t),
+$$
+
+and updates parameters using a normalized direction. Adam is usually easier to tune and converges faster early in training than plain SGD.
+
+AdamW separates weight decay from the adaptive gradient step, which makes the effect of regularization cleaner. This is the standard optimizer in much of modern deep learning, including large language models.
+
 ### Auto-differentiation
 
-we need to compute derivative
+Training requires computing gradients of the loss with respect to all parameters. For an MLP, these derivatives are computed by repeated application of the chain rule.
 
-explain how to use chain rule for mlp to compute derivative
+For example, if
 
-explain why and how this works for arbitrary computational graph, this is backward propagation
+$$
+z^{(\ell)} = W^{(\ell)} h^{(\ell-1)} + b^{(\ell)}, \qquad
+h^{(\ell)} = \sigma\bigl(z^{(\ell)}\bigr),
+$$
 
-explain what is numerical and symbolic derivative and why BP is much more efficient than numerical and symbolic derivative
+then the gradient at layer $\ell$ depends on the gradient from layer $\ell + 1$. If we define
+
+$$
+\delta^{(\ell)} = \frac{\partial \mathcal{L}}{\partial z^{(\ell)}},
+$$
+
+then the MLP backward recursion has the form
+
+$$
+\delta^{(\ell)}
+=
+\left( W^{(\ell+1)\top} \delta^{(\ell+1)} \right) \odot \sigma'\bigl(z^{(\ell)}\bigr),
+$$
+
+and parameter gradients are
+
+$$
+\frac{\partial \mathcal{L}}{\partial W^{(\ell)}} = \delta^{(\ell)} {h^{(\ell-1)}}^\top,
+\qquad
+\frac{\partial \mathcal{L}}{\partial b^{(\ell)}} = \delta^{(\ell)}.
+$$
+
+This same idea works for any computational graph, not just for MLPs. A computational graph is a directed acyclic graph whose nodes are intermediate variables and whose edges indicate data dependence. The left panel below shows a simple example:
+
+$$
+u = wx, \qquad s = u^2, \qquad t = u + b, \qquad \mathcal{L} = s + t.
+$$
+
+The important feature is that the variable $u$ is reused twice: once to form $s$ and once to form $t$. This is exactly why backward propagation must accumulate gradient contributions from multiple children.
+
+![Forward and backward computation graph](../pictures/computational_graph_backprop.png)
+
+Now write a general computation as intermediate variables
+
+$$
+v_1, v_2, \dots, v_m,
+$$
+
+where each node is computed from earlier nodes:
+
+$$
+v_j = \phi_j\bigl(v_{p_1(j)}, \dots, v_{p_{k_j}(j)}\bigr).
+$$
+
+Here $p_1(j), \dots, p_{k_j}(j)$ are the parents of node $j$, meaning the inputs needed to compute $v_j$. The final node is the loss
+
+$$
+v_m = \mathcal{L}.
+$$
+
+TODO: draw a local graph for the general case
+
+The **forward pass** computes all values $v_j$ in topological order and stores the intermediate quantities needed later. In the **backward pass**, we define the adjoint
+
+$$
+\bar v_j = \frac{\partial \mathcal{L}}{\partial v_j}.
+$$
+
+Since $\mathcal{L} = v_m$, the backward pass starts from
+
+$$
+\bar v_m = 1.
+$$
+
+Now consider a node $v_j$. Its value may be used by several later nodes, just like $u$ in the picture above. Therefore its derivative must collect contributions from every child that depends on it. If $\mathrm{child}(j)$ denotes the set of nodes that directly use $v_j$, then the chain rule gives
+
+$$
+\bar v_j
+=
+\sum_{k \in \mathrm{child}(j)}
+\bar v_k \frac{\partial v_k}{\partial v_j}.
+$$
+
+This is the general mathematical form of **backward propagation**. Each child node $k$ contributes a term
+
+$$
+\bar v_k \frac{\partial v_k}{\partial v_j},
+$$
+
+which measures how a perturbation in $v_j$ affects the loss through that child. The total derivative is the sum of all such routes from the loss back to $v_j$.
+
+This is efficient because each local derivative $\frac{\partial v_k}{\partial v_j}$ is computed only for directly connected nodes, and intermediate results from the forward pass are reused. The total cost of the backward pass is therefore usually only a small constant factor larger than the forward pass.
+
+TODO: count the complexity for the three cases, also in the BP case explain the forward value is stored (the diff between BP and SD)
+
+There are three common ways to compute derivatives:
+
+- **Numerical differentiation** perturbs one parameter at a time, for example
+  $$
+  \frac{\partial \mathcal{L}}{\partial \theta_i}
+  \approx
+  \frac{\mathcal{L}(\theta + \varepsilon e_i) - \mathcal{L}(\theta)}{\varepsilon}.
+  $$
+  This is simple but requires a separate forward evaluation for each parameter, so it is far too expensive for large models and is also numerically inaccurate.
+- **Symbolic differentiation** manipulates formulas exactly and applies the chain rule algebraically. This works for small expressions, but for large programs it often creates huge intermediate formulas.
+- **Automatic differentiation** keeps the program as a computational graph and applies the chain rule locally along that graph. It gives exact derivatives up to floating-point error and avoids the inefficiency of both finite differences and large symbolic expansions.
+
+For training neural networks, we therefore use reverse-mode automatic differentiation, which is exactly backpropagation.
 
 
 ## Design choice
+
+TODO: revise below according to 
 
 * expressiveness: neural network capture compositional structure and more expressive
 
 * convergence: worse than convex model but still often work
 
-    shape of loss landscope, SGD avoid some saddle points, but not all (think of optimal for most sample but a small portion). need Momentum. speed need AdaGrad
+    shape of loss landscope, SGD avoid some saddle points, but not all (think of optimal for most sample but a small por
+tion). need Momentum. speed need AdaGrad
 
     gradient vanishing/exposion resnet transformer see below
 
-* generalization: neural network seems to be overparametrization. but the sample are from low complexity ground truth function $f$, which can be approximated by small neural networks. and gradient prefer small neural networks. so actually not overparametrize. see below
+* generalization: neural network seems to be overparametrization. but the sample are from low complexity ground truth fu
+nction $f$, which can be approximated by small neural networks. and gradient prefer small neural networks. so actually n
+ot overparametrize. see below
+
+TODO: END
+
+
+Deep learning is a design choice that trades the clean theory of convex models for a much richer hypothesis class.
+
+From the viewpoint of **expressiveness**, neural networks are attractive because they capture compositional structure and can represent functions that are far outside the reach of simple convex models.
+
+From the viewpoint of **convergence**, deep models are harder than convex models because the loss landscape is non-convex. Even so, gradient-based methods such as SGD, momentum, and Adam often work surprisingly well in practice.
+
+From the viewpoint of **generalization**, modern neural networks are often highly overparameterized, but they still generalize well on many real tasks. Understanding why this happens is one of the main conceptual questions of deep learning.
+
+Later sections will revisit this tradeoff through specific architectures such as CNNs, RNNs, ResNets, and transformers.
 
 
 
@@ -201,7 +442,7 @@ TODO: basic proof of generalization, n data n param
 
 TODO: contradiction between them, overparametrization
 
-TODO: case studies of expressiveness, deep learning fits finite step function
+TODO: case studies of expressiveness, mlp fits finite step function, finite step boolean function
 
 TODO: case studies of expressiveness, cnn fits locality function, more efficient
 
