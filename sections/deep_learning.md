@@ -481,6 +481,8 @@ Thus, a plain MLP is usually too complicated for raw images: it has too many par
 
 ### Derivation of convolution from expressiveness analysis
 
+TODO: assume that we want to learn the ground truth function of an image. we know mlp is inefficient to approximate, now we use some observation of the common ground truth function to find more efficient
+
 **Observation 1: local patterns**
 
 Many important visual patterns can be detected from a small local region. To recognize a bird, for example, a model may first detect local patterns such as a beak, an eye, or a claw. Detecting these patterns does not require looking at the entire image.
@@ -580,6 +582,8 @@ LSTM
 * gradient vanishing along time direction -> attention
 
 # Basic machine learning theory
+
+TODO: linear transformer, mamba
 
 TODO: expressiveness, convergence and generalization
 
