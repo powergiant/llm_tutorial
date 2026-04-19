@@ -23,3 +23,5 @@ We need the following background:
 8. Multi-modal and physical models: [multimodal.md](./sections/multimodal.md)
 9. Background knowledge in computer science: [cs_background.md](./sections/cs_background.md)
 10. Advanced topics (multimodal and omni, long context and memory, efficient transformers, reasoning and verification, self-evolution and bootstrap, meta-learning): [adv_topics.md](./sections/adv_topics.md)
+
+For more detailed roadmap to a reproduction of the open source llm, see [roadmap.md](./roadmap.md)
