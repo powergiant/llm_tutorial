@@ -361,20 +361,26 @@ The key point is locality. To propagate gradients, we never differentiate the wh
 There are three common ways to compute derivatives:
 
 - **Numerical differentiation** perturbs one parameter at a time, for example
+
   $$
   \frac{\partial \mathcal{L}}{\partial \theta_i}
   \approx
   \frac{\mathcal{L}(\theta + \varepsilon e_i) - \mathcal{L}(\theta)}{\varepsilon}.
   $$
+  
   This is simple but very expensive. To compute the full gradient with respect to $d$ parameters, numerical differentiation needs roughly $d$ separate forward evaluations, one for each coordinate. When $d$ is large, this is far more expensive than training can afford, and the finite-difference approximation is also numerically unstable when $\varepsilon$ is too small or too large.
 - **Symbolic differentiation** manipulates formulas exactly and applies the chain rule algebraically. The problem is that intermediate formulas can become very large. A simple example is the recursion
+
   $$
   f_{n+1}(x) = f_n(x)\,f_n(x^2), \qquad f_0(x)=x.
   $$
+
   Then
+
   $$
   f'_{n+1}(x) = f_n'(x) f_n(x^2) + 2x f_n(x) f_n'(x^2).
   $$
+
   If we keep substituting the full symbolic expression for $f_n(x)$ and then for $f_{n-1}(x)$ and so on, the expression quickly becomes enormous, because the same subexpression is copied again and again. This repeated duplication of identical intermediate terms is the classical **term explosion** problem.
 
   The reason concrete values help is that once we evaluate an intermediate quantity numerically, we can store just its value instead of carrying around its full symbolic formula. For example, after computing a number for $f_n(x)$ at a given input $x$, the derivative formula only needs that number, not the entire expanded expression that produced it. Automatic differentiation exploits exactly this idea: it keeps intermediate values from the forward pass and reuses them during the backward pass, rather than repeatedly expanding symbolic formulas.
@@ -452,7 +458,7 @@ Here $n$ is the fan-in, the number of inputs to one neuron.
 - **Xavier initialization.** For activations like $\tanh$, a common choice is
 
   $$
-  \mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}+n_{\mathrm{out}}}.
+    \mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}+n_{\mathrm{out}}}.
   $$
 
   This balances the forward scale and backward gradient scale.
@@ -460,7 +466,7 @@ Here $n$ is the fan-in, the number of inputs to one neuron.
 - **He initialization.** For ReLU activations, roughly half of the units are inactive. A common choice is
 
   $$
-  \mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}}.
+    \mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}}.
   $$
 
   This compensates for the variance reduction caused by ReLU.
