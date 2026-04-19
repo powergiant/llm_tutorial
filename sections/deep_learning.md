@@ -788,7 +788,7 @@ The inference can be described by
   Convert logits into class probabilities:
 
   $$
-  \hat y_c
+  y_c
   =
   \frac{\exp(o_c)}
   {\sum_{c'=1}^{N_{\mathrm{class}}} \exp(o_{c'})}.
@@ -797,7 +797,7 @@ The inference can be described by
   The predicted class is usually chosen by
 
   $$
-  \hat c = \arg\max_c \hat y_c.
+  c = \arg\max_{c'} y_{c'}.
   $$
 
 Thus, the CNN inference pass transforms an image into local feature maps, repeatedly combines and downsamples those maps, then uses an MLP classifier to produce class probabilities.
@@ -808,7 +808,7 @@ Thus, the CNN inference pass transforms an image into local feature maps, repeat
 
 ### Seq2seq problem
 
-translation, nlp, decision, 
+TODO: translation, nlp, decision, 
 
 why AGI is a seq2seq problem? because it is a memory to action problem. Church-Turing thesis
 
@@ -816,13 +816,285 @@ input/output discrete actions
 
 input: one hot embedding, output: probability and sampling
 
+
+
+
+Recurrent neural networks (RNNs) are designed for data with **sequential structure**. In a sequence, the meaning of an element often depends on the elements before or after it.
+
+For example, in slot filling, we may hear the sentence
+
+$$
+\text{``arrive in Shanghai on June 1''}.
+$$
+
+The model should assign a label to each word, such as
+
+$$
+\text{Shanghai} \mapsto \text{destination},
+\qquad
+\text{June 1} \mapsto \text{arrival time}.
+$$
+
+The word "Shanghai" alone is not enough. In "arrive in Shanghai", it is a destination. In "leave Shanghai", it is a departure location. Therefore the model needs **memory** of the surrounding context.
+
+### Encoding discrete tokens
+
+A word or token is discrete, but a neural network expects vectors. A simple representation is **one-hot encoding**. If the vocabulary is
+
+$$
+\mathcal{V}=\{\text{apple},\text{bag},\text{cat},\text{dog},\text{elephant}\},
+$$
+
+then
+
+$$
+\text{apple}=(1,0,0,0,0),
+\qquad
+\text{cat}=(0,0,1,0,0).
+$$
+
+One-hot vectors are easy to define, but they are sparse and do not directly express similarity between words. In practice, we usually map tokens to dense vectors using an **embedding layer**:
+
+$$
+x_t = E e_t,
+$$
+
+where $e_t$ is the one-hot vector at time $t$, $E$ is an embedding matrix, and $x_t$ is the dense input vector to the sequence model.
+
 ### Simple RNN
 
-### Long-short memory
+Let the input sequence be
 
-LSTM
+$$
+x_1,x_2,\dots,x_T.
+$$
 
-### Long term memory
+A simple RNN maintains a hidden state $h_t$ as its memory. At each time step, it updates the hidden state using the current input and the previous hidden state:
+
+$$
+h_t
+=
+\phi(W_x x_t + W_h h_{t-1} + b_h),
+$$
+
+where $W_x$ maps the input into the hidden state, $W_h$ maps the previous hidden state into the next hidden state, $b_h$ is a bias, and $\phi$ is a nonlinear activation such as $\tanh$.
+
+The output at time $t$ is computed from the hidden state:
+
+$$
+o_t = W_y h_t + b_y,
+\qquad
+\hat y_t = \operatorname{softmax}(o_t).
+$$
+
+The key point is that the same input $x_t$ can produce different outputs depending on $h_{t-1}$. This is how an RNN can distinguish "arrive in Shanghai" from "leave Shanghai".
+
+The same parameters $W_x,W_h,W_y$ are reused at every time step. If we unroll the RNN through time, it looks like a deep network whose layers share parameters:
+
+$$
+h_1 \rightarrow h_2 \rightarrow \cdots \rightarrow h_T.
+$$
+
+### RNN variants
+
+RNN architectures can be modified in several ways.
+
+* **Deep RNN.** Instead of one recurrent layer, we stack several recurrent layers:
+
+$$
+h_t^{(1)}
+=
+\phi(W_x^{(1)}x_t + W_h^{(1)}h_{t-1}^{(1)} + b^{(1)}),
+$$
+
+$$
+h_t^{(\ell)}
+=
+\phi(W_x^{(\ell)}h_t^{(\ell-1)} + W_h^{(\ell)}h_{t-1}^{(\ell)} + b^{(\ell)}),
+\qquad
+\ell=2,\dots,L.
+$$
+
+* **Elman network.** This is the standard simple RNN: the hidden state is fed back into the next time step.
+
+* **Jordan network.** Instead of feeding back the hidden state, the previous output is fed back:
+
+$$
+h_t = \phi(W_x x_t + W_y y_{t-1} + b_h).
+$$
+
+* **Bidirectional RNN.** Some tasks benefit from both past and future context. A bidirectional RNN runs one RNN forward and another backward:
+
+$$
+\overrightarrow h_t
+=
+f_{\rightarrow}(x_t,\overrightarrow h_{t-1}),
+\qquad
+\overleftarrow h_t
+=
+f_{\leftarrow}(x_t,\overleftarrow h_{t+1}).
+$$
+
+The prediction uses both directions:
+
+$$
+\hat y_t
+=
+\operatorname{softmax}
+\left(
+W_y[\overrightarrow h_t;\overleftarrow h_t] + b_y
+\right).
+$$
+
+This is useful for sequence labeling, because the label of a word may depend on words before and after it.
+
+### LSTM
+
+Simple RNNs have difficulty storing information for a long time. The hidden state is overwritten at every step, and gradients must pass through many repeated applications of $W_h$. This can cause vanishing or exploding gradients.
+
+Long short-term memory networks (LSTMs) replace the simple hidden state update with a gated memory cell. An LSTM keeps a cell state $c_t$ and uses gates to decide what to write, what to forget, and what to output.
+
+Given input $x_t$ and previous hidden state $h_{t-1}$, define
+
+$$
+\begin{aligned}
+i_t &= \sigma(W_i x_t + U_i h_{t-1} + b_i), &&\text{input gate},\\
+f_t &= \sigma(W_f x_t + U_f h_{t-1} + b_f), &&\text{forget gate},\\
+o_t &= \sigma(W_o x_t + U_o h_{t-1} + b_o), &&\text{output gate},\\
+\tilde c_t &= \tanh(W_c x_t + U_c h_{t-1} + b_c), &&\text{candidate memory}.
+\end{aligned}
+$$
+
+The cell state and hidden state are updated by
+
+$$
+c_t
+=
+f_t \odot c_{t-1}
++
+i_t \odot \tilde c_t,
+$$
+
+$$
+h_t
+=
+o_t \odot \tanh(c_t).
+$$
+
+Here $\odot$ means elementwise multiplication. The input gate controls how much new information is written. The forget gate controls how much old memory is kept. The output gate controls how much of the memory is exposed as the hidden state.
+
+The important structural difference is the additive update
+
+$$
+c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t.
+$$
+
+Because information can pass through the cell state additively, LSTMs are better at preserving long-term information than simple RNNs.
+
+GRU, or gated recurrent unit, is a simplified gated RNN. It uses fewer gates than LSTM and has fewer parameters, but often performs similarly in practice.
+
+### Learning RNNs
+
+For sequence labeling, the model produces an output distribution at each time step. If the target label at time $t$ is $y_t$, a standard loss is the sum of cross-entropies:
+
+$$
+\mathcal{L}(\theta)
+=
+\sum_{t=1}^{T}
+\ell_t(\theta)
+=
+-
+\sum_{t=1}^{T}
+\log p_\theta(y_t\mid x_1,\dots,x_t).
+$$
+
+For a bidirectional RNN, the probability can depend on the full sequence:
+
+$$
+p_\theta(y_t\mid x_1,\dots,x_T).
+$$
+
+Training uses **backpropagation through time** (BPTT). We unroll the RNN over time, compute the loss, and backpropagate through the unrolled computational graph. The difference from ordinary backpropagation is that the same recurrent parameters are reused at every time step, so their gradients accumulate across time.
+
+RNN training can be unstable. Gradients may become very small or very large because the same transition matrix is repeatedly applied through time. A simple way to control exploding gradients is **gradient clipping**:
+
+$$
+g
+\leftarrow
+\begin{cases}
+g, & \|g\|\le \tau,\\
+\tau \dfrac{g}{\|g\|}, & \|g\|>\tau,
+\end{cases}
+$$
+
+where $g$ is the gradient vector and $\tau$ is a chosen threshold. Clipping does not solve vanishing gradients, but it prevents very large updates from destroying training. LSTM and GRU help with long-term memory and vanishing gradients.
+
+### Sequence tasks
+
+RNNs can be used in several input-output patterns.
+
+* **Many-to-many with the same length.** Slot filling and part-of-speech tagging take one label per token:
+
+$$
+(x_1,\dots,x_T)
+\mapsto
+(\hat y_1,\dots,\hat y_T).
+$$
+
+* **Many-to-one.** Sentiment analysis reads a whole sequence and outputs one label:
+
+$$
+(x_1,\dots,x_T)
+\mapsto
+\hat y.
+$$
+
+Usually we use the final hidden state, or a pooled version of all hidden states:
+
+$$
+\hat y
+=
+\operatorname{softmax}(W h_T + b).
+$$
+
+* **Many-to-many with different lengths.** Speech recognition has a long input sequence of acoustic frames but a shorter output sequence of characters or words. One method is CTC, which adds a blank or null symbol and then removes blanks and repeated symbols after decoding.
+
+* **Sequence-to-sequence.** Machine translation maps one sequence to another sequence whose length is not known in advance:
+
+$$
+(x_1,\dots,x_T)
+\mapsto
+(\hat y_1,\dots,\hat y_S).
+$$
+
+A classical RNN seq2seq model has an **encoder** and a **decoder**. The encoder reads the input sequence:
+
+$$
+h_t^{\mathrm{enc}}
+=
+f_{\mathrm{enc}}(x_t,h_{t-1}^{\mathrm{enc}}).
+$$
+
+The final encoder state summarizes the input. The decoder then generates one output token at a time:
+
+$$
+h_s^{\mathrm{dec}}
+=
+f_{\mathrm{dec}}(y_{s-1},h_{s-1}^{\mathrm{dec}}),
+$$
+
+$$
+p(y_s\mid y_{<s},x_{1:T})
+=
+\operatorname{softmax}(W h_s^{\mathrm{dec}}+b).
+$$
+
+Generation stops when the decoder outputs a special end token.
+
+### Limitation
+
+RNNs process sequences step by step. This gives them a natural memory mechanism, but it also makes long-range dependency learning difficult and prevents full parallelization over time. These limitations motivate attention mechanisms and transformers.
+
 
 explosion of hidden state, memory, either forget or explosion
 
