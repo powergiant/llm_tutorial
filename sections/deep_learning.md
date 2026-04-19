@@ -1309,7 +1309,7 @@ $$
 h_1 \rightarrow h_2 \rightarrow \cdots \rightarrow h_T.
 $$
 
-TODO: add a picture to demonstrate the RNN structure
+![Unrolled RNN structure with shared recurrent parameters](../pictures/rnn_structure.png)
 
 ### RNN variants
 
@@ -1831,6 +1831,8 @@ p(t_1,\ldots,t_T)
 $$
 
 The whole model is built from token embeddings, positional information, causal self-attention, feed-forward networks, residual connections, and normalization.
+
+![Demonstration of transformer](../pictures/transformer.png)
 
 - **Tokenization.** Raw text is first converted into discrete tokens:
 
