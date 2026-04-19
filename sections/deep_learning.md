@@ -452,9 +452,7 @@ Here $n$ is the fan-in, the number of inputs to one neuron.
 - **Xavier initialization.** For activations like $\tanh$, a common choice is
 
   $$
-  \mathrm{Var}(W_{ij})
-  =
-  \frac{2}{n_{\mathrm{in}}+n_{\mathrm{out}}}.
+  \mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}+n_{\mathrm{out}}}.
   $$
 
   This balances the forward scale and backward gradient scale.
@@ -462,9 +460,7 @@ Here $n$ is the fan-in, the number of inputs to one neuron.
 - **He initialization.** For ReLU activations, roughly half of the units are inactive. A common choice is
 
   $$
-  \mathrm{Var}(W_{ij})
-  =
-  \frac{2}{n_{\mathrm{in}}}.
+  \mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}}.
   $$
 
   This compensates for the variance reduction caused by ReLU.
@@ -488,25 +484,17 @@ where $\mu$ and $\sigma^2$ are a mean and variance computed from some group of a
 - **Batch normalization.** For a mini-batch of activations, batch normalization computes statistics across the batch. For one feature dimension $k$,
 
   $$
-  \mu_k
-  =
-  \frac{1}{m}\sum_{i=1}^{m}x_{i,k},
+  \mu_k=\frac{1}{m}\sum_{i=1}^{m}x_{i,k},
   \qquad
-  \sigma_k^2
-  =
-  \frac{1}{m}\sum_{i=1}^{m}(x_{i,k}-\mu_k)^2.
+  \sigma_k^2=\frac{1}{m}\sum_{i=1}^{m}(x_{i,k}-\mu_k)^2.
   $$
 
   Then
 
   $$
-  \hat{x}_{i,k}
-  =
-  \frac{x_{i,k}-\mu_k}{\sqrt{\sigma_k^2+\varepsilon}},
+  \hat{x}_{i,k}=\frac{x_{i,k}-\mu_k}{\sqrt{\sigma_k^2+\varepsilon}},
   \qquad
-  y_{i,k}
-  =
-  \gamma_k \hat{x}_{i,k}+\beta_k.
+  y_{i,k}=\gamma_k \hat{x}_{i,k}+\beta_k.
   $$
 
   Batch normalization is common in CNNs. It works well when batch statistics are reliable, but it depends on the batch size and behaves differently during training and inference.
@@ -520,25 +508,17 @@ where $\mu$ and $\sigma^2$ are a mean and variance computed from some group of a
   then
 
   $$
-  \mu_i
-  =
-  \frac{1}{d}\sum_{k=1}^{d}x_{i,k},
+  \mu_i=\frac{1}{d}\sum_{k=1}^{d}x_{i,k},
   \qquad
-  \sigma_i^2
-  =
-  \frac{1}{d}\sum_{k=1}^{d}(x_{i,k}-\mu_i)^2.
+  \sigma_i^2=\frac{1}{d}\sum_{k=1}^{d}(x_{i,k}-\mu_i)^2.
   $$
 
   Then
 
   $$
-  \hat{x}_{i,k}
-  =
-  \frac{x_{i,k}-\mu_i}{\sqrt{\sigma_i^2+\varepsilon}},
+  \hat{x}_{i,k}=\frac{x_{i,k}-\mu_i}{\sqrt{\sigma_i^2+\varepsilon}},
   \qquad
-  y_{i,k}
-  =
-  \gamma_k \hat{x}_{i,k}+\beta_k.
+  y_{i,k}=\gamma_k \hat{x}_{i,k}+\beta_k.
   $$
 
   Layer normalization is common in transformers because it does not depend on batch statistics. Each token representation can be normalized independently, which is convenient for sequence models and autoregressive generation.
@@ -550,9 +530,7 @@ In short, initialization controls the scale at the beginning of training, while 
 - **Learning-rate schedule.** The learning rate controls the step size of each parameter update:
 
   $$
-  \theta_{t+1}
-  =
-  \theta_t - \eta_t \nabla_\theta \mathcal{L}(\theta_t).
+  \theta_{t+1}=\theta_t - \eta_t \nabla_\theta \mathcal{L}(\theta_t).
   $$
 
   Here $\eta_t$ is the learning rate at step $t$. If $\eta_t$ is too large, training may be unstable; if it is too small, training may be very slow. A learning-rate schedule chooses how $\eta_t$ changes during training.
@@ -560,9 +538,7 @@ In short, initialization controls the scale at the beginning of training, while 
   - **Warmup.** At the beginning of training, the model parameters and optimizer statistics are not stable yet. Warmup starts with a small learning rate and gradually increases it:
 
     $$
-    \eta_t
-    =
-    \eta_{\max}\frac{t}{T_{\mathrm{warmup}}},
+    \eta_t=\eta_{\max}\frac{t}{T_{\mathrm{warmup}}},
     \qquad
     0 \le t \le T_{\mathrm{warmup}}.
     $$
@@ -588,9 +564,7 @@ In short, initialization controls the scale at the beginning of training, while 
   - **Cosine decay.** Cosine decay decreases the learning rate smoothly:
 
     $$
-    \eta_t
-    =
-    \eta_{\min}
+    \eta_t=\eta_{\min}
     +
     \frac{1}{2}(\eta_{\max}-\eta_{\min})
     \left(
@@ -607,9 +581,7 @@ In short, initialization controls the scale at the beginning of training, while 
 - **Batch size.** The batch size is the number of training examples used to estimate one gradient update. If the loss on one example is $\mathcal{L}_i(\theta)$, then a mini-batch gradient is
 
   $$
-  g_B
-  =
-  \frac{1}{B}
+  g_B=\frac{1}{B}
   \sum_{i\in \mathcal{B}}
   \nabla_\theta \mathcal{L}_i(\theta),
   $$
@@ -625,9 +597,7 @@ In short, initialization controls the scale at the beginning of training, while 
   When increasing batch size, a common heuristic is the **linear scaling rule**:
 
   $$
-  \eta_{\mathrm{new}}
-  =
-  \eta_{\mathrm{old}}
+  \eta_{\mathrm{new}}=\eta_{\mathrm{old}}
   \frac{B_{\mathrm{new}}}{B_{\mathrm{old}}}.
   $$
 
@@ -638,9 +608,7 @@ In short, initialization controls the scale at the beginning of training, while 
   - **Weight decay.** Weight decay penalizes large weights. A common form adds an $\ell_2$ penalty to the training objective:
 
     $$
-    \mathcal{L}_{\mathrm{reg}}(\theta)
-    =
-    \mathcal{L}(\theta)
+    \mathcal{L}_{\mathrm{reg}}(\theta)=\mathcal{L}(\theta)
     +
     \lambda \|\theta\|_2^2.
     $$
@@ -660,9 +628,7 @@ In short, initialization controls the scale at the beginning of training, while 
   - **Label smoothing.** In classification, the target label is often represented as a one-hot vector. Label smoothing replaces the hard target with a softened target:
 
     $$
-    y_k^{\mathrm{smooth}}
-    =
-    (1-\varepsilon)y_k
+    y_k^{\mathrm{smooth}}=(1-\varepsilon)y_k
     +
     \frac{\varepsilon}{K},
     $$
@@ -851,9 +817,7 @@ The inference can be described by
 * **Step 1: Input image.** Start from an image tensor
 
   $$
-  h^{(0)}
-  =
-  x
+  h^{(0)}=x
   \in
   \mathbb{R}^{H_0 \times W_0 \times C_0}.
   $$
@@ -871,9 +835,7 @@ The inference can be described by
   Applying $C_\ell$ shared filters gives pre-activation feature maps
 
   $$
-  z^{(\ell)}
-  =
-  \mathrm{Conv}_{K^{(\ell)}, b^{(\ell)}}(h^{(\ell-1)})
+  z^{(\ell)}=\mathrm{Conv}_{K^{(\ell)}, b^{(\ell)}}(h^{(\ell-1)})
   \in
   \mathbb{R}^{H'_\ell \times W'_\ell \times C_\ell}.
   $$
@@ -881,9 +843,7 @@ The inference can be described by
   More explicitly, for output channel $m$,
 
   $$
-  z^{(\ell)}_{i,j,m}
-  =
-  \sum_{u=0}^{k_h-1}
+  z^{(\ell)}_{i,j,m}=\sum_{u=0}^{k_h-1}
   \sum_{v=0}^{k_w-1}
   \sum_{c=1}^{C_{\ell-1}}
   K^{(\ell)}_{u,v,c,m}
@@ -896,9 +856,7 @@ The inference can be described by
 
   If you think $z^{(\ell)}_{i,j}$, $b^{(\ell)}$ as vectors with index $m$, $h^{(\ell-1)}_{i s_h + u,\, j s_w + v}$ as vectors with index $c$ and $K^{(\ell)}_{u,v}$ matrix with index $c, m$, then the above formula can be rewritten as 
   $$
-  z^{(\ell)}_{i,j}
-  =
-  \sum_{u=0}^{k_h-1}
+  z^{(\ell)}_{i,j}=\sum_{u=0}^{k_h-1}
   \sum_{v=0}^{k_w-1}
   K^{(\ell)}_{u,v}
   \,
@@ -923,16 +881,12 @@ The inference can be described by
   Therefore the output spatial size after convolution is
 
   $$
-  H'_\ell
-  =
-  \left\lfloor
+  H'_\ell=\left\lfloor
   \frac{H_{\ell-1}+2p_h-k_h}{s_h}
   \right\rfloor
   +1,
   \qquad
-  W'_\ell
-  =
-  \left\lfloor
+  W'_\ell=\left\lfloor
   \frac{W_{\ell-1}+2p_w-k_w}{s_w}
   \right\rfloor
   +1.
@@ -943,9 +897,7 @@ The inference can be described by
 * **Step 3: activation.** Apply a nonlinear function elementwise:
 
   $$
-  a^{(\ell)}
-  =
-  \sigma(z^{(\ell)}).
+  a^{(\ell)}=\sigma(z^{(\ell)}).
   $$
 
   A common choice is ReLU:
@@ -959,9 +911,7 @@ The inference can be described by
 * **Step 4: pooling or downsampling.** Pooling reduces the spatial resolution:
 
   $$
-  h^{(\ell)}
-  =
-  \mathrm{Pool}_{\ell}(a^{(\ell)})
+  h^{(\ell)}=\mathrm{Pool}_{\ell}(a^{(\ell)})
   \in
   \mathbb{R}^{H_\ell \times W_\ell \times C_\ell}.
   $$
@@ -969,9 +919,7 @@ The inference can be described by
   For example, max pooling over a local region $R_{i,j}$ computes
 
   $$
-  h^{(\ell)}_{i,j,c}
-  =
-  \max_{(a,b)\in R_{i,j}}
+  h^{(\ell)}_{i,j,c}=\max_{(a,b)\in R_{i,j}}
   a^{(\ell)}_{a,b,c}.
   $$
 
@@ -980,9 +928,7 @@ The inference can be described by
 * **Step 5: repeat convolution blocks.** A full convolution block is
 
   $$
-  h^{(\ell)}
-  =
-  \mathrm{Pool}_{\ell}
+  h^{(\ell)}=\mathrm{Pool}_{\ell}
   \left(
   \sigma
   \left(
@@ -1008,9 +954,7 @@ The inference can be described by
 * **Step 6: flatten.** Convert the final feature tensor into a vector:
 
   $$
-  r
-  =
-  \mathrm{flatten}(h^{(L)})
+  r=\mathrm{flatten}(h^{(L)})
   \in
   \mathbb{R}^{H_L W_L C_L}.
   $$
@@ -1020,9 +964,7 @@ The inference can be described by
   Feed the vector into an MLP classifier. With one linear classifier layer,
 
   $$
-  o
-  =
-  W r + b,
+  o=W r + b,
   \qquad
   o \in \mathbb{R}^{N_{\mathrm{class}}},
   $$
@@ -1034,9 +976,7 @@ The inference can be described by
   Convert logits into class probabilities:
 
   $$
-  y_c
-  =
-  \frac{\exp(o_c)}
+  y_c=\frac{\exp(o_c)}
   {\sum_{c'=1}^{N_{\mathrm{class}}} \exp(o_{c'})}.
   $$
 
@@ -1885,9 +1825,7 @@ The whole model is built from token embeddings, positional information, causal s
   \begin{pmatrix}
   \widetilde{q}_{i,2r} \\
   \widetilde{q}_{i,2r+1}
-  \end{pmatrix}
-  =
-  \begin{pmatrix}
+  \end{pmatrix}=\begin{pmatrix}
   \cos(i\theta_r) & -\sin(i\theta_r) \\
   \sin(i\theta_r) & \cos(i\theta_r)
   \end{pmatrix}
@@ -1903,9 +1841,7 @@ The whole model is built from token embeddings, positional information, causal s
   \begin{pmatrix}
   \widetilde{k}_{j,2r} \\
   \widetilde{k}_{j,2r+1}
-  \end{pmatrix}
-  =
-  \begin{pmatrix}
+  \end{pmatrix}=\begin{pmatrix}
   \cos(j\theta_r) & -\sin(j\theta_r) \\
   \sin(j\theta_r) & \cos(j\theta_r)
   \end{pmatrix}
@@ -1918,17 +1854,13 @@ The whole model is built from token embeddings, positional information, causal s
   Then attention uses the rotated query and key:
 
   $$
-  s_{i,j}
-  =
-  \frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
+  s_{i,j}=\frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
   $$
 
   RoPE makes the query-key interaction depend on relative position, because
 
   $$
-  (R_i q_i)^\top(R_j k_j)
-  =
-  q_i^\top R_{j-i}k_j.
+  (R_i q_i)^\top(R_j k_j)=q_i^\top R_{j-i}k_j.
   $$
 
   The frequencies are usually chosen at different scales, for example
@@ -1958,9 +1890,7 @@ The whole model is built from token embeddings, positional information, causal s
   If RoPE is used, replace $q_i,k_j$ by $\widetilde{q}_i,\widetilde{k}_j$ in the same formula. The attention output is
 
   $$
-  B
-  =
-  \mathrm{softmax}(S)V,
+  B=\mathrm{softmax}(S)V,
   $$
 
   where future positions have zero probability because their scores are $-\infty$.
@@ -1968,9 +1898,7 @@ The whole model is built from token embeddings, positional information, causal s
 - **Transformer block.** A decoder-only transformer stacks many identical blocks. A common pre-normalization form is
 
   $$
-  \widetilde{H}^{(\ell)}
-  =
-  H^{(\ell-1)}
+  \widetilde{H}^{(\ell)}=H^{(\ell-1)}
   +
   \mathrm{CausalMHA}
   \left(
@@ -1981,9 +1909,7 @@ The whole model is built from token embeddings, positional information, causal s
   followed by a position-wise feed-forward network:
 
   $$
-  H^{(\ell)}
-  =
-  \widetilde{H}^{(\ell)}
+  H^{(\ell)}=\widetilde{H}^{(\ell)}
   +
   \mathrm{FFN}
   \left(
@@ -1994,9 +1920,7 @@ The whole model is built from token embeddings, positional information, causal s
   The feed-forward network is applied independently to each token position:
 
   $$
-  \mathrm{FFN}(z)
-  =
-  W_2 \sigma(W_1 z + b_1) + b_2.
+  \mathrm{FFN}(z)=W_2 \sigma(W_1 z + b_1) + b_2.
   $$
 
   After $L$ layers, the final hidden states are
@@ -2014,17 +1938,13 @@ The whole model is built from token embeddings, positional information, causal s
   The hidden state at position $i$ predicts the next token:
 
   $$
-  p(t_{i+1} \mid t_{\le i})
-  =
-  \mathrm{softmax}(o_i).
+  p(t_{i+1} \mid t_{\le i})=\mathrm{softmax}(o_i).
   $$
 
   At inference time, a concrete next token can be chosen by greedy decoding,
 
   $$
-  t_{i+1}
-  =
-  \arg\max_t p(t \mid t_{\le i}),
+  t_{i+1}=\arg\max_t p(t \mid t_{\le i}),
   $$
 
   or by sampling from the distribution. The generated token is appended to the context, and the same process repeats.
@@ -2032,9 +1952,7 @@ The whole model is built from token embeddings, positional information, causal s
 - **Training.** During training, the correct prefix tokens are given to the model. The loss is the sum of next-token cross-entropies:
 
   $$
-  \mathcal{L}
-  =
-  -
+  \mathcal{L}=-
   \sum_{i=1}^{T-1}
   \log p(t_{i+1}^\ast \mid t_{\le i}^\ast).
   $$
@@ -2058,9 +1976,7 @@ The whole model is built from token embeddings, positional information, causal s
   Then all pairwise scores are computed by one matrix multiplication:
 
   $$
-  S
-  =
-  \frac{QK^\top}{\sqrt{d_k}}.
+  S=\frac{QK^\top}{\sqrt{d_k}}.
   $$
 
   Even with a causal mask, all positions can be trained in parallel:
@@ -2129,9 +2045,7 @@ These principles explain the design of several important architectures.
   The identity path makes the layer-to-layer transformation closer to norm-preserving. If the residual term $F_\ell$ is small, then the Jacobian of the block is close to the identity matrix:
 
   $$
-  \frac{\partial h_{\ell+1}}{\partial h_\ell}
-  =
-  I + \frac{\partial F_\ell}{\partial h_\ell}.
+  \frac{\partial h_{\ell+1}}{\partial h_\ell}=I + \frac{\partial F_\ell}{\partial h_\ell}.
   $$
 
   Thus the gradient norm is more likely to stay close to one as it passes through many layers. This helps avoid both gradient vanishing and gradient explosion, making very deep networks easier to train.
