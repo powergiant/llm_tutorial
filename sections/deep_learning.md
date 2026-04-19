@@ -829,6 +829,7 @@ The inference can be described by
   Each output channel $m$ is a feature map. Early layers may detect simple patterns such as edges, while deeper layers combine these into more abstract patterns. 
 
   If you think $z^{(\ell)}_{i,j}$, $b^{(\ell)}$ as vectors with index $m$, $h^{(\ell-1)}_{i s_h + u,\, j s_w + v}$ as vectors with index $c$ and $K^{(\ell)}_{u,v}$ matrix with index $c, m$, then the above formula can be rewritten as 
+
   $$z^{(\ell)}_{i,j}=\sum_{u=0}^{k_h-1}
   \sum_{v=0}^{k_w-1}
   K^{(\ell)}_{u,v}
@@ -878,15 +879,12 @@ The inference can be described by
 
 * **Step 4: pooling or downsampling.** Pooling reduces the spatial resolution:
 
-  $$h^{(\ell)}=\mathrm{Pool}_{\ell}(a^{(\ell)})
-  \in
-  \mathbb{R}^{H_\ell \times W_\ell \times C_\ell}.
+  $$h^{(\ell)}=\mathrm{Pool}_{\ell}(a^{(\ell)})\in\mathbb{R}^{H_\ell \times W_\ell \times C_\ell}.
   $$
 
   For example, max pooling over a local region $R_{i,j}$ computes
 
-  $$h^{(\ell)}_{i,j,c}=\max_{(a,b)\in R_{i,j}}
-  a^{(\ell)}_{a,b,c}.
+  $$h^{(\ell)}_{i,j,c}=\max_{(a,b)\in R_{i,j}}a^{(\ell)}_{a,b,c}.
   $$
 
   Pooling keeps the channel number the same but usually makes $H_\ell$ and $W_\ell$ smaller.
