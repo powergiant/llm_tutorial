@@ -148,6 +148,7 @@ p_\theta(y_c \mid x)=\frac{\exp(z_c)}{\sum_{c'=1}^C \exp(z_{c'})}.
 $$
 
 In a more compact form, $f_\theta(x)$ can be written as
+
 $$
 f_\theta(x) = W^{(L)} \sigma \Bigl(W^{(L-1)}\sigma\bigl(\cdots\sigma\bigl(W^{(1)} x + b^{(1)}\bigr)\cdots\bigr)+ b^{(L-1)}\Bigr)+ b^{(L)}.
 $$
