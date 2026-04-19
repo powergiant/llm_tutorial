@@ -139,7 +139,7 @@ $$
 f_\theta(x) = z^{(L)} \quad \text{or} \quad f_\theta(x) = h^{(L)},
 $$
 
-depending on the task. Here $W^{(\ell)}$ are the weights, $b^{(\ell)}$ are the **biases**, and $\sigma$ is an **activation function** such as **ReLU** $(\operatorname{ReLU}(x)=\max(x,0))$, **sigmoid** $(\sigma(x)=\frac{1}{1+e^{-x}})$, or **tanh**.
+depending on the task. Here $W^{(\ell)}$ are the weights, $b^{(\ell)}$ are the **biases**, and $\sigma$ is an **activation function** such as **ReLU** $(\mathrm{ReLU}(x)=\max(x,0))$, **sigmoid** $(\sigma(x)=\frac{1}{1+e^{-x}})$, or **tanh**.
 
 For classification, the output of the final layer is usually called the **logits**. These logits are then converted into a probability distribution over classes by the softmax function:
 
@@ -903,7 +903,7 @@ The inference can be described by
   $$
   z^{(\ell)}
   =
-  \operatorname{Conv}_{K^{(\ell)}, b^{(\ell)}}(h^{(\ell-1)})
+  \mathrm{Conv}_{K^{(\ell)}, b^{(\ell)}}(h^{(\ell-1)})
   \in
   \mathbb{R}^{H'_\ell \times W'_\ell \times C_\ell}.
   $$
@@ -991,7 +991,7 @@ The inference can be described by
   $$
   h^{(\ell)}
   =
-  \operatorname{Pool}_{\ell}(a^{(\ell)})
+  \mathrm{Pool}_{\ell}(a^{(\ell)})
   \in
   \mathbb{R}^{H_\ell \times W_\ell \times C_\ell}.
   $$
@@ -1012,11 +1012,11 @@ The inference can be described by
   $$
   h^{(\ell)}
   =
-  \operatorname{Pool}_{\ell}
+  \mathrm{Pool}_{\ell}
   \left(
   \sigma
   \left(
-  \operatorname{Conv}_{K^{(\ell)}, b^{(\ell)}}(h^{(\ell-1)})
+  \mathrm{Conv}_{K^{(\ell)}, b^{(\ell)}}(h^{(\ell-1)})
   \right)
   \right).
   $$
@@ -1040,7 +1040,7 @@ The inference can be described by
   $$
   r
   =
-  \operatorname{flatten}(h^{(L)})
+  \mathrm{flatten}(h^{(L)})
   \in
   \mathbb{R}^{H_L W_L C_L}.
   $$
@@ -1296,7 +1296,7 @@ The output at time $t$ is computed from the hidden state:
 $$
 o_t = W_y h_t + b_y,
 \qquad
-y_t = \operatorname{softmax}(o_t).
+y_t = \mathrm{softmax}(o_t).
 $$
 
 The key point is that the same input $x_t$ can produce different outputs depending on $h_{t-1}$. This is how an RNN can distinguish "arrive in Shanghai" from "leave Shanghai".
@@ -1354,7 +1354,7 @@ The prediction uses both directions:
 $$
 y_t
 =
-\operatorname{softmax}
+\mathrm{softmax}
 \left(
 W_y[\overrightarrow h_t;\overleftarrow h_t] + b_y
 \right).
@@ -1499,7 +1499,7 @@ For the simple RNN above,
 $$
 J_k
 =
-\operatorname{diag}\!\left(\phi'(W_h h_{k-1}+W_x x_k+b)\right) W_h.
+\mathrm{diag}\!\left(\phi'(W_h h_{k-1}+W_x x_k+b)\right) W_h.
 $$
 
 Thus, long-range learning depends on repeatedly multiplying similar matrices. This is the core reason gradients tend to either vanish or explode.
@@ -1626,9 +1626,9 @@ $$
 then self-attention is
 
 $$
-\operatorname{Attention}(X)
+\mathrm{Attention}(X)
 =
-\operatorname{softmax}\!\left(
+\mathrm{softmax}\!\left(
 \frac{QK^\top}{\sqrt{d_k}}
 \right)V.
 $$
@@ -1637,7 +1637,7 @@ The matrix
 
 $$
 A =
-\operatorname{softmax}\!\left(
+\mathrm{softmax}\!\left(
 \frac{QK^\top}{\sqrt{d_k}}
 \right)
 $$
@@ -1649,9 +1649,9 @@ is the attention matrix. Its entry $A_{i,j}$ says how much position $i$ uses inf
 A single attention operation retrieves information in one representation space. **Multi-head attention** runs several attention operations in parallel:
 
 $$
-\operatorname{head}_r
+\mathrm{head}_r
 =
-\operatorname{Attention}
+\mathrm{Attention}
 \left(
 XW_Q^{(r)}, XW_K^{(r)}, XW_V^{(r)}
 \right),
@@ -1661,10 +1661,10 @@ $$
 The heads are concatenated and projected:
 
 $$
-\operatorname{MHA}(X)
+\mathrm{MHA}(X)
 =
-\operatorname{Concat}
-(\operatorname{head}_1,\ldots,\operatorname{head}_H)W_O.
+\mathrm{Concat}
+(\mathrm{head}_1,\ldots,\mathrm{head}_H)W_O.
 $$
 
 Different heads can learn to retrieve different kinds of information. For example, one head may focus on nearby words, another may focus on long-range dependencies, and another may focus on syntactic or semantic relations.
@@ -1710,7 +1710,7 @@ Then the attention weights are
 $$
 a_{i,j}
 =
-\operatorname{softmax}_j(s_{i,j}^{\mathrm{causal}}).
+\mathrm{softmax}_j(s_{i,j}^{\mathrm{causal}}).
 $$
 
 Because $\exp(-\infty)=0$, all future positions receive zero attention weight:
@@ -1843,7 +1843,7 @@ $$
 Then
 
 $$
-\operatorname{LayerNorm}(h_i)_r
+\mathrm{LayerNorm}(h_i)_r
 =
 \gamma_r
 \frac{h_{i,r}-\mu_i}{\sqrt{\sigma_i^2+\varepsilon}}
@@ -1864,7 +1864,7 @@ in the attention score. Suppose the query and key coordinates are random variabl
 $$
 \mathbb{E}[q_r]=\mathbb{E}[k_r]=0,
 \qquad
-\operatorname{Var}(q_r)=\operatorname{Var}(k_r)=1.
+\mathrm{Var}(q_r)=\mathrm{Var}(k_r)=1.
 $$
 
 The unscaled dot product is
@@ -1878,9 +1878,9 @@ $$
 Each term has mean $0$ and approximately variance $1$:
 
 $$
-\operatorname{Var}(q_rk_r)
+\mathrm{Var}(q_rk_r)
 \approx
-\operatorname{Var}(q_r)\operatorname{Var}(k_r)
+\mathrm{Var}(q_r)\mathrm{Var}(k_r)
 =
 1.
 $$
@@ -1888,9 +1888,9 @@ $$
 Therefore
 
 $$
-\operatorname{Var}(q^\top k)
+\mathrm{Var}(q^\top k)
 =
-\operatorname{Var}\left(\sum_{r=1}^{d_k}q_rk_r\right)
+\mathrm{Var}\left(\sum_{r=1}^{d_k}q_rk_r\right)
 \approx
 d_k.
 $$
@@ -1898,7 +1898,7 @@ $$
 So the typical size of $q^\top k$ grows like $\sqrt{d_k}$. If $d_k$ is large, the scores become large, the softmax becomes too sharp, and gradients through the attention weights can become small. Scaling by $\sqrt{d_k}$ keeps the score variance roughly constant:
 
 $$
-\operatorname{Var}\left(\frac{q^\top k}{\sqrt{d_k}}\right)
+\mathrm{Var}\left(\frac{q^\top k}{\sqrt{d_k}}\right)
 \approx
 1.
 $$
@@ -1908,13 +1908,13 @@ Thus layer normalization controls the scale of token representations, while the 
 It remains to justify why the assumption
 
 $$
-\operatorname{Var}(q_r)=\operatorname{Var}(k_r)=1
+\mathrm{Var}(q_r)=\mathrm{Var}(k_r)=1
 $$
 
 is reasonable at initialization. After layer normalization, the coordinates of a token representation have approximately mean $0$ and variance $1$:
 
 $$
-\operatorname{Var}(h_s)\approx 1.
+\mathrm{Var}(h_s)\approx 1.
 $$
 
 Now consider one query coordinate
@@ -1928,16 +1928,16 @@ $$
 Assume the projection weights are initialized independently with mean $0$ and variance
 
 $$
-\operatorname{Var}(W^Q_{s,r})=\frac{1}{d}.
+\mathrm{Var}(W^Q_{s,r})=\frac{1}{d}.
 $$
 
 Then
 
 $$
-\operatorname{Var}(q_r)
+\mathrm{Var}(q_r)
 =
 \sum_{s=1}^{d}
-\operatorname{Var}(W^Q_{s,r}h_s)
+\mathrm{Var}(W^Q_{s,r}h_s)
 \approx
 \sum_{s=1}^{d}
 \frac{1}{d}\cdot 1
@@ -1948,7 +1948,7 @@ $$
 The same argument applies to the key projection $W^K$, so
 
 $$
-\operatorname{Var}(k_r)\approx 1.
+\mathrm{Var}(k_r)\approx 1.
 $$
 
 Thus layer normalization fixes the input scale, and variance-scaled random initialization of $W_Q$ and $W_K$ keeps each query and key coordinate at roughly unit variance.
@@ -2074,7 +2074,7 @@ The whole model is built from token embeddings, positional information, causal s
   $$
   B
   =
-  \operatorname{softmax}(S)V,
+  \mathrm{softmax}(S)V,
   $$
 
   where future positions have zero probability because their scores are $-\infty$.
@@ -2086,9 +2086,9 @@ The whole model is built from token embeddings, positional information, causal s
   =
   H^{(\ell-1)}
   +
-  \operatorname{CausalMHA}
+  \mathrm{CausalMHA}
   \left(
-  \operatorname{LayerNorm}(H^{(\ell-1)})
+  \mathrm{LayerNorm}(H^{(\ell-1)})
   \right),
   $$
 
@@ -2099,16 +2099,16 @@ The whole model is built from token embeddings, positional information, causal s
   =
   \widetilde{H}^{(\ell)}
   +
-  \operatorname{FFN}
+  \mathrm{FFN}
   \left(
-  \operatorname{LayerNorm}(\widetilde{H}^{(\ell)})
+  \mathrm{LayerNorm}(\widetilde{H}^{(\ell)})
   \right).
   $$
 
   The feed-forward network is applied independently to each token position:
 
   $$
-  \operatorname{FFN}(z)
+  \mathrm{FFN}(z)
   =
   W_2 \sigma(W_1 z + b_1) + b_2.
   $$
@@ -2130,7 +2130,7 @@ The whole model is built from token embeddings, positional information, causal s
   $$
   p(t_{i+1} \mid t_{\le i})
   =
-  \operatorname{softmax}(o_i).
+  \mathrm{softmax}(o_i).
   $$
 
   At inference time, a concrete next token can be chosen by greedy decoding,
@@ -2180,7 +2180,7 @@ The whole model is built from token embeddings, positional information, causal s
   Even with a causal mask, all positions can be trained in parallel:
 
   $$
-  Z = \operatorname{softmax}(S)V.
+  Z = \mathrm{softmax}(S)V.
   $$
 
 - **Advantage: direct retrieval.** An RNN must carry old information through a single hidden state. A transformer keeps token representations available and lets position $i$ retrieve useful previous tokens directly:
