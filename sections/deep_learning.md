@@ -361,7 +361,6 @@ The key point is locality. To propagate gradients, we never differentiate the wh
 There are three common ways to compute derivatives:
 
 - **Numerical differentiation** perturbs one parameter at a time, for example
-  \ 
 
   $$\frac{\partial \mathcal{L}}{\partial \theta_i}
     \approx
@@ -452,16 +451,14 @@ Here $n$ is the fan-in, the number of inputs to one neuron.
 
 - **Xavier initialization.** For activations like $\tanh$, a common choice is
 
-  $$
-    \mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}+n_{\mathrm{out}}}.
+  $$\mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}+n_{\mathrm{out}}}.
   $$
 
   This balances the forward scale and backward gradient scale.
 
 - **He initialization.** For ReLU activations, roughly half of the units are inactive. A common choice is
 
-  $$
-    \mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}}.
+  $$\mathrm{Var}(W_{ij})=\frac{2}{n_{\mathrm{in}}}.
   $$
 
   This compensates for the variance reduction caused by ReLU.
