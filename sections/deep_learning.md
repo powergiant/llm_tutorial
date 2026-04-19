@@ -1273,15 +1273,320 @@ These limitations motivate attention mechanisms and transformers, which allow in
 
 ### Attention
 
-### Long term memory
+Many sequence problems start with a sequence of vectors
 
-retreival mechanism completely resolve the explosion/vanishing of gradient
+$$
+X = (x_1,\ldots,x_T), \qquad x_i \in \mathbb{R}^{d}.
+$$
 
-it do not introduce hidden state, do not forget information hidden state, memory, either forget or explosion
+For example, in language modeling, $x_i$ can be the embedding of the $i$-th token; in speech, $x_i$ can be the acoustic feature at the $i$-th time step. The goal is often to compute a new sequence
+
+$$
+B = (b_1,\ldots,b_T),
+$$
+
+where each $b_i$ is a context-aware representation of position $i$.
+
+The key idea of attention is retrieval. Instead of forcing all past information into one recursively updated hidden state, attention keeps a collection of representations and lets each position retrieve the useful parts from the collection.
+
+For each input vector $x_i$, self-attention computes three vectors:
+
+$$
+q_i = W_Q x_i, \qquad
+k_i = W_K x_i, \qquad
+v_i = W_V x_i.
+$$
+
+Here $q_i$ is the query, $k_i$ is the key, and $v_i$ is the value. The query asks what position $i$ needs, the keys describe what each position contains, and the values are the information to be retrieved.
+
+The attention score from position $i$ to position $j$ is
+
+$$
+s_{i,j} = \frac{q_i^\top k_j}{\sqrt{d_k}},
+$$
+
+where $d_k$ is the dimension of the key vector. The scores are normalized by a softmax:
+
+$$
+a_{i,j}
+=
+\frac{\exp(s_{i,j})}{\sum_{\ell=1}^{T}\exp(s_{i,\ell})}.
+$$
+
+Then the output at position $i$ is a weighted sum of all value vectors:
+
+$$
+b_i
+=
+\sum_{j=1}^{T} a_{i,j} v_j.
+$$
+
+Thus $b_i$ is not computed from $x_i$ alone. It can directly use information from any other position in the sequence.
+
+In matrix form, if
+
+$$
+Q = XW_Q,\qquad K = XW_K,\qquad V = XW_V,
+$$
+
+then self-attention is
+
+$$
+\operatorname{Attention}(X)
+=
+\operatorname{softmax}\!\left(
+\frac{QK^\top}{\sqrt{d_k}}
+\right)V.
+$$
+
+The matrix
+
+$$
+A =
+\operatorname{softmax}\!\left(
+\frac{QK^\top}{\sqrt{d_k}}
+\right)
+$$
+
+is the attention matrix. Its entry $A_{i,j}$ says how much position $i$ uses information from position $j$.
+
+### Long-term memory
+
+The main difference between RNN memory and attention memory is the communication path.
+
+In an RNN, the hidden state is updated recursively:
+
+$$
+h_t = f(h_{t-1}, x_t).
+$$
+
+Information from an early token must be compressed into $h_t$ again and again. If the sequence is long, the model has to decide what to keep and what to forget inside a finite-dimensional hidden state. This is a bottleneck: old information may be overwritten or diluted by later information.
+
+The gradient path also has the same recursive structure. Roughly,
+
+$$
+\frac{\partial h_T}{\partial h_t}
+=
+\frac{\partial h_T}{\partial h_{T-1}}
+\frac{\partial h_{T-1}}{\partial h_{T-2}}
+\cdots
+\frac{\partial h_{t+1}}{\partial h_t}.
+$$
+
+More precisely, it is a product of Jacobian matrices:
+
+$$
+\frac{\partial h_T}{\partial h_t}
+=
+J_T J_{T-1}\cdots J_{t+1},
+\qquad
+J_s = \frac{\partial h_s}{\partial h_{s-1}}.
+$$
+
+Repeated multiplication creates an unstable tradeoff. If the singular values of these Jacobians are mostly smaller than $1$, the gradient tends to vanish. If they are mostly larger than $1$, the gradient tends to explode. This is why long-range dependency learning is difficult for a simple recursive hidden-state model.
+
+Attention changes the structure. In self-attention,
+
+$$
+b_i = \sum_{j=1}^{T} a_{i,j}v_j.
+$$
+
+The information at position $j$ does not have to pass through every intermediate time step before reaching position $i$. It can be retrieved directly through the attention weight $a_{i,j}$. Therefore attention removes the specific long product of recurrent Jacobians that causes the classic vanishing/exploding gradient problem through time.
+
+This does not mean transformers have no optimization difficulties. They are still deep neural networks. But attention solves the main memory bottleneck of RNNs: information is stored as a set of token representations and retrieved when needed, instead of being repeatedly compressed into one hidden state.
+
+### Multi-head attention
+
+A single attention operation retrieves information in one representation space. Multi-head attention runs several attention operations in parallel:
+
+$$
+\operatorname{head}_r
+=
+\operatorname{Attention}
+\left(
+XW_Q^{(r)}, XW_K^{(r)}, XW_V^{(r)}
+\right),
+\qquad r=1,\ldots,H.
+$$
+
+The heads are concatenated and projected:
+
+$$
+\operatorname{MHA}(X)
+=
+\operatorname{Concat}
+(\operatorname{head}_1,\ldots,\operatorname{head}_H)W_O.
+$$
+
+Different heads can learn to retrieve different kinds of information. For example, one head may focus on nearby words, another may focus on long-range dependencies, and another may focus on syntactic or semantic relations.
+
+### Positional encoding
+
+Self-attention compares tokens by content. Without extra information, it does not know the order of the sequence. If we permute the input tokens, the same self-attention layer is permuted in the same way. Therefore we need to inject position information.
+
+The usual input to a transformer is
+
+$$
+u_i = e_i + p_i,
+$$
+
+where $e_i$ is the token embedding and $p_i$ is the positional encoding. The positional encoding can be fixed, such as sinusoidal positional encoding, or learned as trainable parameters.
+
+After adding positional information, the model can distinguish sentences such as
+
+$$
+\text{``the dog chased the cat''}
+$$
+
+and
+
+$$
+\text{``the cat chased the dog''}.
+$$
 
 ### Transformer
 
-tokenization, positional encoding, ... architectural framework
+A transformer is an architectural framework built from attention, feed-forward networks, residual connections, and normalization. For sequence-to-sequence tasks, it usually has an encoder and a decoder.
+
+- **Tokenization.** Raw text is first converted into discrete tokens:
+
+$$
+\text{text} \longrightarrow (t_1,\ldots,t_T).
+$$
+
+Each token is mapped to a vector by an embedding matrix:
+
+$$
+e_i = E t_i.
+$$
+
+Then positional information is added:
+
+$$
+h_i^{(0)} = e_i + p_i.
+$$
+
+- **Transformer encoder.** The encoder reads the input sequence and produces contextual representations. Let
+
+$$
+H^{(0)} = (h_1^{(0)},\ldots,h_T^{(0)}).
+$$
+
+For layer $\ell$, the encoder first applies multi-head self-attention:
+
+$$
+\widetilde{H}^{(\ell)}
+=
+\operatorname{LayerNorm}
+\left(
+H^{(\ell-1)}
++
+\operatorname{MHA}(H^{(\ell-1)})
+\right).
+$$
+
+Then it applies a position-wise feed-forward network:
+
+$$
+H^{(\ell)}
+=
+\operatorname{LayerNorm}
+\left(
+\widetilde{H}^{(\ell)}
++
+\operatorname{FFN}(\widetilde{H}^{(\ell)})
+\right).
+$$
+
+The feed-forward network is applied independently to each position:
+
+$$
+\operatorname{FFN}(z)
+=
+W_2 \sigma(W_1 z + b_1) + b_2.
+$$
+
+The final encoder output is
+
+$$
+H^{(L)} = (h_1^{(L)},\ldots,h_T^{(L)}).
+$$
+
+- **Transformer decoder.** The decoder generates the output sequence autoregressively:
+
+$$
+p(y_1,\ldots,y_S \mid x_1,\ldots,x_T)
+=
+\prod_{s=1}^{S}
+p(y_s \mid y_{<s}, x_1,\ldots,x_T).
+$$
+
+Generation starts from a special beginning token $\langle \mathrm{BOS} \rangle$ and stops when the model outputs $\langle \mathrm{EOS} \rangle$.
+
+The decoder uses masked self-attention. At output position $s$, the model can attend only to positions $1,\ldots,s$, not to future output tokens. This is implemented by setting future attention scores to $-\infty$ before the softmax:
+
+$$
+s_{i,j} =
+\begin{cases}
+\dfrac{q_i^\top k_j}{\sqrt{d_k}}, & j \le i,\\
+-\infty, & j > i.
+\end{cases}
+$$
+
+- **Encoder-decoder attention.** After masked self-attention, the decoder retrieves information from the encoder output. The decoder state provides the query, while the encoder output provides the keys and values:
+
+$$
+Q = GW_Q,\qquad
+K = H^{(L)}W_K,\qquad
+V = H^{(L)}W_V,
+$$
+
+where $G$ is the current decoder representation. Then
+
+$$
+\operatorname{CrossAttention}(G,H^{(L)})
+=
+\operatorname{softmax}
+\left(
+\frac{QK^\top}{\sqrt{d_k}}
+\right)V.
+$$
+
+This lets each generated token retrieve the relevant parts of the input sequence.
+
+- **Output probability.** The final decoder vector $g_s$ is mapped to logits over the vocabulary:
+
+$$
+o_s = W_{\mathrm{vocab}}g_s + b_{\mathrm{vocab}}.
+$$
+
+The next-token distribution is
+
+$$
+p(y_s \mid y_{<s}, x_{1:T})
+=
+\operatorname{softmax}(o_s).
+$$
+
+A concrete output token can be chosen by greedy decoding,
+
+$$
+y_s = \arg\max_y p(y \mid y_{<s},x_{1:T}),
+$$
+
+or by sampling from the distribution. Beam search keeps several likely partial sequences and is often used for deterministic sequence-to-sequence tasks such as translation.
+
+- **Training.** During training, the correct previous tokens are given to the decoder. This is called teacher forcing. The loss is the sum of next-token cross-entropies:
+
+$$
+\mathcal{L}
+=
+-
+\sum_{s=1}^{S}
+\log p(y_s^\ast \mid y_{<s}^\ast, x_{1:T}).
+$$
+
+Therefore, the transformer reduces many sequence tasks to the same basic problem: given the input sequence and the previous output tokens, predict the next output token.
 
 ## Every model solves some problem
 
