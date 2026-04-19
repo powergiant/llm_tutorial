@@ -1781,15 +1781,59 @@ $$
 
 ## Design principle of each model
 
-explain the design of each model from 4 basic principle, expressiveness, convergence, generalization, and efficiency
+We can understand many neural network architectures from four basic principles: expressiveness, convergence, generalization, and efficiency.
 
-* Expressiveness of locality -> CNN
+- **Expressiveness.** The model class should be able to represent the function we care about. Different data types have different structures, so different architectures build in different assumptions.
 
-* Expressiveness of seq2seq problem -> RNN, LSTM
+- **Convergence.** The model should be trainable by gradient-based optimization. Even if a model is expressive, it is not useful if gradients vanish, explode, or optimization becomes unstable.
 
-* Convergence of deep net work, gradient vanishing -> resnet
+- **Generalization.** The model should not merely memorize the training set. Architectural bias can reduce the effective search space and help the model learn functions that transfer to unseen data.
 
-* gradient vanishing along time direction -> attention
+- **Efficiency.** The model should make training and inference fast enough in practice. This depends on parameter count, memory use, computation cost, and whether the computation can run efficiently on hardware such as GPUs.
+
+These principles explain the design of several important architectures.
+
+- **Expressiveness of locality -> CNN.** Images have local structure: nearby pixels are more related than distant pixels, and the same local pattern may appear in different locations. CNNs are designed to express this kind of local function efficiently. A convolutional filter only looks at a small receptive field, and the same filter is reused across the image. Thus CNNs express locality and translation equivariance directly, instead of learning them from scratch with a fully connected network.
+
+- **Expressiveness of sequence-to-sequence problems -> RNN and LSTM.** Many tasks require variable-length input and output, such as speech, text, time series, and action sequences. RNNs express this kind of computation by updating a hidden state over time:
+
+  $$
+  h_t = f(h_{t-1},x_t).
+  $$
+
+  The hidden state is a memory of the previous tokens, so the same model can process sequences of different lengths. LSTMs add gates that control what to remember, forget, and output, making the sequence memory more stable than a simple RNN.
+
+- **Convergence of deep networks -> ResNet.** Very deep networks are expressive, but plain deep networks are hard to optimize because gradients can vanish across many layers. ResNet is designed to improve convergence by adding residual connections:
+
+  $$
+  h_{\ell+1} = h_\ell + F_\ell(h_\ell).
+  $$
+
+The identity path makes the layer-to-layer transformation closer to norm-preserving. If the residual term $F_\ell$ is small, then the Jacobian of the block is close to the identity matrix:
+
+  $$
+  \frac{\partial h_{\ell+1}}{\partial h_\ell}
+  =
+  I + \frac{\partial F_\ell}{\partial h_\ell}.
+  $$
+
+  Thus the gradient norm is more likely to stay close to one as it passes through many layers. This helps avoid both gradient vanishing and gradient explosion, making very deep networks easier to train.
+
+- **Gradient vanishing along the time direction -> attention.** In long sequence modeling, information from an early token may need to affect a much later token. Attention is designed to avoid passing all information through every intermediate time step. It uses direct retrieval:
+
+  $$
+  b_i = \sum_{j\le i} a_{i,j}v_j.
+  $$
+
+  Thus token $i$ can directly use token $j$ when $a_{i,j}$ is large. This improves convergence along the time direction because the gradient does not need to pass through all intermediate states. It also improves training efficiency because all attention scores can be computed by matrix multiplication:
+
+  $$
+  S = \frac{QK^\top}{\sqrt{d_k}}.
+  $$
+
+  The cost is that full attention uses $O(T^2)$ memory and computation for a length-$T$ sequence.
+
+In short, architecture design is not arbitrary. CNNs come from locality, RNNs and LSTMs come from sequential computation, ResNets come from optimization of deep networks, and attention comes from direct retrieval over long contexts.
 
 # Basic machine learning theory
 
