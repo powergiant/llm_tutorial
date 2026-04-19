@@ -44,7 +44,7 @@ $$
 
 A standard **loss** for classification is cross-entropy:
 
-$$
+```math
 \begin{aligned}
 \mathcal{L}_{\mathrm{cls}}(\theta) =&
 - \frac{1}{N} \sum_{i=1}^{N}
@@ -54,7 +54,7 @@ $$
 - \frac{1}{N} \sum_{i=1}^{N}
 \sum_{c=1}^C p(y_c \mid x_i) \log p_\theta(y_c \mid x_i).
 \end{aligned}
-$$
+```
 
 where $p(y \mid x_i) = \delta_{y = y_i}$ equals $1$ if $y$ is the ground truth label and $0$ otherwise.
 
