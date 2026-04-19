@@ -814,13 +814,13 @@ $$
 x_{1:T} = (x_1,x_2,\dots,x_T),
 $$
 
-and the output is either one label, one sequence of labels, or another sequence
+and the output is another sequence
 
 $$
 y_{1:S} = (y_1,y_2,\dots,y_S).
 $$
 
-Here $T$ and $S$ do not have to be the same. This is the general **sequence problem**. When both input and output are sequences, especially when their lengths may be different, it is called a **sequence-to-sequence** or **Seq2Seq** problem.
+Here $T$ and $S$ do not have to be the same. This is the general **sequence-to-sequence** or **Seq2Seq** problem. If the task only needs one label, we can still view that label as a sequence of length $1$.
 
 Examples:
 
@@ -888,9 +888,67 @@ $$
 
 At a very abstract level, many intelligent behaviors can be described as memory-to-action sequence mappings: the system reads a history, stores useful information, and produces the next action. This is why sequence modeling is a central problem in NLP, speech, decision making, and broader AI.
 
-In these tasks, inputs and outputs are often discrete tokens or actions. A token can be represented by a one-hot vector or an embedding. The output is usually a probability distribution, and a concrete token is chosen by argmax or sampling.
+All the tasks above can be unified as **next-token prediction**. We concatenate the input sequence, a separator, and the output sequence into one longer sequence:
+
+$$
+z_{1:N}
+=
+(x_1,\dots,x_T,\texttt{<sep>},y_1,\dots,y_S).
+$$
+
+Then learning the sequence-to-sequence map can be written as predicting the next symbol:
+
+$$
+p(z_t \mid z_{<t}).
+$$
+
+During inference, we condition on the input part
+
+$$
+(x_1,\dots,x_T,\texttt{<sep>})
+$$
+
+and repeatedly sample or choose the next output token until an end token is produced. In this formulation, translation, slot filling, speech recognition, classification, and decision making differ mainly in how we encode the input and output tokens.
+
+More abstractly, Seq2Seq is closely connected to the theory of computable functions. A computable function can be viewed as a procedure that reads a finite symbolic input and writes a finite symbolic output. If both input and output are encoded as discrete sequences, then a computable function has the form
+
+$$
+f:\Sigma^* \to \Sigma^*,
+$$
+
+where $\Sigma$ is a finite alphabet and $\Sigma^*$ is the set of all finite strings over that alphabet. In this sense, there can be a **universal Seq2Seq problem**: learn a sequence processor that can simulate any computable sequence-to-sequence transformation when given the right input, memory, and computation. This is the sequence-modeling version of the Church-Turing thesis.
+
+This also explains why AGI is often discussed as a Seq2Seq-like problem. An intelligent agent observes a history, stores useful memory, and produces actions. At a high level, it is a memory-to-action map:
+
+$$
+(\text{observation history}, \text{memory})
+\mapsto
+(\text{next action}).
+$$
+
+If observations, memories, and actions are discretized into symbols, then general decision making can be described as sequence input to sequence output.
 
 ### Encoding discrete tokens
+
+In sequence tasks, inputs and outputs are often discrete tokens or discrete actions. An input token can first be represented by a one-hot vector $e_t$ and then mapped to a dense embedding
+
+$$
+x_t = E e_t.
+$$
+
+The output at each step is usually a probability distribution over the next token or action:
+
+$$
+p(y_t \mid y_{<t}, x_{1:T}).
+$$
+
+A concrete output is then chosen by greedy decoding,
+
+$$
+y_t = \arg\max_y p(y \mid y_{<t},x_{1:T}),
+$$
+
+or by sampling from the distribution.
 
 A word or token is discrete, but a neural network expects vectors. A simple representation is **one-hot encoding**. If the vocabulary is
 
