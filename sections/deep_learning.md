@@ -1820,6 +1820,141 @@ where $R_i$ is the rotation matrix for position $i$. Thus RoPE injects position 
 
 This lets the model distinguish different word orders, such as "the dog chased the cat" and "the cat chased the dog", while still using the same query-key-value attention formula.
 
+### Normalization
+
+Transformers usually use **layer normalization** rather than batch normalization. The reason is that language models often process variable-length sequences and are used autoregressively, sometimes with batch size $1$ during inference. Batch statistics would make the output depend on other examples in the same batch, which is inconvenient for sequence generation. Layer normalization normalizes each token representation independently across its feature dimension.
+
+For one token representation
+
+$$
+h_i = (h_{i,1},\ldots,h_{i,d}),
+$$
+
+layer normalization computes
+
+$$
+\mu_i
+=
+\frac{1}{d}\sum_{r=1}^{d}h_{i,r},
+\qquad
+\sigma_i^2
+=
+\frac{1}{d}\sum_{r=1}^{d}(h_{i,r}-\mu_i)^2.
+$$
+
+Then
+
+$$
+\operatorname{LayerNorm}(h_i)_r
+=
+\gamma_r
+\frac{h_{i,r}-\mu_i}{\sqrt{\sigma_i^2+\varepsilon}}
++
+\beta_r,
+$$
+
+where $\gamma_r$ and $\beta_r$ are learned parameters. This keeps the scale of each token representation stable as it passes through many attention and feed-forward layers.
+
+The same scale-control idea also explains the factor
+
+$$
+\frac{1}{\sqrt{d_k}}
+$$
+
+in the attention score. Suppose the query and key coordinates are random variables with mean $0$, variance $1$, and are approximately independent:
+
+$$
+\mathbb{E}[q_r]=\mathbb{E}[k_r]=0,
+\qquad
+\operatorname{Var}(q_r)=\operatorname{Var}(k_r)=1.
+$$
+
+The unscaled dot product is
+
+$$
+q^\top k
+=
+\sum_{r=1}^{d_k} q_r k_r.
+$$
+
+Each term has mean $0$ and approximately variance $1$:
+
+$$
+\operatorname{Var}(q_rk_r)
+\approx
+\operatorname{Var}(q_r)\operatorname{Var}(k_r)
+=
+1.
+$$
+
+Therefore
+
+$$
+\operatorname{Var}(q^\top k)
+=
+\operatorname{Var}\left(\sum_{r=1}^{d_k}q_rk_r\right)
+\approx
+d_k.
+$$
+
+So the typical size of $q^\top k$ grows like $\sqrt{d_k}$. If $d_k$ is large, the scores become large, the softmax becomes too sharp, and gradients through the attention weights can become small. Scaling by $\sqrt{d_k}$ keeps the score variance roughly constant:
+
+$$
+\operatorname{Var}\left(\frac{q^\top k}{\sqrt{d_k}}\right)
+\approx
+1.
+$$
+
+Thus layer normalization controls the scale of token representations, while the attention scaling factor controls the scale of query-key dot products.
+
+It remains to justify why the assumption
+
+$$
+\operatorname{Var}(q_r)=\operatorname{Var}(k_r)=1
+$$
+
+is reasonable at initialization. After layer normalization, the coordinates of a token representation have approximately mean $0$ and variance $1$:
+
+$$
+\operatorname{Var}(h_s)\approx 1.
+$$
+
+Now consider one query coordinate
+
+$$
+q_r
+=
+\sum_{s=1}^{d} W^{Q}_{s,r}h_s.
+$$
+
+Assume the projection weights are initialized independently with mean $0$ and variance
+
+$$
+\operatorname{Var}(W^Q_{s,r})=\frac{1}{d}.
+$$
+
+Then
+
+$$
+\operatorname{Var}(q_r)
+=
+\sum_{s=1}^{d}
+\operatorname{Var}(W^Q_{s,r}h_s)
+\approx
+\sum_{s=1}^{d}
+\frac{1}{d}\cdot 1
+=
+1.
+$$
+
+The same argument applies to the key projection $W^K$, so
+
+$$
+\operatorname{Var}(k_r)\approx 1.
+$$
+
+Thus layer normalization fixes the input scale, and variance-scaled random initialization of $W_Q$ and $W_K$ keeps each query and key coordinate at roughly unit variance.
+
 ### Transformer
 
 A decoder-only transformer is the architecture used by most modern language models. It reads a prefix of tokens and predicts the next token:
@@ -2135,18 +2270,7 @@ In short, architecture design is not arbitrary. CNNs come from locality, RNNs an
 
 # Basic machine learning theory
 
-TODO: flat minima better generalization, linear scaling law
-
-TODO: lottery ticket hypothesis
-
-
-TODO: transformers are RNN, linear transformer, mamba
-
-TODO: expressiveness, convergence and generalization
-
-TODO: basic proof of generalization, n data n param
-
-TODO: contradiction between them, overparametrization
+## Expressiveness
 
 TODO: case studies of expressiveness, mlp fits finite step function, finite step boolean function
 
@@ -2156,17 +2280,33 @@ TODO: case studies of expressiveness, transformer, Turing completeness of prompt
 
 TODO: Church-Turing thesis, prompt completeness, machine can do everything human can execute, parameter completeness?? meta knowledge
 
+## Generalization
+
+TODO: flat minima better generalization, linear scaling law
+
+TODO: lottery ticket hypothesis
+
+TODO: neural network pruning
+
+TODO: transformers are RNN, linear transformer, mamba
+
+TODO: expressiveness, convergence and generalization
+
+TODO: basic proof of generalization, n data n param
+
+TODO: contradiction between them, overparametrization
+
 TODO: shape of loss landscope, flat minima, implicit regularization
+
+## Convergence
 
 TODO: mean field limit
 
 # What next?
 
-pytorch, autograd (why is fast?), tensor calculus
+pytorch, autograd (why is fast?), tensor calculus [tensor_calculus.md](./tensor_calculus.md)
 
-optimization, memory -> infra
-
-more on llm
+more on llm [llm.md](./llm.md)
 
 # References
 
