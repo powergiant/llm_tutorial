@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>LLM Tutorial</title>
+    <meta
+      name="description"
+      content="A structured tutorial for studying large language models from first principles."
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"
+    />
+    <style>
+      :root {
+        --theme-color: #2454a6;
+      }
+
+      .markdown-section {
+        max-width: 920px;
+      }
+
+      .markdown-section img {
+        display: block;
+        max-width: 100%;
+        margin: 1.5rem auto;
+      }
+
+      .math-display {
+        overflow-x: auto;
+        margin: 1rem 0;
+        text-align: center;
+      }
+
+      .math-display .katex {
+        display: inline-block;
+        text-align: initial;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      window.$docsify = {
+        name: 'LLM Tutorial',
+        repo: '',
+        homepage: 'readme.md',
+        loadSidebar: true,
+        alias: {
+          '/.*/_sidebar.md': '/_sidebar.md',
+        },
+        subMaxLevel: 3,
+        auto2top: true,
+        search: {
+          maxAge: 86400000,
+          paths: 'auto',
+          placeholder: 'Search',
+          noData: 'No results',
+        },
+        plugins: [
+          function (hook) {
+            var mathBlocks = [];
+            var mathInlines = [];
+
+            function escapeHtml(text) {
+              return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            }
+
+            hook.beforeEach(function (markdown) {
+              mathBlocks = [];
+              mathInlines = [];
+              markdown = markdown.replace(
+                /(^|\n)([ \t]*)\$\$\s*\n([\s\S]*?)\n[ \t]*\$\$(?=\n|$)/g,
+                function (match, prefix, indent, body) {
+                  var token = 'DOCSIFY_MATH_BLOCK_' + mathBlocks.length;
+                  mathBlocks.push(body);
+                  return prefix + indent + token;
+                }
+              );
+              return markdown.replace(
+                /(^|[^$\\])\$([^\n$]+?)\$/g,
+                function (match, prefix, body) {
+                  var token = 'DOCSIFY_MATH_INLINE_' + mathInlines.length;
+                  mathInlines.push(body);
+                  return prefix + token;
+                }
+              );
+            });
+
+            hook.afterEach(function (html, next) {
+              for (var index = mathBlocks.length - 1; index >= 0; index -= 1) {
+                var body = mathBlocks[index];
+                var token = 'DOCSIFY_MATH_BLOCK_' + index;
+                var block =
+                  '<div class="math-display">$$\n' +
+                  escapeHtml(body) +
+                  '\n$$</div>';
+                html = html.replace(new RegExp('<p>' + token + '</p>', 'g'), block);
+                html = html.replace(new RegExp(token, 'g'), block);
+              }
+              for (var inlineIndex = mathInlines.length - 1; inlineIndex >= 0; inlineIndex -= 1) {
+                var inlineBody = mathInlines[inlineIndex];
+                var inlineToken = 'DOCSIFY_MATH_INLINE_' + inlineIndex;
+                var inline = '$' + escapeHtml(inlineBody) + '$';
+                html = html.replace(new RegExp(inlineToken, 'g'), inline);
+              }
+              next(html);
+            });
+
+            hook.doneEach(function () {
+              if (window.renderMathInElement) {
+                window.renderMathInElement(document.querySelector('#main'), {
+                  delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '\\[', right: '\\]', display: true },
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '$', right: '$', display: false },
+                  ],
+                  throwOnError: false,
+                });
+              }
+            });
+          },
+        ],
+      };
+    </script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  </body>
+</html>

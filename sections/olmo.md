@@ -1,6 +1,6 @@
 # OLMo Reproduction Survey
 
-This note mirrors the structure of [nemotron.md](/Users/xiaom/Documents/Projects/llm_tutorial/sections/nemotron.md) and surveys the public OLMo artifacts available as of 2026-04-17. The practical question is the same: how close can an external team get to reproducing a general LLM in the OLMo line?
+This note mirrors the structure of [nemotron.md](./nemotron.md) and surveys the public OLMo artifacts available as of 2026-04-17. The practical question is the same: how close can an external team get to reproducing a general LLM in the OLMo line?
 
 ## Short Answer
 
