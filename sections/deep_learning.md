@@ -23,7 +23,7 @@ The type of output determines the task. In **regression**, the target is continu
 For regression, the model outputs a real number:
 
 $$
-\hat y = f_\theta(x), \qquad \hat y \in \mathbb{R}.
+y = f_\theta(x), \qquad y \in \mathbb{R}.
 $$
 
 A standard **loss** for regression is mean squared error:
@@ -429,11 +429,183 @@ Later sections will revisit this tradeoff through specific architectures such as
 
 ## Initialization and normalization
 
-how to initialize weights (estimate the size in probability)
+Initialization and normalization are practical tools for convergence. Their goal is to keep the scale of activations and gradients reasonable as signals pass through many layers.
 
-how to normalize each layer, layer normalization, batch normalization
+### Weight initialization
+
+Consider one linear layer
+
+$$
+y = Wx,
+$$
+
+where
+
+$$
+y_i = \sum_{j=1}^{n} W_{ij}x_j.
+$$
+
+Assume, as a rough probabilistic estimate, that $W_{ij}$ and $x_j$ are independent, have mean $0$, and
+
+$$
+\mathrm{Var}(x_j)=\sigma_x^2,
+\qquad
+\mathrm{Var}(W_{ij})=\sigma_W^2.
+$$
+
+Then
+
+$$
+\mathrm{Var}(y_i)
+=
+\sum_{j=1}^{n}\mathrm{Var}(W_{ij}x_j)
+=
+n\sigma_W^2\sigma_x^2.
+$$
+
+If $\sigma_W^2$ is too large, the activation size grows layer by layer and may explode. If $\sigma_W^2$ is too small, the activation size shrinks layer by layer and may vanish. To keep the variance roughly stable, we want
+
+$$
+n\sigma_W^2 \approx 1.
+$$
+
+This suggests the basic scaling rule
+
+$$
+\mathrm{Var}(W_{ij}) \approx \frac{1}{n}.
+$$
+
+Here $n$ is the fan-in, the number of inputs to one neuron.
+
+- **Xavier initialization.** For activations like $\tanh$, a common choice is
+
+  $$
+  \mathrm{Var}(W_{ij})
+  =
+  \frac{2}{n_{\mathrm{in}}+n_{\mathrm{out}}}.
+  $$
+
+  This balances the forward scale and backward gradient scale.
+
+- **He initialization.** For ReLU activations, roughly half of the units are inactive. A common choice is
+
+  $$
+  \mathrm{Var}(W_{ij})
+  =
+  \frac{2}{n_{\mathrm{in}}}.
+  $$
+
+  This compensates for the variance reduction caused by ReLU.
+
+The exact constants are less important than the principle: choose the initial weight scale so that activations and gradients neither shrink nor grow too quickly through depth.
+
+### Normalization
+
+Even with good initialization, the scale of activations can change during training. Normalization stabilizes the distribution of intermediate activations.
+
+The general form is
+
+$$
+\hat{x}
+=
+\frac{x-\mu}{\sqrt{\sigma^2+\varepsilon}},
+\qquad
+y = \gamma \hat{x}+\beta,
+$$
+
+where $\mu$ and $\sigma^2$ are a mean and variance computed from some group of activations, while $\gamma$ and $\beta$ are learnable scale and shift parameters.
+
+- **Batch normalization.** For a mini-batch of activations, batch normalization computes statistics across the batch. For one feature dimension $k$,
+
+  $$
+  \mu_k
+  =
+  \frac{1}{m}\sum_{i=1}^{m}x_{i,k},
+  \qquad
+  \sigma_k^2
+  =
+  \frac{1}{m}\sum_{i=1}^{m}(x_{i,k}-\mu_k)^2.
+  $$
+
+  Then
+
+  $$
+  \hat{x}_{i,k}
+  =
+  \frac{x_{i,k}-\mu_k}{\sqrt{\sigma_k^2+\varepsilon}},
+  \qquad
+  y_{i,k}
+  =
+  \gamma_k \hat{x}_{i,k}+\beta_k.
+  $$
+
+  Batch normalization is common in CNNs. It works well when batch statistics are reliable, but it depends on the batch size and behaves differently during training and inference.
+
+- **Layer normalization.** For one token or one data point, layer normalization computes statistics across the feature dimension. If
+
+  $$
+  x_i = (x_{i,1},\ldots,x_{i,d}),
+  $$
+
+  then
+
+  $$
+  \mu_i
+  =
+  \frac{1}{d}\sum_{k=1}^{d}x_{i,k},
+  \qquad
+  \sigma_i^2
+  =
+  \frac{1}{d}\sum_{k=1}^{d}(x_{i,k}-\mu_i)^2.
+  $$
+
+  Then
+
+  $$
+  \hat{x}_{i,k}
+  =
+  \frac{x_{i,k}-\mu_i}{\sqrt{\sigma_i^2+\varepsilon}},
+  \qquad
+  y_{i,k}
+  =
+  \gamma_k \hat{x}_{i,k}+\beta_k.
+  $$
+
+  Layer normalization is common in transformers because it does not depend on batch statistics. Each token representation can be normalized independently, which is convenient for sequence models and autoregressive generation.
+
+In short, initialization controls the scale at the beginning of training, while normalization controls the scale during training.
 
 ## Training strategies
+
+- **Learning-rate schedule.** The learning rate controls the step size of each parameter update. If it is too large, training may be unstable; if it is too small, training may be very slow. A schedule changes the learning rate over time. Warmup starts with a small learning rate and gradually increases it, which is useful at the beginning of training. Step decay and cosine decay reduce the learning rate later, allowing the optimizer to make smaller refinements near a good solution.
+
+- **Batch size.** The batch size is the number of training examples used to estimate one gradient update. Larger batches give more stable gradient estimates and better hardware utilization, but they require more memory. Smaller batches add more gradient noise. This noise can sometimes help the optimizer escape sharp or unstable regions, but it can also make training less smooth.
+
+- **Regularization.** Regularization reduces overfitting by discouraging the model from relying too much on accidental patterns in the training set. Common methods include weight decay, dropout, label smoothing, and data augmentation. Weight decay penalizes large weights; data augmentation creates modified training examples; label smoothing prevents the model from becoming too confident on the training labels.
+
+- **Dropout.** Randomly set some activations to zero during training:
+
+  $$
+  \tilde{h} = m \odot h,
+  \qquad
+  m_i \sim \mathrm{Bernoulli}(p).
+  $$
+
+  This prevents the model from relying too heavily on a small set of features, because the feature may be missing in a particular training step. At inference time, dropout is turned off, and the full network is used.
+
+- **Gradient clipping.** Limit the gradient norm to avoid unstable updates:
+
+  $$
+  g \leftarrow g \cdot \min\left(1,\frac{c}{\|g\|}\right).
+  $$
+
+  This is especially useful for sequence models and large models, where a single batch can occasionally produce a very large gradient. Clipping keeps the update direction but limits its magnitude, making optimization more stable.
+
+- **Initialization and normalization.** Initialization controls the scale of weights before training begins, while normalization controls the scale of activations during training. Good initialization helps avoid vanishing or exploding signals in the first forward and backward passes. Normalization layers such as batch normalization and layer normalization keep intermediate representations in a stable range as the parameters change.
+
+- **Checkpointing.** A checkpoint saves the model parameters, optimizer state, and training progress. This allows training to resume after interruption. It also allows us to keep the best model according to validation performance, rather than only using the final model at the end of training.
+
+- **Early stopping and validation.** An epoch means one full pass through the training dataset. Training for more epochs usually reduces training loss, but too many epochs can cause overfitting: the model continues improving on the training set while validation performance gets worse. Therefore we monitor validation loss or task metrics during training. If validation performance stops improving, we can stop training, reduce the learning rate, or return to the best checkpoint.
 
 # Deep learning models
 
@@ -1020,7 +1192,7 @@ The output at time $t$ is computed from the hidden state:
 $$
 o_t = W_y h_t + b_y,
 \qquad
-\hat y_t = \operatorname{softmax}(o_t).
+y_t = \operatorname{softmax}(o_t).
 $$
 
 The key point is that the same input $x_t$ can produce different outputs depending on $h_{t-1}$. This is how an RNN can distinguish "arrive in Shanghai" from "leave Shanghai".
@@ -1076,7 +1248,7 @@ $$
 The prediction uses both directions:
 
 $$
-\hat y_t
+y_t
 =
 \operatorname{softmax}
 \left(
@@ -1538,227 +1710,227 @@ The whole model is built from token embeddings, positional information, causal s
 
 - **Tokenization.** Raw text is first converted into discrete tokens:
 
-$$
-\text{text} \longrightarrow (t_1,\ldots,t_T).
-$$
+  $$
+  \text{text} \longrightarrow (t_1,\ldots,t_T).
+  $$
 
-Each token is mapped to a vector by an embedding matrix $E$:
+  Each token is mapped to a vector by an embedding matrix $E$:
 
-$$
-e_i = E[t_i].
-$$
+  $$
+  e_i = E[t_i].
+  $$
 
 - **Absolute positional encoding.** One way to give the model position information is to add a position vector $p_i$ to each token embedding:
 
-$$
-h_i^{(0)} = e_i + p_i.
-$$
+  $$
+  h_i^{(0)} = e_i + p_i.
+  $$
 
-Here $p_i$ can be learned or fixed. In this case, the initial hidden states are
+  Here $p_i$ can be learned or fixed. In this case, the initial hidden states are
 
-$$
-H^{(0)} = (h_1^{(0)},\ldots,h_T^{(0)}).
-$$
+  $$
+  H^{(0)} = (h_1^{(0)},\ldots,h_T^{(0)}).
+  $$
 
 - **Rotary positional encoding.** Another common method is RoPE. Instead of adding $p_i$ to the embedding, RoPE rotates the query and key vectors inside attention. With RoPE, we can take the initial hidden state to be $h_i^{(0)}=e_i$, and inject position when forming attention scores.
 
-For one two-dimensional block,
+  For one two-dimensional block,
 
-$$
-\begin{pmatrix}
-\widetilde{q}_{i,2r} \\
-\widetilde{q}_{i,2r+1}
-\end{pmatrix}
-=
-\begin{pmatrix}
-\cos(i\theta_r) & -\sin(i\theta_r) \\
-\sin(i\theta_r) & \cos(i\theta_r)
-\end{pmatrix}
-\begin{pmatrix}
-q_{i,2r} \\
-q_{i,2r+1}
-\end{pmatrix},
-$$
+  $$
+  \begin{pmatrix}
+  \widetilde{q}_{i,2r} \\
+  \widetilde{q}_{i,2r+1}
+  \end{pmatrix}
+  =
+  \begin{pmatrix}
+  \cos(i\theta_r) & -\sin(i\theta_r) \\
+  \sin(i\theta_r) & \cos(i\theta_r)
+  \end{pmatrix}
+  \begin{pmatrix}
+  q_{i,2r} \\
+  q_{i,2r+1}
+  \end{pmatrix},
+  $$
 
-and similarly
+  and similarly
 
-$$
-\begin{pmatrix}
-\widetilde{k}_{j,2r} \\
-\widetilde{k}_{j,2r+1}
-\end{pmatrix}
-=
-\begin{pmatrix}
-\cos(j\theta_r) & -\sin(j\theta_r) \\
-\sin(j\theta_r) & \cos(j\theta_r)
-\end{pmatrix}
-\begin{pmatrix}
-k_{j,2r} \\
-k_{j,2r+1}
-\end{pmatrix}.
-$$
+  $$
+  \begin{pmatrix}
+  \widetilde{k}_{j,2r} \\
+  \widetilde{k}_{j,2r+1}
+  \end{pmatrix}
+  =
+  \begin{pmatrix}
+  \cos(j\theta_r) & -\sin(j\theta_r) \\
+  \sin(j\theta_r) & \cos(j\theta_r)
+  \end{pmatrix}
+  \begin{pmatrix}
+  k_{j,2r} \\
+  k_{j,2r+1}
+  \end{pmatrix}.
+  $$
 
-Then attention uses the rotated query and key:
+  Then attention uses the rotated query and key:
 
-$$
-s_{i,j}
-=
-\frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
-$$
+  $$
+  s_{i,j}
+  =
+  \frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
+  $$
 
-RoPE makes the query-key interaction depend on relative position, because
+  RoPE makes the query-key interaction depend on relative position, because
 
-$$
-(R_i q_i)^\top(R_j k_j)
-=
-q_i^\top R_{j-i}k_j.
-$$
+  $$
+  (R_i q_i)^\top(R_j k_j)
+  =
+  q_i^\top R_{j-i}k_j.
+  $$
 
-The frequencies are usually chosen at different scales, for example
+  The frequencies are usually chosen at different scales, for example
 
-$$
-\theta_r = 10000^{-2r/d}.
-$$
+  $$
+  \theta_r = 10000^{-2r/d}.
+  $$
 
 - **Causal self-attention.** A decoder-only transformer must not look at future tokens. In layer $\ell$, from the current hidden states $H^{(\ell-1)}$, we compute
 
-$$
-Q = H^{(\ell-1)}W_Q,\qquad
-K = H^{(\ell-1)}W_K,\qquad
-V = H^{(\ell-1)}W_V.
-$$
+  $$
+  Q = H^{(\ell-1)}W_Q,\qquad
+  K = H^{(\ell-1)}W_K,\qquad
+  V = H^{(\ell-1)}W_V.
+  $$
 
-The causal attention score is
+  The causal attention score is
 
-$$
-s_{i,j} =
-\begin{cases}
-\dfrac{q_i^\top k_j}{\sqrt{d_k}}, & j \le i,\\
--\infty, & j > i.
-\end{cases}
-$$
+  $$
+  s_{i,j} =
+  \begin{cases}
+  \dfrac{q_i^\top k_j}{\sqrt{d_k}}, & j \le i,\\
+  -\infty, & j > i.
+  \end{cases}
+  $$
 
-If RoPE is used, replace $q_i,k_j$ by $\widetilde{q}_i,\widetilde{k}_j$ in the same formula. The attention output is
+  If RoPE is used, replace $q_i,k_j$ by $\widetilde{q}_i,\widetilde{k}_j$ in the same formula. The attention output is
 
-$$
-B
-=
-\operatorname{softmax}(S)V,
-$$
+  $$
+  B
+  =
+  \operatorname{softmax}(S)V,
+  $$
 
-where future positions have zero probability because their scores are $-\infty$.
+  where future positions have zero probability because their scores are $-\infty$.
 
 - **Transformer block.** A decoder-only transformer stacks many identical blocks. A common pre-normalization form is
 
-$$
-\widetilde{H}^{(\ell)}
-=
-H^{(\ell-1)}
-+
-\operatorname{CausalMHA}
-\left(
-\operatorname{LayerNorm}(H^{(\ell-1)})
-\right),
-$$
+  $$
+  \widetilde{H}^{(\ell)}
+  =
+  H^{(\ell-1)}
+  +
+  \operatorname{CausalMHA}
+  \left(
+  \operatorname{LayerNorm}(H^{(\ell-1)})
+  \right),
+  $$
 
-followed by a position-wise feed-forward network:
+  followed by a position-wise feed-forward network:
 
-$$
-H^{(\ell)}
-=
-\widetilde{H}^{(\ell)}
-+
-\operatorname{FFN}
-\left(
-\operatorname{LayerNorm}(\widetilde{H}^{(\ell)})
-\right).
-$$
+  $$
+  H^{(\ell)}
+  =
+  \widetilde{H}^{(\ell)}
+  +
+  \operatorname{FFN}
+  \left(
+  \operatorname{LayerNorm}(\widetilde{H}^{(\ell)})
+  \right).
+  $$
 
-The feed-forward network is applied independently to each token position:
+  The feed-forward network is applied independently to each token position:
 
-$$
-\operatorname{FFN}(z)
-=
-W_2 \sigma(W_1 z + b_1) + b_2.
-$$
+  $$
+  \operatorname{FFN}(z)
+  =
+  W_2 \sigma(W_1 z + b_1) + b_2.
+  $$
 
-After $L$ layers, the final hidden states are
+  After $L$ layers, the final hidden states are
 
-$$
-H^{(L)}=(h_1^{(L)},\ldots,h_T^{(L)}).
-$$
+  $$
+  H^{(L)}=(h_1^{(L)},\ldots,h_T^{(L)}).
+  $$
 
 - **Output probability.** The final hidden vector $h_i^{(L)}$ is mapped to logits over the vocabulary:
 
-$$
-o_i = W_{\mathrm{vocab}}h_i^{(L)} + b_{\mathrm{vocab}}.
-$$
+  $$
+  o_i = W_{\mathrm{vocab}}h_i^{(L)} + b_{\mathrm{vocab}}.
+  $$
 
-The hidden state at position $i$ predicts the next token:
+  The hidden state at position $i$ predicts the next token:
 
-$$
-p(t_{i+1} \mid t_{\le i})
-=
-\operatorname{softmax}(o_i).
-$$
+  $$
+  p(t_{i+1} \mid t_{\le i})
+  =
+  \operatorname{softmax}(o_i).
+  $$
 
-At inference time, a concrete next token can be chosen by greedy decoding,
+  At inference time, a concrete next token can be chosen by greedy decoding,
 
-$$
-t_{i+1}
-=
-\arg\max_t p(t \mid t_{\le i}),
-$$
+  $$
+  t_{i+1}
+  =
+  \arg\max_t p(t \mid t_{\le i}),
+  $$
 
-or by sampling from the distribution. The generated token is appended to the context, and the same process repeats.
+  or by sampling from the distribution. The generated token is appended to the context, and the same process repeats.
 
 - **Training.** During training, the correct prefix tokens are given to the model. The loss is the sum of next-token cross-entropies:
 
-$$
-\mathcal{L}
-=
--
-\sum_{i=1}^{T-1}
-\log p(t_{i+1}^\ast \mid t_{\le i}^\ast).
-$$
+  $$
+  \mathcal{L}
+  =
+  -
+  \sum_{i=1}^{T-1}
+  \log p(t_{i+1}^\ast \mid t_{\le i}^\ast).
+  $$
 
-Therefore, the decoder-only transformer reduces language modeling to one repeated operation: use the current prefix to predict the next token.
+  Therefore, the decoder-only transformer reduces language modeling to one repeated operation: use the current prefix to predict the next token.
 
 ### Transformer vs RNN
 
 - **Advantage: parallel training.** An RNN processes tokens recursively, so $h_i$ depends on $h_{i-1}$ and the computation is hard to parallelize over time:
 
-$$
-h_i = f(h_{i-1},x_i).
-$$
+  $$
+  h_i = f(h_{i-1},x_i).
+  $$
 
-A transformer processes all token states together. In one attention layer,
+  A transformer processes all token states together. In one attention layer,
 
-$$
-Q = HW_Q,\qquad K = HW_K,\qquad V = HW_V.
-$$
+  $$
+  Q = HW_Q,\qquad K = HW_K,\qquad V = HW_V.
+  $$
 
-Then all pairwise scores are computed by one matrix multiplication:
+  Then all pairwise scores are computed by one matrix multiplication:
 
-$$
-S
-=
-\frac{QK^\top}{\sqrt{d_k}}.
-$$
+  $$
+  S
+  =
+  \frac{QK^\top}{\sqrt{d_k}}.
+  $$
 
-Even with a causal mask, all positions can be trained in parallel:
+  Even with a causal mask, all positions can be trained in parallel:
 
-$$
-Z = \operatorname{softmax}(S)V.
-$$
+  $$
+  Z = \operatorname{softmax}(S)V.
+  $$
 
 - **Advantage: direct retrieval.** An RNN must carry old information through a single hidden state. A transformer keeps token representations available and lets position $i$ retrieve useful previous tokens directly:
 
-$$
-b_i = \sum_{j=1}^{i} a_{i,j}v_j.
-$$
+  $$
+  b_i = \sum_{j=1}^{i} a_{i,j}v_j.
+  $$
 
-So if token $i$ needs token $j$, attention can create a direct connection instead of passing information step by step through all intermediate positions.
+  So if token $i$ needs token $j$, attention can create a direct connection instead of passing information step by step through all intermediate positions.
 
 - **Advantage: no recurrent gradient path over time.** In an RNN, long-range learning depends on a product of many time-step Jacobians, which can cause gradients to vanish or explode. In a transformer, token $i$ can attend directly to token $j$, so the learning signal does not have to pass through every intermediate time step.
 
@@ -1766,15 +1938,15 @@ So if token $i$ needs token $j$, attention can create a direct connection instea
 
 - **Disadvantage: quadratic context cost.** Full self-attention over a length-$T$ sequence uses a $T \times T$ attention matrix:
 
-$$
-S \in \mathbb{R}^{T \times T}.
-$$
+  $$
+  S \in \mathbb{R}^{T \times T}.
+  $$
 
-Therefore the memory and computation cost scale as
+  Therefore the memory and computation cost scale as
 
-$$
-O(T^2).
-$$
+  $$
+  O(T^2).
+  $$
 
 - **Disadvantage: expensive long context.** RNNs can process arbitrarily long streams with a fixed-size hidden state, although memory quality may degrade. Transformers keep explicit token-level memory, which is more flexible but expensive for very long contexts. Long-context transformers therefore need efficient attention, sparse attention, compression, or external memory.
 
@@ -1809,7 +1981,7 @@ These principles explain the design of several important architectures.
   h_{\ell+1} = h_\ell + F_\ell(h_\ell).
   $$
 
-The identity path makes the layer-to-layer transformation closer to norm-preserving. If the residual term $F_\ell$ is small, then the Jacobian of the block is close to the identity matrix:
+  The identity path makes the layer-to-layer transformation closer to norm-preserving. If the residual term $F_\ell$ is small, then the Jacobian of the block is close to the identity matrix:
 
   $$
   \frac{\partial h_{\ell+1}}{\partial h_\ell}
