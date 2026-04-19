@@ -746,13 +746,7 @@ $$
 The convolution formula is
 
 $$
-z_{i,j,m}=\sum_{u=0}^{k_h-1}
-\sum_{v=0}^{k_w-1}
-\sum_{c=1}^{C_{\mathrm{in}}}
-K_{u,v,c,m}
-\,
-x_{i+u,\, j+v,\, c}
-+ b_m.
+z_{i,j,m}=\sum_{u=0}^{k_h-1}\sum_{v=0}^{k_w-1}\sum_{c=1}^{C_{\mathrm{in}}}K_{u,v,c,m}\,x_{i+u,\, j+v,\, c}+ b_m.
 $$
 
 Here $(i,j)$ indexes the spatial output location and $m$ indexes the output channel. For each fixed $m$, the same kernel $K_{\cdot,\cdot,\cdot,m}$ is used at every location. This is parameter sharing.
