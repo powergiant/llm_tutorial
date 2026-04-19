@@ -1,8 +1,10 @@
-# Machine learning
+# Deep learning
+
+## Machine learning
 
 [1] Chapter 1-2
 
-## Tasks, model, ground truth and loss function
+### Tasks, model, ground truth and loss function
 
 Machine learning tries to recover an unknown rule from data. We observe examples
 
@@ -64,7 +66,7 @@ For example, if $x$ is an email and $y$ is whether it is spam, then $f_\theta(x)
 
 **Question.** Why is cross-entropy a loss function?
 
-## Optimization
+### Optimization
 
 Once we choose a model and a loss, finding the parameter becomes an optimization problem. We adjust the parameters $\theta$ so that the loss on the training data becomes small.
 
@@ -78,7 +80,7 @@ where $\eta$ is the learning rate. This means we move the parameters in the nega
 
 **Question.** Why does gradient descent optimize the parameter?
 
-## Expressiveness, convergence and generalization
+### Expressiveness, convergence and generalization
 
 Three ideas appear throughout machine learning.
 
@@ -88,7 +90,7 @@ Three ideas appear throughout machine learning.
 
 **Generalization** asks whether a small loss on the observed samples really means that the model is close to the ground truth on unseen data as well. A model that fits the training samples but fails on new examples is overfitting.
 
-## Linear/convex model and their restriction
+### Linear/convex model and their restriction
 
 **Linear models** are an important starting point because they often lead to convex optimization problems, and convex losses usually have good convergence behavior. More generally, when the loss as a function of the parameters is convex, optimization is numerically more stable and it is easier to find a global optimum. This is one reason linear and other convex models were so popular before neural networks.
 
@@ -115,11 +117,11 @@ When $P$ is too small, the model cannot capture the true pattern and underfits. 
 Deep learning becomes necessary because many important problems require much richer model families, even though this makes optimization and generalization analysis harder.
 
 
-# General deep learning problem
+## General deep learning problem
 
 [1] Chapter 3 + Auto-differentiation
 
-## Multi-layer perceptron
+### Multi-layer perceptron
 
 From the viewpoint of expressiveness, linear models are limited because they only apply one affine map to the input. Many realistic functions are more naturally written as a composition of simple steps. For example, recognizing a cat may involve first detecting edges, then parts such as ears or eyes, and then assembling these local features into a final concept. This compositional structure motivates the **multi-layer perceptron (MLP)**.
 
@@ -175,9 +177,9 @@ The following picture shows a simple MLP. The **weights** correspond to the edge
 
 ![A simple multi-layer perceptron](../pictures/mlp_graph.png)
 
-## Optimization
+### Optimization
 
-### Full gradient descent
+#### Full gradient descent
 
 In both regression and classification, the total loss can be written as a sum of local contributions from individual samples:
 
@@ -205,7 +207,7 @@ $$
 
 This gives a stable and accurate descent direction, but every update is expensive because it requires one full pass over the dataset.
 
-### Stochastic gradient descent 
+#### Stochastic gradient descent 
 
 In **stochastic gradient descent (SGD)**, we replace the full gradient by the gradient on a randomly sampled **mini-batch** $B_t$:
 
@@ -215,7 +217,7 @@ $$
 
 This makes each update much cheaper, which is essential for large datasets. The gradient estimate is noisy, but this noise is often helpful in practice because it can prevent the optimization from getting stuck too easily in bad regions.
 
-### AdaGrad
+#### AdaGrad
 
 **AdaGrad** changes the learning rate coordinate-wise according to past gradient magnitudes:
 
@@ -232,7 +234,7 @@ $$
 
 Coordinates that have received many large gradients get smaller future steps, while rarely updated coordinates keep relatively large steps. This can speed up convergence, especially when different coordinates have very different scales.
 
-### Momentum
+#### Momentum
 
 **Momentum** smooths the update direction by accumulating a running average of past gradients:
 
@@ -248,7 +250,7 @@ This helps accelerate movement along consistent directions and reduces oscillati
 
 
 
-### Weight regularization
+#### Weight regularization
 
 **Weight regularization** modifies the objective so that excessively large parameters are penalized. A standard choice is $\ell_2$ regularization:
 
@@ -260,7 +262,7 @@ $$
 
 This biases the optimizer toward smaller weights, which often improves generalization. In practice, plain SGD itself also has an implicit regularization effect, and explicit regularization is often used together with it.
 
-### Adam/AdamW
+#### Adam/AdamW
 
 **Adam** combines momentum with coordinate-wise adaptive scaling. With
 
@@ -282,7 +284,7 @@ and updates parameters using a normalized direction. Adam is usually easier to t
 
 **AdamW** separates weight decay from the adaptive gradient step, which makes the effect of regularization cleaner. This is the standard optimizer in much of modern deep learning, including large language models.
 
-### Auto-differentiation
+#### Auto-differentiation
 
 Training requires computing gradients of the loss with respect to all parameters. For an MLP, these derivatives are computed by repeated application of the chain rule.
 
@@ -405,7 +407,7 @@ There are three common ways to compute derivatives:
 For training neural networks, we therefore use reverse-mode automatic differentiation, which is exactly backpropagation.
 
 
-## Design choice
+### Design choice
 
 As we discussed before, convex models usually have good convergence properties, but they are often limited in expressiveness. Deep learning enlarges the model family enough to capture much more complicated functions, while still admitting convergent optimization methods and often achieving good generalization despite overparameterization.
 
@@ -425,11 +427,11 @@ As we discussed before, convex models usually have good convergence properties, 
 
 Later sections will revisit this tradeoff through specific architectures such as CNNs, RNNs, ResNets, and transformers.
 
-## Initialization and normalization
+### Initialization and normalization
 
 Initialization and normalization are practical tools for convergence. Their goal is to keep the scale of activations and gradients reasonable as signals pass through many layers.
 
-### Weight initialization
+#### Weight initialization
 
 Consider one linear layer
 
@@ -497,7 +499,7 @@ Here $n$ is the fan-in, the number of inputs to one neuron.
 
 The exact constants are less important than the principle: choose the initial weight scale so that activations and gradients neither shrink nor grow too quickly through depth.
 
-### Normalization
+#### Normalization
 
 Even with good initialization, the scale of activations can change during training. Normalization stabilizes the distribution of intermediate activations.
 
@@ -573,7 +575,7 @@ where $\mu$ and $\sigma^2$ are a mean and variance computed from some group of a
 
 In short, initialization controls the scale at the beginning of training, while normalization controls the scale during training.
 
-## Training strategies
+### Training strategies
 
 - **Learning-rate schedule.** The learning rate controls the step size of each parameter update:
 
@@ -713,15 +715,15 @@ In short, initialization controls the scale at the beginning of training, while 
 
 - **Early stopping and validation.** An epoch means one full pass through the training dataset. Training for more epochs usually reduces training loss, but too many epochs can cause overfitting: the model continues improving on the training set while validation performance gets worse. Therefore we monitor validation loss or task metrics during training. If validation performance stops improving, we can stop training, reduce the learning rate, or return to the best checkpoint.
 
-# Deep learning models
+## Deep learning models
 
 [1] Chapter 4-7
 
-## Convolutional neural network
+### Convolutional neural network
 
 [1] Chapter 4
 
-### Images processing
+#### Images processing
 
 Mathematically, an **image** can be represented as a tensor
 
@@ -757,7 +759,7 @@ weights in the first layer alone, not counting biases. This is expensive, but th
 
 Thus, a plain MLP is usually too complicated for raw images: it has too many parameters, ignores the image geometry after flattening, and must relearn many simple spatial patterns from scratch. To solve this problem, we need a model architecture designed for image structure. This motivates convolutional neural networks (CNNs).
 
-### Derivation of convolution from expressiveness analysis
+#### Derivation of convolution from expressiveness analysis
 
 Assume that we want to learn the ground-truth function for an image task, such as image classification. A fully connected MLP is expressive enough in principle, but it is inefficient because it treats the image as an arbitrary long vector. To get a more efficient model family, we use observations about the structure of common image functions.
 
@@ -862,7 +864,7 @@ $$
 
 Pooling reduces spatial size, reduces computation, and makes later layers cheaper. It can also discard fine-grained position information, so for tasks where exact position matters, pooling must be used carefully.
 
-### A typical CNN
+#### A typical CNN
 
 For image classification, a typical CNN inference pass has a **feature extractor** followed by a **classifier head**:
 
@@ -1080,11 +1082,11 @@ The inference can be described by
 
 Thus, the CNN inference pass transforms an image into local feature maps, repeatedly combines and downsamples those maps, then uses an MLP classifier to produce class probabilities.
 
-## Recurrent neural network
+### Recurrent neural network
 
 [1] Chapter 5
 
-### Seq2seq problem
+#### Seq2seq problem
 
 Many important problems can be described as mappings from an input sequence to an output sequence. Write the input as
 
@@ -1210,7 +1212,7 @@ $$
 
 If observations, memories, and actions are discretized into symbols, then general decision making can be described as sequence input to sequence output.
 
-### Encoding discrete tokens
+#### Encoding discrete tokens
 
 Sequence models operate on vectors, but tokens and actions are usually discrete. Therefore we need two interfaces:
 
@@ -1275,7 +1277,7 @@ $$
 
 or by sampling from the distribution. The same idea applies to discrete actions: the action set plays the role of the vocabulary.
 
-### Simple RNN
+#### Simple RNN
 
 Let the input sequence be
 
@@ -1311,7 +1313,7 @@ $$
 
 ![Unrolled RNN structure with shared recurrent parameters](../pictures/rnn_structure.png)
 
-### RNN variants
+#### RNN variants
 
 RNN architectures can be modified in several ways.
 
@@ -1364,7 +1366,7 @@ $$
 
 This is useful for sequence labeling, because the label of a word may depend on words before and after it.
 
-### LSTM
+#### LSTM
 
 Simple RNNs have difficulty storing information for a long time. The hidden state is overwritten at every step, and gradients must pass through many repeated applications of $W_h$. This can cause vanishing or exploding gradients.
 
@@ -1409,7 +1411,7 @@ Because information can pass through the cell state additively, LSTMs are better
 
 <!-- GRU, or gated recurrent unit, is a simplified gated RNN. It uses fewer gates than LSTM and has fewer parameters, but often performs similarly in practice. -->
 
-### Learning RNNs
+#### Learning RNNs
 
 For sequence labeling, the model produces an output distribution at each time step. If the target label at time $t$ is $y_t$, a standard loss is the sum of cross-entropies:
 
@@ -1441,7 +1443,7 @@ $$
 
 This makes RNN training natural for sequences, but it also exposes the model to long chains of repeated transformations.
 
-### Limitation
+#### Limitation
 
 RNNs process sequences step by step. This gives them a natural memory mechanism, but it also creates three important limitations:
 
@@ -1563,11 +1565,11 @@ one step at a time. This makes training and inference over long sequences less p
 
 These limitations motivate attention mechanisms and transformers. Attention stores token representations explicitly and lets different positions interact more directly, instead of forcing all information through a single recurrent state.
 
-## Attention and transformer
+### Attention and transformer
 
 [1] Chapter 6, 7
 
-### Attention
+#### Attention
 
 **Attention** is another for seq2seq problem that improves the RNN. Many sequence problems start with a sequence of vectors
 
@@ -1646,7 +1648,7 @@ $$
 
 is the attention matrix. Its entry $A_{i,j}$ says how much position $i$ uses information from position $j$.
 
-### Multi-head attention
+#### Multi-head attention
 
 A single attention operation retrieves information in one representation space. **Multi-head attention** runs several attention operations in parallel:
 
@@ -1672,7 +1674,7 @@ $$
 Different heads can learn to retrieve different kinds of information. For example, one head may focus on nearby words, another may focus on long-range dependencies, and another may focus on syntactic or semantic relations.
 
 
-### Casuality
+#### Casuality
 
 In a generative language model, the model must predict the next token using only the tokens that have already appeared. If the token sequence is
 
@@ -1744,7 +1746,7 @@ $$
 
 This lets all positions be trained in parallel while preserving the autoregressive rule. For example, the representation at position $5$ can use positions $1,\ldots,5$, but not positions $6,\ldots,T$.
 
-### Positional encoding
+#### Positional encoding
 
 Self-attention compares tokens by content. In non-causal self-attention, without extra information, it does not know the order of the sequence. If we permute the input tokens, the same self-attention layer is permuted in the same way. Therefore we need to inject position information. In causal self-attention, the mask already gives the model some order information because position $i$ can only attend to positions $j \le i$. However, explicit **positional encoding** still often improves performance a lot, because the model also needs to know distances and exact relative positions, not only whether a token is in the past or future.
 
@@ -1820,7 +1822,7 @@ where $R_i$ is the rotation matrix for position $i$. Thus RoPE injects position 
 
 This lets the model distinguish different word orders, such as "the dog chased the cat" and "the cat chased the dog", while still using the same query-key-value attention formula.
 
-### Normalization
+#### Normalization
 
 Transformers usually use **layer normalization** rather than batch normalization. The reason is that language models often process variable-length sequences and are used autoregressively, sometimes with batch size $1$ during inference. Batch statistics would make the output depend on other examples in the same batch, which is inconvenient for sequence generation. Layer normalization normalizes each token representation independently across its feature dimension.
 
@@ -1955,7 +1957,7 @@ $$
 
 Thus layer normalization fixes the input scale, and variance-scaled random initialization of $W_Q$ and $W_K$ keeps each query and key coordinate at roughly unit variance.
 
-### Transformer
+#### Transformer
 
 A decoder-only transformer is the architecture used by most modern language models. It reads a prefix of tokens and predicts the next token:
 
@@ -2157,7 +2159,7 @@ The whole model is built from token embeddings, positional information, causal s
 
   Therefore, the decoder-only transformer reduces language modeling to one repeated operation: use the current prefix to predict the next token.
 
-### Transformer vs RNN
+#### Transformer vs RNN
 
 - **Advantage: parallel training.** An RNN processes tokens recursively, so $h_i$ depends on $h_{i-1}$ and the computation is hard to parallelize over time:
 
@@ -2212,7 +2214,7 @@ The whole model is built from token embeddings, positional information, causal s
 - **Disadvantage: expensive long context.** RNNs can process arbitrarily long streams with a fixed-size hidden state, although memory quality may degrade. Transformers keep explicit token-level memory, which is more flexible but expensive for very long contexts. Long-context transformers therefore need efficient attention, sparse attention, compression, or external memory.
 
 
-## Design principle of each model
+### Design principle of each model
 
 We can understand many neural network architectures from four basic principles: expressiveness, convergence, generalization, and efficiency.
 
@@ -2268,9 +2270,9 @@ These principles explain the design of several important architectures.
 
 In short, architecture design is not arbitrary. CNNs come from locality, RNNs and LSTMs come from sequential computation, ResNets come from optimization of deep networks, and attention comes from direct retrieval over long contexts.
 
-# Basic machine learning theory
+## Basic machine learning theory
 
-## Expressiveness
+### Expressiveness
 
 TODO: case studies of expressiveness, mlp fits finite step function, finite step boolean function
 
@@ -2280,7 +2282,7 @@ TODO: case studies of expressiveness, transformer, Turing completeness of prompt
 
 TODO: Church-Turing thesis, prompt completeness, machine can do everything human can execute, parameter completeness?? meta knowledge
 
-## Generalization
+### Generalization
 
 TODO: flat minima better generalization, linear scaling law
 
@@ -2298,17 +2300,17 @@ TODO: contradiction between them, overparametrization
 
 TODO: shape of loss landscope, flat minima, implicit regularization
 
-## Convergence
+### Convergence
 
 TODO: mean field limit
 
-# What next?
+## What next?
 
 pytorch, autograd (why is fast?), tensor calculus [tensor_calculus.md](./tensor_calculus.md)
 
 more on llm [llm.md](./llm.md)
 
-# References
+## References
 
 [1] [LeeDL Tutorial](https://github.com/datawhalechina/leedl-tutorial)
 
