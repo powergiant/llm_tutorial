@@ -17,4 +17,6 @@ The goal is to build enough background to reproduce a state-of-the-art, complete
 
 ## Where To Start
 
+Please go to https://powergiant.github.io/llm_tutorial/#/ for better reading experience.
+
 Start with the full roadmap in [outline.md](./outline.md).
