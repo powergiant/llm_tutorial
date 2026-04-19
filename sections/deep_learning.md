@@ -144,9 +144,7 @@ depending on the task. Here $W^{(\ell)}$ are the weights, $b^{(\ell)}$ are the *
 For classification, the output of the final layer is usually called the **logits**. These logits are then converted into a probability distribution over classes by the softmax function:
 
 $$
-p_\theta(y_c \mid x)
-=
-\frac{\exp(z_c)}{\sum_{c'=1}^C \exp(z_{c'})}.
+p_\theta(y_c \mid x)=\frac{\exp(z_c)}{\sum_{c'=1}^C \exp(z_{c'})}.
 $$
 
 In a more compact form, $f_\theta(x)$ can be written as
