@@ -808,23 +808,23 @@ Thus, the CNN inference pass transforms an image into local feature maps, repeat
 
 ### Seq2seq problem
 
-Many important problems can be described as mappings between sequences. The input is a sequence
+Many important problems can be described as mappings from an input sequence to an output sequence. Write the input as
 
 $$
 x_{1:T} = (x_1,x_2,\dots,x_T),
 $$
 
-and the output is another sequence
+and the output as
 
 $$
 y_{1:S} = (y_1,y_2,\dots,y_S).
 $$
 
-Here $T$ and $S$ do not have to be the same. This is the general **sequence-to-sequence** or **Seq2Seq** problem. If the task only needs one label, we can still view that label as a sequence of length $1$.
+The lengths $T$ and $S$ do not have to be the same. This is the general **sequence-to-sequence** or **Seq2Seq** problem. If a task only needs one label, we can still view that label as a sequence of length $1$.
 
-Examples:
+This viewpoint covers many tasks.
 
-* **Many-to-many with the same length.** Slot filling and part-of-speech tagging assign one label to each input token:
+* **Sequence labeling.** The input and output have the same length:
 
 $$
 (x_1,\dots,x_T)
@@ -832,13 +832,13 @@ $$
 (y_1,\dots,y_T).
 $$
 
-For example, in slot filling, we may hear
+Examples include slot filling and part-of-speech tagging. In slot filling, given
 
 $$
 \text{``arrive in Shanghai on June 1''}.
 $$
 
-The model should assign a label to each word, such as
+the model should assign labels such as
 
 $$
 \text{Shanghai} \mapsto \text{destination},
@@ -846,7 +846,7 @@ $$
 \text{June 1} \mapsto \text{arrival time}.
 $$
 
-* **Many-to-one.** Sentiment analysis reads a whole sentence or document and outputs one label:
+* **Sequence classification.** The input is a sequence and the output is one label:
 
 $$
 (x_1,\dots,x_T)
@@ -854,7 +854,9 @@ $$
 y.
 $$
 
-* **Many-to-many with different lengths.** Speech recognition maps a long acoustic sequence to a shorter character or word sequence:
+Sentiment analysis is a typical example.
+
+* **Unequal-length sequence prediction.** The input and output are both sequences, but the lengths may differ:
 
 $$
 (x_1,\dots,x_T)
@@ -864,7 +866,9 @@ $$
 S \neq T.
 $$
 
-* **Translation and general Seq2Seq.** Machine translation maps one token sequence to another token sequence:
+Speech recognition is one example: a long acoustic sequence is mapped to a shorter character or word sequence.
+
+* **Translation.** Machine translation maps one language sequence to another:
 
 $$
 (\text{English words})
@@ -872,9 +876,9 @@ $$
 (\text{Chinese words}).
 $$
 
-The output length is not known before generation. The model must decide when to stop, often by producing a special end token.
+The output length is not known before generation, so the model must decide when to stop, often by producing a special end token.
 
-* **Decision and action sequences.** A decision-making system can also be viewed as a sequence problem. It observes a history
+* **Decision and action sequences.** A decision-making system observes a history
 
 $$
 (o_1,o_2,\dots,o_T)
@@ -886,9 +890,9 @@ $$
 (a_1,a_2,\dots).
 $$
 
-At a very abstract level, many intelligent behaviors can be described as memory-to-action sequence mappings: the system reads a history, stores useful information, and produces the next action. This is why sequence modeling is a central problem in NLP, speech, decision making, and broader AI.
+At a very abstract level, an intelligent behavior can be viewed as a memory-to-action map: the system reads a history, stores useful information, and produces the next action. This is why sequence modeling appears in NLP, speech, decision making, and broader AI.
 
-All the tasks above can be unified as **next-token prediction**. We concatenate the input sequence, a separator, and the output sequence into one longer sequence:
+All these tasks can be unified as **next-token prediction**. Concatenate the input sequence, a separator, and the output sequence:
 
 $$
 z_{1:N}
@@ -896,7 +900,7 @@ z_{1:N}
 (x_1,\dots,x_T,\texttt{<sep>},y_1,\dots,y_S).
 $$
 
-Then learning the sequence-to-sequence map can be written as predicting the next symbol:
+Then the learning problem is to predict the next symbol:
 
 $$
 p(z_t \mid z_{<t}).
@@ -908,7 +912,7 @@ $$
 (x_1,\dots,x_T,\texttt{<sep>})
 $$
 
-and repeatedly sample or choose the next output token until an end token is produced. In this formulation, translation, slot filling, speech recognition, classification, and decision making differ mainly in how we encode the input and output tokens.
+and repeatedly choose or sample the next output token until an end token is produced. In this formulation, translation, slot filling, speech recognition, classification, and decision making differ mainly in how the inputs and outputs are encoded.
 
 More abstractly, Seq2Seq is closely connected to the theory of computable functions. A computable function can be viewed as a procedure that reads a finite symbolic input and writes a finite symbolic output. If both input and output are encoded as discrete sequences, then a computable function has the form
 
@@ -930,27 +934,12 @@ If observations, memories, and actions are discretized into symbols, then genera
 
 ### Encoding discrete tokens
 
-In sequence tasks, inputs and outputs are often discrete tokens or discrete actions. An input token can first be represented by a one-hot vector $e_t$ and then mapped to a dense embedding
+Sequence models operate on vectors, but tokens and actions are usually discrete. Therefore we need two interfaces:
 
-$$
-x_t = E e_t.
-$$
+* an **input encoding** that maps a discrete symbol to a vector;
+* an **output decoding** that maps a vector to a probability distribution over symbols.
 
-The output at each step is usually a probability distribution over the next token or action:
-
-$$
-p(y_t \mid y_{<t}, x_{1:T}).
-$$
-
-A concrete output is then chosen by greedy decoding,
-
-$$
-y_t = \arg\max_y p(y \mid y_{<t},x_{1:T}),
-$$
-
-or by sampling from the distribution.
-
-A word or token is discrete, but a neural network expects vectors. A simple representation is **one-hot encoding**. If the vocabulary is
+A simple input representation is **one-hot encoding**. If the vocabulary is
 
 $$
 \mathcal{V}=\{\text{apple},\text{bag},\text{cat},\text{dog},\text{elephant}\},
@@ -964,13 +953,49 @@ $$
 \text{cat}=(0,0,1,0,0).
 $$
 
-One-hot vectors are easy to define, but they are sparse and do not directly express similarity between words. In practice, we usually map tokens to dense vectors using an **embedding layer**:
+In general, if the vocabulary size is $|\mathcal{V}|$, a token at time $t$ is represented by
+
+$$
+e_t \in \{0,1\}^{|\mathcal{V}|}.
+$$
+
+One-hot vectors are sparse and do not express similarity between words. In practice, we usually map them to dense vectors using an **embedding matrix**:
 
 $$
 x_t = E e_t,
+\qquad
+E \in \mathbb{R}^{d \times |\mathcal{V}|},
+\qquad
+x_t \in \mathbb{R}^{d}.
 $$
 
-where $e_t$ is the one-hot vector at time $t$, $E$ is an embedding matrix, and $x_t$ is the dense input vector to the sequence model.
+Thus each token becomes a learned vector. Tokens with related usage can learn similar embeddings.
+
+At the output side, the model produces logits over the vocabulary:
+
+$$
+o_t \in \mathbb{R}^{|\mathcal{V}|}.
+$$
+
+The logits are converted to a probability distribution by softmax:
+
+$$
+p(y_t = v \mid y_{<t},x_{1:T})
+=
+\frac{\exp(o_{t,v})}
+{\sum_{v'\in\mathcal{V}}\exp(o_{t,v'})}.
+$$
+
+A concrete output token can then be chosen by greedy decoding,
+
+$$
+y_t
+=
+\arg\max_{v\in\mathcal{V}}
+p(y_t=v \mid y_{<t},x_{1:T}),
+$$
+
+or by sampling from the distribution. The same idea applies to discrete actions: the action set plays the role of the vocabulary.
 
 ### Simple RNN
 
@@ -1005,6 +1030,8 @@ The same parameters $W_x,W_h,W_y$ are reused at every time step. If we unroll th
 $$
 h_1 \rightarrow h_2 \rightarrow \cdots \rightarrow h_T.
 $$
+
+TODO: add a picture to demonstrate the RNN structure
 
 ### RNN variants
 
@@ -1142,17 +1169,115 @@ where $g$ is the gradient vector and $\tau$ is a chosen threshold. Clipping does
 
 ### Limitation
 
-RNNs process sequences step by step. This gives them a natural memory mechanism, but it also makes long-range dependency learning difficult and prevents full parallelization over time. These limitations motivate attention mechanisms and transformers.
+RNNs process sequences step by step. This gives them a natural memory mechanism, but it also creates two fundamental limitations:
+
+* information from the past must be compressed into a fixed-size hidden state;
+* gradients must pass backward through many repeated recurrent transitions.
+
+The first issue is a **finite-bandwidth memory bottleneck**. At time $t$, the whole past
+
+$$
+x_1,x_2,\dots,x_t
+$$
+
+is summarized by one vector
+
+$$
+h_t \in \mathbb{R}^d.
+$$
+
+No matter how long the sequence is, the model carries information forward only through this $d$-dimensional vector. If the sequence is short, this may be enough. If the sequence is long, the hidden state must decide what to keep and what to overwrite. In this sense, a simple RNN has limited memory bandwidth: every new input competes with old information for the same fixed-size state.
+
+The second issue is the **recursive gradient problem**. Consider a simple RNN
+
+$$
+h_t = \phi(W_h h_{t-1} + W_x x_t + b).
+$$
+
+To understand how information from time $s$ affects time $t$, look at the derivative
+
+$$
+\frac{\partial h_t}{\partial h_s}
+=
+\frac{\partial h_t}{\partial h_{t-1}}
+\frac{\partial h_{t-1}}{\partial h_{t-2}}
+\cdots
+\frac{\partial h_{s+1}}{\partial h_s}.
+$$
+
+Equivalently, this is a product of Jacobian matrices:
+
+$$
+\frac{\partial h_t}{\partial h_s}
+=
+J_t J_{t-1}\cdots J_{s+1},
+$$
+
+where
+
+$$
+J_k
+=
+\frac{\partial h_k}{\partial h_{k-1}}.
+$$
+
+For the simple RNN above,
+
+$$
+J_k
+=
+\operatorname{diag}\!\left(\phi'(W_h h_{k-1}+W_x x_k+b)\right) W_h.
+$$
+
+Thus, long-range learning depends on repeatedly multiplying similar matrices. This is the core reason gradients tend to either vanish or explode.
+
+To see this more clearly, ignore the activation for a moment and suppose
+
+$$
+h_t = W_h h_{t-1}.
+$$
+
+Then
+
+$$
+h_t = W_h^{t-s}h_s,
+\qquad
+\frac{\partial h_t}{\partial h_s}=W_h^{t-s}.
+$$
+
+If the dominant eigenvalues of $W_h$ have magnitude less than $1$, then $W_h^{t-s}$ goes to zero as $t-s$ grows. Information from the distant past is forgotten, and the gradient becomes tiny. This is **gradient vanishing**.
+
+If the dominant eigenvalues have magnitude greater than $1$, then $W_h^{t-s}$ grows rapidly. A small change in an early hidden state can create a huge change later, and the gradient becomes enormous. This is **gradient explosion**.
+
+With nonlinear activations, the same problem remains. The Jacobian product contains both $W_h$ and the activation derivatives. For sigmoid or tanh, many derivatives are less than $1$, which makes vanishing gradients even more likely. ReLU can avoid some saturation, but the repeated multiplication by the recurrent transition still creates an unstable long-range dependency problem.
+
+Therefore a finite-bandwidth recursive structure is forced into a difficult tradeoff:
+
+* if the recurrence is contractive, old information and gradients disappear;
+* if the recurrence is expansive, hidden states and gradients can explode;
+* if it is carefully balanced near the boundary, training becomes numerically delicate.
+
+LSTM and GRU reduce this problem by using gates and additive memory paths. For example, the LSTM cell update
+
+$$
+c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t
+$$
+
+allows information to persist through an additive path rather than being completely rewritten at every time step. This helps long-term memory, but it does not remove all sequential limitations. RNNs still process tokens one by one, so they are hard to parallelize over time and still struggle when very distant positions must interact directly.
+
+These limitations motivate attention mechanisms and transformers, which allow information from different positions to interact more directly.
 
 ## Attention and transformer
 
 [1] Chapter 6, 7
 
+### Attention
+
 ### Long term memory
 
-explosion of hidden state, memory, either forget or explosion
+retreival mechanism completely resolve the explosion/vanishing of gradient
 
-### Attention
+it do not introduce hidden state, do not forget information hidden state, memory, either forget or explosion
 
 ### Transformer
 
