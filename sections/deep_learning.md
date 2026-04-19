@@ -1273,7 +1273,7 @@ These limitations motivate attention mechanisms and transformers, which allow in
 
 ### Attention
 
-Many sequence problems start with a sequence of vectors
+Attention is another for seq2seq problem that improves the RNN. Many sequence problems start with a sequence of vectors
 
 $$
 X = (x_1,\ldots,x_T), \qquad x_i \in \mathbb{R}^{d}.
@@ -1282,10 +1282,10 @@ $$
 For example, in language modeling, $x_i$ can be the embedding of the $i$-th token; in speech, $x_i$ can be the acoustic feature at the $i$-th time step. The goal is often to compute a new sequence
 
 $$
-B = (b_1,\ldots,b_T),
+Z = (z_1,\ldots,z_T),
 $$
 
-where each $b_i$ is a context-aware representation of position $i$.
+where each $z_i$ is a context-aware representation of position $i$.
 
 The key idea of attention is retrieval. Instead of forcing all past information into one recursively updated hidden state, attention keeps a collection of representations and lets each position retrieve the useful parts from the collection.
 
@@ -1316,12 +1316,12 @@ $$
 Then the output at position $i$ is a weighted sum of all value vectors:
 
 $$
-b_i
+z_i
 =
 \sum_{j=1}^{T} a_{i,j} v_j.
 $$
 
-Thus $b_i$ is not computed from $x_i$ alone. It can directly use information from any other position in the sequence.
+Thus $z_i$ is not computed from $x_i$ alone. It can directly use information from any other position in the sequence.
 
 In matrix form, if
 
@@ -1350,51 +1350,6 @@ $$
 
 is the attention matrix. Its entry $A_{i,j}$ says how much position $i$ uses information from position $j$.
 
-### Long-term memory
-
-The main difference between RNN memory and attention memory is the communication path.
-
-In an RNN, the hidden state is updated recursively:
-
-$$
-h_t = f(h_{t-1}, x_t).
-$$
-
-Information from an early token must be compressed into $h_t$ again and again. If the sequence is long, the model has to decide what to keep and what to forget inside a finite-dimensional hidden state. This is a bottleneck: old information may be overwritten or diluted by later information.
-
-The gradient path also has the same recursive structure. Roughly,
-
-$$
-\frac{\partial h_T}{\partial h_t}
-=
-\frac{\partial h_T}{\partial h_{T-1}}
-\frac{\partial h_{T-1}}{\partial h_{T-2}}
-\cdots
-\frac{\partial h_{t+1}}{\partial h_t}.
-$$
-
-More precisely, it is a product of Jacobian matrices:
-
-$$
-\frac{\partial h_T}{\partial h_t}
-=
-J_T J_{T-1}\cdots J_{t+1},
-\qquad
-J_s = \frac{\partial h_s}{\partial h_{s-1}}.
-$$
-
-Repeated multiplication creates an unstable tradeoff. If the singular values of these Jacobians are mostly smaller than $1$, the gradient tends to vanish. If they are mostly larger than $1$, the gradient tends to explode. This is why long-range dependency learning is difficult for a simple recursive hidden-state model.
-
-Attention changes the structure. In self-attention,
-
-$$
-b_i = \sum_{j=1}^{T} a_{i,j}v_j.
-$$
-
-The information at position $j$ does not have to pass through every intermediate time step before reaching position $i$. It can be retrieved directly through the attention weight $a_{i,j}$. Therefore attention removes the specific long product of recurrent Jacobians that causes the classic vanishing/exploding gradient problem through time.
-
-This does not mean transformers have no optimization difficulties. They are still deep neural networks. But attention solves the main memory bottleneck of RNNs: information is stored as a set of token representations and retrieved when needed, instead of being repeatedly compressed into one hidden state.
-
 ### Multi-head attention
 
 A single attention operation retrieves information in one representation space. Multi-head attention runs several attention operations in parallel:
@@ -1420,33 +1375,166 @@ $$
 
 Different heads can learn to retrieve different kinds of information. For example, one head may focus on nearby words, another may focus on long-range dependencies, and another may focus on syntactic or semantic relations.
 
+
+### Casuality
+
+In a generative language model, the model must predict the next token using only the tokens that have already appeared. If the token sequence is
+
+$$
+(x_1,x_2,\ldots,x_T),
+$$
+
+then the causal factorization is
+
+$$
+p(x_1,\ldots,x_T)
+=
+\prod_{t=1}^{T}p(x_t \mid x_{<t}).
+$$
+
+This is called causal because the prediction at time $t$ cannot depend on future tokens $x_{t+1},\ldots,x_T$. During training, the whole sequence is available in memory, but the attention operation must be masked so that the model cannot cheat by looking at the answer.
+
+For ordinary self-attention, position $i$ can attend to every position $j$:
+
+$$
+s_{i,j} = \frac{q_i^\top k_j}{\sqrt{d_k}}.
+$$
+
+For causal self-attention, we add a mask:
+
+$$
+s_{i,j}^{\mathrm{causal}}
+=
+\begin{cases}
+\dfrac{q_i^\top k_j}{\sqrt{d_k}}, & j \le i,\\
+-\infty, & j > i.
+\end{cases}
+$$
+
+Then the attention weights are
+
+$$
+a_{i,j}
+=
+\operatorname{softmax}_j(s_{i,j}^{\mathrm{causal}}).
+$$
+
+Because $\exp(-\infty)=0$, all future positions receive zero attention weight:
+
+$$
+a_{i,j}=0 \qquad \text{for } j>i.
+$$
+
+Therefore the output at position $i$ has the form
+
+$$
+b_i
+=
+\sum_{j=1}^{i} a_{i,j}v_j.
+$$
+
+The attention matrix becomes lower triangular:
+
+$$
+A =
+\begin{pmatrix}
+* & 0 & 0 & \cdots & 0 \\
+* & * & 0 & \cdots & 0 \\
+* & * & * & \cdots & 0 \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+* & * & * & \cdots & *
+\end{pmatrix}.
+$$
+
+This lets all positions be trained in parallel while preserving the autoregressive rule. For example, the representation at position $5$ can use positions $1,\ldots,5$, but not positions $6,\ldots,T$.
+
 ### Positional encoding
 
-Self-attention compares tokens by content. Without extra information, it does not know the order of the sequence. If we permute the input tokens, the same self-attention layer is permuted in the same way. Therefore we need to inject position information.
+Self-attention compares tokens by content. In non-causal self-attention, without extra information, it does not know the order of the sequence. If we permute the input tokens, the same self-attention layer is permuted in the same way. Therefore we need to inject position information. In causal self-attention, the mask already gives the model some order information because position $i$ can only attend to positions $j \le i$. However, explicit positional encoding still often improves performance a lot, because the model also needs to know distances and exact relative positions, not only whether a token is in the past or future.
 
-The usual input to a transformer is
+One important method is rotary positional embedding, usually called RoPE. Instead of adding a positional vector to the token embedding, RoPE rotates the query and key vectors by an angle that depends on their positions.
 
-$$
-u_i = e_i + p_i,
-$$
-
-where $e_i$ is the token embedding and $p_i$ is the positional encoding. The positional encoding can be fixed, such as sinusoidal positional encoding, or learned as trainable parameters.
-
-After adding positional information, the model can distinguish sentences such as
+Suppose the query and key dimensions are even. We group each query vector into two-dimensional pairs:
 
 $$
-\text{``the dog chased the cat''}
+q_i
+=
+(q_{i,1},q_{i,2},q_{i,3},q_{i,4},\ldots).
 $$
 
-and
+For the $r$-th pair, define
 
 $$
-\text{``the cat chased the dog''}.
+\begin{pmatrix}
+\widetilde{q}_{i,2r} \\
+\widetilde{q}_{i,2r+1}
+\end{pmatrix}
+=
+\begin{pmatrix}
+\cos(i\theta_r) & -\sin(i\theta_r) \\
+\sin(i\theta_r) & \cos(i\theta_r)
+\end{pmatrix}
+\begin{pmatrix}
+q_{i,2r} \\
+q_{i,2r+1}
+\end{pmatrix}.
 $$
+
+The key vector is rotated in the same way:
+
+$$
+\begin{pmatrix}
+\widetilde{k}_{j,2r} \\
+\widetilde{k}_{j,2r+1}
+\end{pmatrix}
+=
+\begin{pmatrix}
+\cos(j\theta_r) & -\sin(j\theta_r) \\
+\sin(j\theta_r) & \cos(j\theta_r)
+\end{pmatrix}
+\begin{pmatrix}
+k_{j,2r} \\
+k_{j,2r+1}
+\end{pmatrix}.
+$$
+
+The frequencies $\theta_r$ are usually chosen at different scales, for example
+
+$$
+\theta_r = 10000^{-2r/d}.
+$$
+
+After RoPE, the attention score becomes
+
+$$
+s_{i,j}
+=
+\frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
+$$
+
+The useful property is that the dot product depends on the relative distance between positions. In each two-dimensional block,
+
+$$
+(R_i q_i)^\top(R_j k_j)
+=
+q_i^\top R_{j-i} k_j,
+$$
+
+where $R_i$ is the rotation matrix for position $i$. Thus RoPE injects position into attention in a relative way: the interaction between position $i$ and position $j$ depends not only on token content, but also on the distance $j-i$.
+
+This lets the model distinguish different word orders, such as "the dog chased the cat" and "the cat chased the dog", while still using the same query-key-value attention formula.
 
 ### Transformer
 
-A transformer is an architectural framework built from attention, feed-forward networks, residual connections, and normalization. For sequence-to-sequence tasks, it usually has an encoder and a decoder.
+A decoder-only transformer is the architecture used by most modern language models. It reads a prefix of tokens and predicts the next token:
+
+$$
+p(t_1,\ldots,t_T)
+=
+\prod_{i=1}^{T}p(t_i \mid t_{<i}).
+$$
+
+The whole model is built from token embeddings, positional information, causal self-attention, feed-forward networks, residual connections, and normalization.
 
 - **Tokenization.** Raw text is first converted into discrete tokens:
 
@@ -1454,76 +1542,93 @@ $$
 \text{text} \longrightarrow (t_1,\ldots,t_T).
 $$
 
-Each token is mapped to a vector by an embedding matrix:
+Each token is mapped to a vector by an embedding matrix $E$:
 
 $$
-e_i = E t_i.
+e_i = E[t_i].
 $$
 
-Then positional information is added:
+- **Absolute positional encoding.** One way to give the model position information is to add a position vector $p_i$ to each token embedding:
 
 $$
 h_i^{(0)} = e_i + p_i.
 $$
 
-- **Transformer encoder.** The encoder reads the input sequence and produces contextual representations. Let
+Here $p_i$ can be learned or fixed. In this case, the initial hidden states are
 
 $$
 H^{(0)} = (h_1^{(0)},\ldots,h_T^{(0)}).
 $$
 
-For layer $\ell$, the encoder first applies multi-head self-attention:
+- **Rotary positional encoding.** Another common method is RoPE. Instead of adding $p_i$ to the embedding, RoPE rotates the query and key vectors inside attention. With RoPE, we can take the initial hidden state to be $h_i^{(0)}=e_i$, and inject position when forming attention scores.
+
+For one two-dimensional block,
 
 $$
-\widetilde{H}^{(\ell)}
+\begin{pmatrix}
+\widetilde{q}_{i,2r} \\
+\widetilde{q}_{i,2r+1}
+\end{pmatrix}
 =
-\operatorname{LayerNorm}
-\left(
-H^{(\ell-1)}
-+
-\operatorname{MHA}(H^{(\ell-1)})
-\right).
+\begin{pmatrix}
+\cos(i\theta_r) & -\sin(i\theta_r) \\
+\sin(i\theta_r) & \cos(i\theta_r)
+\end{pmatrix}
+\begin{pmatrix}
+q_{i,2r} \\
+q_{i,2r+1}
+\end{pmatrix},
 $$
 
-Then it applies a position-wise feed-forward network:
+and similarly
 
 $$
-H^{(\ell)}
+\begin{pmatrix}
+\widetilde{k}_{j,2r} \\
+\widetilde{k}_{j,2r+1}
+\end{pmatrix}
 =
-\operatorname{LayerNorm}
-\left(
-\widetilde{H}^{(\ell)}
-+
-\operatorname{FFN}(\widetilde{H}^{(\ell)})
-\right).
+\begin{pmatrix}
+\cos(j\theta_r) & -\sin(j\theta_r) \\
+\sin(j\theta_r) & \cos(j\theta_r)
+\end{pmatrix}
+\begin{pmatrix}
+k_{j,2r} \\
+k_{j,2r+1}
+\end{pmatrix}.
 $$
 
-The feed-forward network is applied independently to each position:
+Then attention uses the rotated query and key:
 
 $$
-\operatorname{FFN}(z)
+s_{i,j}
 =
-W_2 \sigma(W_1 z + b_1) + b_2.
+\frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
 $$
 
-The final encoder output is
+RoPE makes the query-key interaction depend on relative position, because
 
 $$
-H^{(L)} = (h_1^{(L)},\ldots,h_T^{(L)}).
-$$
-
-- **Transformer decoder.** The decoder generates the output sequence autoregressively:
-
-$$
-p(y_1,\ldots,y_S \mid x_1,\ldots,x_T)
+(R_i q_i)^\top(R_j k_j)
 =
-\prod_{s=1}^{S}
-p(y_s \mid y_{<s}, x_1,\ldots,x_T).
+q_i^\top R_{j-i}k_j.
 $$
 
-Generation starts from a special beginning token $\langle \mathrm{BOS} \rangle$ and stops when the model outputs $\langle \mathrm{EOS} \rangle$.
+The frequencies are usually chosen at different scales, for example
 
-The decoder uses masked self-attention. At output position $s$, the model can attend only to positions $1,\ldots,s$, not to future output tokens. This is implemented by setting future attention scores to $-\infty$ before the softmax:
+$$
+\theta_r = 10000^{-2r/d}.
+$$
+
+- **Causal self-attention.** A decoder-only transformer must not look at future tokens. In layer $\ell$, from the current hidden states $H^{(\ell-1)}$, we compute
+
+$$
+Q = H^{(\ell-1)}W_Q,\qquad
+K = H^{(\ell-1)}W_K,\qquad
+V = H^{(\ell-1)}W_V.
+$$
+
+The causal attention score is
 
 $$
 s_{i,j} =
@@ -1533,62 +1638,150 @@ s_{i,j} =
 \end{cases}
 $$
 
-- **Encoder-decoder attention.** After masked self-attention, the decoder retrieves information from the encoder output. The decoder state provides the query, while the encoder output provides the keys and values:
+If RoPE is used, replace $q_i,k_j$ by $\widetilde{q}_i,\widetilde{k}_j$ in the same formula. The attention output is
 
 $$
-Q = GW_Q,\qquad
-K = H^{(L)}W_K,\qquad
-V = H^{(L)}W_V,
-$$
-
-where $G$ is the current decoder representation. Then
-
-$$
-\operatorname{CrossAttention}(G,H^{(L)})
+B
 =
-\operatorname{softmax}
+\operatorname{softmax}(S)V,
+$$
+
+where future positions have zero probability because their scores are $-\infty$.
+
+- **Transformer block.** A decoder-only transformer stacks many identical blocks. A common pre-normalization form is
+
+$$
+\widetilde{H}^{(\ell)}
+=
+H^{(\ell-1)}
++
+\operatorname{CausalMHA}
 \left(
-\frac{QK^\top}{\sqrt{d_k}}
-\right)V.
+\operatorname{LayerNorm}(H^{(\ell-1)})
+\right),
 $$
 
-This lets each generated token retrieve the relevant parts of the input sequence.
-
-- **Output probability.** The final decoder vector $g_s$ is mapped to logits over the vocabulary:
+followed by a position-wise feed-forward network:
 
 $$
-o_s = W_{\mathrm{vocab}}g_s + b_{\mathrm{vocab}}.
-$$
-
-The next-token distribution is
-
-$$
-p(y_s \mid y_{<s}, x_{1:T})
+H^{(\ell)}
 =
-\operatorname{softmax}(o_s).
+\widetilde{H}^{(\ell)}
++
+\operatorname{FFN}
+\left(
+\operatorname{LayerNorm}(\widetilde{H}^{(\ell)})
+\right).
 $$
 
-A concrete output token can be chosen by greedy decoding,
+The feed-forward network is applied independently to each token position:
 
 $$
-y_s = \arg\max_y p(y \mid y_{<s},x_{1:T}),
+\operatorname{FFN}(z)
+=
+W_2 \sigma(W_1 z + b_1) + b_2.
 $$
 
-or by sampling from the distribution. Beam search keeps several likely partial sequences and is often used for deterministic sequence-to-sequence tasks such as translation.
+After $L$ layers, the final hidden states are
 
-- **Training.** During training, the correct previous tokens are given to the decoder. This is called teacher forcing. The loss is the sum of next-token cross-entropies:
+$$
+H^{(L)}=(h_1^{(L)},\ldots,h_T^{(L)}).
+$$
+
+- **Output probability.** The final hidden vector $h_i^{(L)}$ is mapped to logits over the vocabulary:
+
+$$
+o_i = W_{\mathrm{vocab}}h_i^{(L)} + b_{\mathrm{vocab}}.
+$$
+
+The hidden state at position $i$ predicts the next token:
+
+$$
+p(t_{i+1} \mid t_{\le i})
+=
+\operatorname{softmax}(o_i).
+$$
+
+At inference time, a concrete next token can be chosen by greedy decoding,
+
+$$
+t_{i+1}
+=
+\arg\max_t p(t \mid t_{\le i}),
+$$
+
+or by sampling from the distribution. The generated token is appended to the context, and the same process repeats.
+
+- **Training.** During training, the correct prefix tokens are given to the model. The loss is the sum of next-token cross-entropies:
 
 $$
 \mathcal{L}
 =
 -
-\sum_{s=1}^{S}
-\log p(y_s^\ast \mid y_{<s}^\ast, x_{1:T}).
+\sum_{i=1}^{T-1}
+\log p(t_{i+1}^\ast \mid t_{\le i}^\ast).
 $$
 
-Therefore, the transformer reduces many sequence tasks to the same basic problem: given the input sequence and the previous output tokens, predict the next output token.
+Therefore, the decoder-only transformer reduces language modeling to one repeated operation: use the current prefix to predict the next token.
 
-## Every model solves some problem
+### Transformer vs RNN
+
+- **Advantage: parallel training.** An RNN processes tokens recursively, so $h_i$ depends on $h_{i-1}$ and the computation is hard to parallelize over time:
+
+$$
+h_i = f(h_{i-1},x_i).
+$$
+
+A transformer processes all token states together. In one attention layer,
+
+$$
+Q = HW_Q,\qquad K = HW_K,\qquad V = HW_V.
+$$
+
+Then all pairwise scores are computed by one matrix multiplication:
+
+$$
+S
+=
+\frac{QK^\top}{\sqrt{d_k}}.
+$$
+
+Even with a causal mask, all positions can be trained in parallel:
+
+$$
+Z = \operatorname{softmax}(S)V.
+$$
+
+- **Advantage: direct retrieval.** An RNN must carry old information through a single hidden state. A transformer keeps token representations available and lets position $i$ retrieve useful previous tokens directly:
+
+$$
+b_i = \sum_{j=1}^{i} a_{i,j}v_j.
+$$
+
+So if token $i$ needs token $j$, attention can create a direct connection instead of passing information step by step through all intermediate positions.
+
+- **Advantage: no recurrent gradient path over time.** In an RNN, long-range learning depends on a product of many time-step Jacobians, which can cause gradients to vanish or explode. In a transformer, token $i$ can attend directly to token $j$, so the learning signal does not have to pass through every intermediate time step.
+
+- **Advantage: hardware scalability.** Transformer layers are mostly large matrix multiplications. This matches GPUs and TPUs very well. RNNs also use matrix multiplications, but their time-step dependency limits parallelism over the sequence length.
+
+- **Disadvantage: quadratic context cost.** Full self-attention over a length-$T$ sequence uses a $T \times T$ attention matrix:
+
+$$
+S \in \mathbb{R}^{T \times T}.
+$$
+
+Therefore the memory and computation cost scale as
+
+$$
+O(T^2).
+$$
+
+- **Disadvantage: expensive long context.** RNNs can process arbitrarily long streams with a fixed-size hidden state, although memory quality may degrade. Transformers keep explicit token-level memory, which is more flexible but expensive for very long contexts. Long-context transformers therefore need efficient attention, sparse attention, compression, or external memory.
+
+
+## Design principle of each model
+
+explain the design of each model from 4 basic principle, expressiveness, convergence, generalization, and efficiency
 
 * Expressiveness of locality -> CNN
 
@@ -1599,6 +1792,7 @@ Therefore, the transformer reduces many sequence tasks to the same basic problem
 * gradient vanishing along time direction -> attention
 
 # Basic machine learning theory
+
 
 TODO: transformers are RNN, linear transformer, mamba
 
@@ -1625,6 +1819,8 @@ TODO: mean field limit
 pytorch, autograd (why is fast?), tensor calculus
 
 optimization, memory -> infra
+
+more on llm
 
 # References
 
