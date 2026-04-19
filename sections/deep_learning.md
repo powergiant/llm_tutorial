@@ -362,11 +362,9 @@ There are three common ways to compute derivatives:
 
 - **Numerical differentiation** perturbs one parameter at a time, for example
 
-  $$
-    \frac{\partial \mathcal{L}}{\partial \theta_i}
+  $$\frac{\partial \mathcal{L}}{\partial \theta_i}
     \approx
-    \frac{\mathcal{L}(\theta + \varepsilon e_i) - \mathcal{L}(\theta)}{\varepsilon}.
-  $$
+    \frac{\mathcal{L}(\theta + \varepsilon e_i) - \mathcal{L}(\theta)}{\varepsilon}.$$
   
   This is simple but very expensive. To compute the full gradient with respect to $d$ parameters, numerical differentiation needs roughly $d$ separate forward evaluations, one for each coordinate. When $d$ is large, this is far more expensive than training can afford, and the finite-difference approximation is also numerically unstable when $\varepsilon$ is too small or too large.
 - **Symbolic differentiation** manipulates formulas exactly and applies the chain rule algebraically. The problem is that intermediate formulas can become very large. A simple example is the recursion
@@ -375,9 +373,7 @@ There are three common ways to compute derivatives:
 
   Then
 
-  $$
-    f'_{n+1}(x) = f_n'(x) f_n(x^2) + 2x f_n(x) f_n'(x^2).
-  $$
+  $$f'_{n+1}(x) = f_n'(x) f_n(x^2) + 2x f_n(x) f_n'(x^2).$$
 
   If we keep substituting the full symbolic expression for $f_n(x)$ and then for $f_{n-1}(x)$ and so on, the expression quickly becomes enormous, because the same subexpression is copied again and again. This repeated duplication of identical intermediate terms is the classical **term explosion** problem.
 
@@ -505,9 +501,7 @@ where $\mu$ and $\sigma^2$ are a mean and variance computed from some group of a
 
 - **Layer normalization.** For one token or one data point, layer normalization computes statistics across the feature dimension. If
 
-  $$
-  x_i = (x_{i,1},\ldots,x_{i,d}),
-  $$
+  $$x_i = (x_{i,1},\ldots,x_{i,d}),$$
 
   then
 
