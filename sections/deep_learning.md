@@ -237,9 +237,7 @@ This helps accelerate movement along consistent directions and reduces oscillati
 **Weight regularization** modifies the objective so that excessively large parameters are penalized. A standard choice is $\ell_2$ regularization:
 
 $$
-\mathcal{L}_{\mathrm{reg}}^{\lambda}(\theta)
-=
-\mathcal{L}(\theta) + \lambda \|\theta\|_2^2.
+\mathcal{L}_{\mathrm{reg}}^{\lambda}(\theta)=\mathcal{L}(\theta) + \lambda \|\theta\|_2^2.
 $$
 
 This biases the optimizer toward smaller weights, which often improves generalization. In practice, plain SGD itself also has an implicit regularization effect, and explicit regularization is often used together with it.
@@ -286,9 +284,7 @@ $$
 then the MLP backward recursion has the form
 
 $$
-\delta^{(\ell)}
-=
-\left( W^{(\ell+1)\top} \delta^{(\ell+1)} \right) \odot \sigma'\bigl(z^{(\ell)}\bigr),
+\delta^{(\ell)}=\left( W^{(\ell+1)\top} \delta^{(\ell+1)} \right) \odot \sigma'\bigl(z^{(\ell)}\bigr),
 $$
 
 and parameter gradients are
@@ -348,9 +344,7 @@ $$
 Now consider the central node $v_j$ in the picture. In the forward pass, one value of $v_j$ is reused by several children. Therefore, in the backward pass, the derivative with respect to $v_j$ must collect contributions from all children that depend on it. If $\mathrm{child}(j)$ denotes the set of nodes that directly use $v_j$, then the chain rule gives
 
 $$
-\bar v_j
-=
-\sum_{k \in \mathrm{child}(j)}
+\bar v_j=\sum_{k \in \mathrm{child}(j)}
 \bar v_k \frac{\partial v_k}{\partial v_j}.
 $$
 
@@ -438,11 +432,7 @@ $$
 Then
 
 $$
-\mathrm{Var}(y_i)
-=
-\sum_{j=1}^{n}\mathrm{Var}(W_{ij}x_j)
-=
-n\sigma_W^2\sigma_x^2.
+\mathrm{Var}(y_i)=\sum_{j=1}^{n}\mathrm{Var}(W_{ij}x_j)=n\sigma_W^2\sigma_x^2.
 $$
 
 If $\sigma_W^2$ is too large, the activation size grows layer by layer and may explode. If $\sigma_W^2$ is too small, the activation size shrinks layer by layer and may vanish. To keep the variance roughly stable, we want
@@ -488,9 +478,7 @@ Even with good initialization, the scale of activations can change during traini
 The general form is
 
 $$
-\hat{x}
-=
-\frac{x-\mu}{\sqrt{\sigma^2+\varepsilon}},
+\hat{x}=\frac{x-\mu}{\sqrt{\sigma^2+\varepsilon}},
 \qquad
 y = \gamma \hat{x}+\beta,
 $$
@@ -808,9 +796,7 @@ $$
 The convolution formula is
 
 $$
-z_{i,j,m}
-=
-\sum_{u=0}^{k_h-1}
+z_{i,j,m}=\sum_{u=0}^{k_h-1}
 \sum_{v=0}^{k_w-1}
 \sum_{c=1}^{C_{\mathrm{in}}}
 K_{u,v,c,m}
@@ -838,9 +824,7 @@ $$
 In average pooling, each local region is replaced by its average:
 
 $$
-y_{i,j}
-=
-\frac{1}{|R_{i,j}|}
+y_{i,j}=\frac{1}{|R_{i,j}|}
 \sum_{(a,b) \in R_{i,j}} x_{a,b}.
 $$
 
@@ -1157,9 +1141,7 @@ At a very abstract level, an intelligent behavior can be viewed as a memory-to-a
 All these tasks can be unified as **next-token prediction**. Concatenate the input sequence, a separator, and the output sequence:
 
 $$
-z_{1:N}
-=
-(x_1,\dots,x_T,\texttt{<sep>},y_1,\dots,y_S).
+z_{1:N}=(x_1,\dots,x_T,\texttt{<sep>},y_1,\dots,y_S).
 $$
 
 Then the learning problem is to predict the next symbol:
@@ -1242,18 +1224,14 @@ $$
 The logits are converted to a probability distribution by softmax:
 
 $$
-p(y_t = v \mid y_{<t},x_{1:T})
-=
-\frac{\exp(o_{t,v})}
+p(y_t = v \mid y_{<t},x_{1:T})=\frac{\exp(o_{t,v})}
 {\sum_{v'\in\mathcal{V}}\exp(o_{t,v'})}.
 $$
 
 A concrete output token can then be chosen by greedy decoding,
 
 $$
-y_t
-=
-\arg\max_{v\in\mathcal{V}}
+y_t=\arg\max_{v\in\mathcal{V}}
 p(y_t=v \mid y_{<t},x_{1:T}),
 $$
 
@@ -1270,9 +1248,7 @@ $$
 A simple **recurrent neural network (RNN)** maintains a hidden state $h_t$ as its memory. At each time step, it updates the hidden state using the current input and the previous hidden state:
 
 $$
-h_t
-=
-\phi(W_x x_t + W_h h_{t-1} + b_h),
+h_t=\phi(W_x x_t + W_h h_{t-1} + b_h),
 $$
 
 where $W_x$ maps the input into the hidden state, $W_h$ maps the previous hidden state into the next hidden state, $b_h$ is a bias, and $\phi$ is a nonlinear activation such as $\tanh$.
@@ -1302,15 +1278,11 @@ RNN architectures can be modified in several ways.
 * **Deep RNN.** Instead of one recurrent layer, we stack several recurrent layers:
 
 $$
-h_t^{(1)}
-=
-\phi(W_x^{(1)}x_t + W_h^{(1)}h_{t-1}^{(1)} + b^{(1)}),
+h_t^{(1)}=\phi(W_x^{(1)}x_t + W_h^{(1)}h_{t-1}^{(1)} + b^{(1)}),
 $$
 
 $$
-h_t^{(\ell)}
-=
-\phi(W_x^{(\ell)}h_t^{(\ell-1)} + W_h^{(\ell)}h_{t-1}^{(\ell)} + b^{(\ell)}),
+h_t^{(\ell)}=\phi(W_x^{(\ell)}h_t^{(\ell-1)} + W_h^{(\ell)}h_{t-1}^{(\ell)} + b^{(\ell)}),
 \qquad
 \ell=2,\dots,L.
 $$
@@ -1326,21 +1298,15 @@ $$
 * **Bidirectional RNN.** Some tasks benefit from both past and future context. A bidirectional RNN runs one RNN forward and another backward:
 
 $$
-\overrightarrow h_t
-=
-f_{\rightarrow}(x_t,\overrightarrow h_{t-1}),
+\overrightarrow h_t=f_{\rightarrow}(x_t,\overrightarrow h_{t-1}),
 \qquad
-\overleftarrow h_t
-=
-f_{\leftarrow}(x_t,\overleftarrow h_{t+1}).
+\overleftarrow h_t=f_{\leftarrow}(x_t,\overleftarrow h_{t+1}).
 $$
 
 The prediction uses both directions:
 
 $$
-y_t
-=
-\mathrm{softmax}
+y_t=\mathrm{softmax}
 \left(
 W_y[\overrightarrow h_t;\overleftarrow h_t] + b_y
 \right).
@@ -1368,17 +1334,13 @@ $$
 The cell state and hidden state are updated by
 
 $$
-c_t
-=
-f_t \odot c_{t-1}
+c_t=f_t \odot c_{t-1}
 +
 i_t \odot \tilde c_t,
 $$
 
 $$
-h_t
-=
-o_t \odot \tanh(c_t).
+h_t=o_t \odot \tanh(c_t).
 $$
 
 Here $\odot$ means elementwise multiplication. The input gate controls how much new information is written. The forget gate controls how much old memory is kept. The output gate controls how much of the memory is exposed as the hidden state.
@@ -1398,12 +1360,8 @@ Because information can pass through the cell state additively, LSTMs are better
 For sequence labeling, the model produces an output distribution at each time step. If the target label at time $t$ is $y_t$, a standard loss is the sum of cross-entropies:
 
 $$
-\mathcal{L}(\theta)
-=
-\sum_{t=1}^{T}
-\ell_t(\theta)
-=
--
+\mathcal{L}(\theta)=\sum_{t=1}^{T}
+\ell_t(\theta)=-
 \sum_{t=1}^{T}
 \log p_\theta(y_t\mid x_1,\dots,x_t).
 $$
@@ -1417,9 +1375,7 @@ $$
 Training uses **backpropagation through time** (BPTT). We unroll the RNN over time, compute the loss, and backpropagate through the unrolled computational graph. The key difference from ordinary backpropagation is parameter sharing: the same recurrent parameters are reused at every time step, so the gradient with respect to the recurrent weight accumulates contributions from all time steps:
 
 $$
-\frac{\partial \mathcal{L}}{\partial W_h}
-=
-\sum_{t=1}^{T}
+\frac{\partial \mathcal{L}}{\partial W_h}=\sum_{t=1}^{T}
 \frac{\partial \ell_t}{\partial W_h}.
 $$
 
@@ -1456,9 +1412,7 @@ $$
 To understand how information from time $s$ affects time $t$, look at the derivative
 
 $$
-\frac{\partial h_t}{\partial h_s}
-=
-\frac{\partial h_t}{\partial h_{t-1}}
+\frac{\partial h_t}{\partial h_s}=\frac{\partial h_t}{\partial h_{t-1}}
 \frac{\partial h_{t-1}}{\partial h_{t-2}}
 \cdots
 \frac{\partial h_{s+1}}{\partial h_s}.
@@ -1467,25 +1421,19 @@ $$
 Equivalently, this is a product of Jacobian matrices:
 
 $$
-\frac{\partial h_t}{\partial h_s}
-=
-J_t J_{t-1}\cdots J_{s+1},
+\frac{\partial h_t}{\partial h_s}=J_t J_{t-1}\cdots J_{s+1},
 $$
 
 where
 
 $$
-J_k
-=
-\frac{\partial h_k}{\partial h_{k-1}}.
+J_k=\frac{\partial h_k}{\partial h_{k-1}}.
 $$
 
 For the simple RNN above,
 
 $$
-J_k
-=
-\mathrm{diag}\!\left(\phi'(W_h h_{k-1}+W_x x_k+b)\right) W_h.
+J_k=\mathrm{diag}\!\left(\phi'(W_h h_{k-1}+W_x x_k+b)\right) W_h.
 $$
 
 Thus, long-range learning depends on repeatedly multiplying similar matrices. This is the core reason gradients tend to either vanish or explode.
@@ -1588,17 +1536,13 @@ $$
 where $d_k$ is the dimension of the key vector. The scores are normalized by a softmax:
 
 $$
-a_{i,j}
-=
-\frac{\exp(s_{i,j})}{\sum_{\ell=1}^{T}\exp(s_{i,\ell})}.
+a_{i,j}=\frac{\exp(s_{i,j})}{\sum_{\ell=1}^{T}\exp(s_{i,\ell})}.
 $$
 
 Then the output at position $i$ is a weighted sum of all value vectors:
 
 $$
-z_i
-=
-\sum_{j=1}^{T} a_{i,j} v_j.
+z_i=\sum_{j=1}^{T} a_{i,j} v_j.
 $$
 
 Thus $z_i$ is not computed from $x_i$ alone. It can directly use information from any other position in the sequence.
@@ -1612,9 +1556,7 @@ $$
 then self-attention is
 
 $$
-\mathrm{Attention}(X)
-=
-\mathrm{softmax}\!\left(
+\mathrm{Attention}(X)=\mathrm{softmax}\!\left(
 \frac{QK^\top}{\sqrt{d_k}}
 \right)V.
 $$
@@ -1635,9 +1577,7 @@ is the attention matrix. Its entry $A_{i,j}$ says how much position $i$ uses inf
 A single attention operation retrieves information in one representation space. **Multi-head attention** runs several attention operations in parallel:
 
 $$
-\mathrm{head}_r
-=
-\mathrm{Attention}
+\mathrm{head}_r=\mathrm{Attention}
 \left(
 XW_Q^{(r)}, XW_K^{(r)}, XW_V^{(r)}
 \right),
@@ -1647,9 +1587,7 @@ $$
 The heads are concatenated and projected:
 
 $$
-\mathrm{MHA}(X)
-=
-\mathrm{Concat}
+\mathrm{MHA}(X)=\mathrm{Concat}
 (\mathrm{head}_1,\ldots,\mathrm{head}_H)W_O.
 $$
 
@@ -1667,9 +1605,7 @@ $$
 then the causal factorization is
 
 $$
-p(x_1,\ldots,x_T)
-=
-\prod_{t=1}^{T}p(x_t \mid x_{<t}).
+p(x_1,\ldots,x_T)=\prod_{t=1}^{T}p(x_t \mid x_{<t}).
 $$
 
 This is called **causal** because the prediction at time $t$ cannot depend on future tokens $x_{t+1},\ldots,x_T$. During training, the whole sequence is available in memory, but the attention operation must be masked so that the model cannot cheat by looking at the answer.
@@ -1683,9 +1619,7 @@ $$
 For **causal self-attention**, we add a mask:
 
 $$
-s_{i,j}^{\mathrm{causal}}
-=
-\begin{cases}
+s_{i,j}^{\mathrm{causal}}=\begin{cases}
 \dfrac{q_i^\top k_j}{\sqrt{d_k}}, & j \le i,\\
 -\infty, & j > i.
 \end{cases}
@@ -1694,9 +1628,7 @@ $$
 Then the attention weights are
 
 $$
-a_{i,j}
-=
-\mathrm{softmax}_j(s_{i,j}^{\mathrm{causal}}).
+a_{i,j}=\mathrm{softmax}_j(s_{i,j}^{\mathrm{causal}}).
 $$
 
 Because $\exp(-\infty)=0$, all future positions receive zero attention weight:
@@ -1708,9 +1640,7 @@ $$
 Therefore the output at position $i$ has the form
 
 $$
-b_i
-=
-\sum_{j=1}^{i} a_{i,j}v_j.
+b_i=\sum_{j=1}^{i} a_{i,j}v_j.
 $$
 
 The attention matrix becomes lower triangular:
@@ -1737,9 +1667,7 @@ One important method is **rotary positional embedding**, usually called RoPE. In
 Suppose the query and key dimensions are even. We group each query vector into two-dimensional pairs:
 
 $$
-q_i
-=
-(q_{i,1},q_{i,2},q_{i,3},q_{i,4},\ldots).
+q_i=(q_{i,1},q_{i,2},q_{i,3},q_{i,4},\ldots).
 $$
 
 For the $r$-th pair, define
@@ -1748,9 +1676,7 @@ $$
 \begin{pmatrix}
 \widetilde{q}_{i,2r} \\
 \widetilde{q}_{i,2r+1}
-\end{pmatrix}
-=
-\begin{pmatrix}
+\end{pmatrix}=\begin{pmatrix}
 \cos(i\theta_r) & -\sin(i\theta_r) \\
 \sin(i\theta_r) & \cos(i\theta_r)
 \end{pmatrix}
@@ -1766,9 +1692,7 @@ $$
 \begin{pmatrix}
 \widetilde{k}_{j,2r} \\
 \widetilde{k}_{j,2r+1}
-\end{pmatrix}
-=
-\begin{pmatrix}
+\end{pmatrix}=\begin{pmatrix}
 \cos(j\theta_r) & -\sin(j\theta_r) \\
 \sin(j\theta_r) & \cos(j\theta_r)
 \end{pmatrix}
@@ -1787,17 +1711,13 @@ $$
 After RoPE, the attention score becomes
 
 $$
-s_{i,j}
-=
-\frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
+s_{i,j}=\frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
 $$
 
 The useful property is that the dot product depends on the relative distance between positions. In each two-dimensional block,
 
 $$
-(R_i q_i)^\top(R_j k_j)
-=
-q_i^\top R_{j-i} k_j,
+(R_i q_i)^\top(R_j k_j)=q_i^\top R_{j-i} k_j,
 $$
 
 where $R_i$ is the rotation matrix for position $i$. Thus RoPE injects position into attention in a relative way: the interaction between position $i$ and position $j$ depends not only on token content, but also on the distance $j-i$.
@@ -1817,21 +1737,15 @@ $$
 layer normalization computes
 
 $$
-\mu_i
-=
-\frac{1}{d}\sum_{r=1}^{d}h_{i,r},
+\mu_i=\frac{1}{d}\sum_{r=1}^{d}h_{i,r},
 \qquad
-\sigma_i^2
-=
-\frac{1}{d}\sum_{r=1}^{d}(h_{i,r}-\mu_i)^2.
+\sigma_i^2=\frac{1}{d}\sum_{r=1}^{d}(h_{i,r}-\mu_i)^2.
 $$
 
 Then
 
 $$
-\mathrm{LayerNorm}(h_i)_r
-=
-\gamma_r
+\mathrm{LayerNorm}(h_i)_r=\gamma_r
 \frac{h_{i,r}-\mu_i}{\sqrt{\sigma_i^2+\varepsilon}}
 +
 \beta_r,
@@ -1856,9 +1770,7 @@ $$
 The unscaled dot product is
 
 $$
-q^\top k
-=
-\sum_{r=1}^{d_k} q_r k_r.
+q^\top k=\sum_{r=1}^{d_k} q_r k_r.
 $$
 
 Each term has mean $0$ and approximately variance $1$:
@@ -1866,17 +1778,13 @@ Each term has mean $0$ and approximately variance $1$:
 $$
 \mathrm{Var}(q_rk_r)
 \approx
-\mathrm{Var}(q_r)\mathrm{Var}(k_r)
-=
-1.
+\mathrm{Var}(q_r)\mathrm{Var}(k_r)=1.
 $$
 
 Therefore
 
 $$
-\mathrm{Var}(q^\top k)
-=
-\mathrm{Var}\left(\sum_{r=1}^{d_k}q_rk_r\right)
+\mathrm{Var}(q^\top k)=\mathrm{Var}\left(\sum_{r=1}^{d_k}q_rk_r\right)
 \approx
 d_k.
 $$
@@ -1906,9 +1814,7 @@ $$
 Now consider one query coordinate
 
 $$
-q_r
-=
-\sum_{s=1}^{d} W^{Q}_{s,r}h_s.
+q_r=\sum_{s=1}^{d} W^{Q}_{s,r}h_s.
 $$
 
 Assume the projection weights are initialized independently with mean $0$ and variance
@@ -1920,15 +1826,11 @@ $$
 Then
 
 $$
-\mathrm{Var}(q_r)
-=
-\sum_{s=1}^{d}
+\mathrm{Var}(q_r)=\sum_{s=1}^{d}
 \mathrm{Var}(W^Q_{s,r}h_s)
 \approx
 \sum_{s=1}^{d}
-\frac{1}{d}\cdot 1
-=
-1.
+\frac{1}{d}\cdot 1=1.
 $$
 
 The same argument applies to the key projection $W^K$, so
@@ -1944,9 +1846,7 @@ Thus layer normalization fixes the input scale, and variance-scaled random initi
 A decoder-only transformer is the architecture used by most modern language models. It reads a prefix of tokens and predicts the next token:
 
 $$
-p(t_1,\ldots,t_T)
-=
-\prod_{i=1}^{T}p(t_i \mid t_{<i}).
+p(t_1,\ldots,t_T)=\prod_{i=1}^{T}p(t_i \mid t_{<i}).
 $$
 
 The whole model is built from token embeddings, positional information, causal self-attention, feed-forward networks, residual connections, and normalization.
