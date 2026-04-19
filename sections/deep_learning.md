@@ -362,9 +362,9 @@ There are three common ways to compute derivatives:
 
 - **Numerical differentiation** perturbs one parameter at a time, for example
 
-  $$\frac{\partial \mathcal{L}}{\partial \theta_i}
-    \approx
-    \frac{\mathcal{L}(\theta + \varepsilon e_i) - \mathcal{L}(\theta)}{\varepsilon}.$$
+    $$\frac{\partial \mathcal{L}}{\partial \theta_i}
+      \approx
+      \frac{\mathcal{L}(\theta + \varepsilon e_i) - \mathcal{L}(\theta)}{\varepsilon}.$$
   
   This is simple but very expensive. To compute the full gradient with respect to $d$ parameters, numerical differentiation needs roughly $d$ separate forward evaluations, one for each coordinate. When $d$ is large, this is far more expensive than training can afford, and the finite-difference approximation is also numerically unstable when $\varepsilon$ is too small or too large.
 - **Symbolic differentiation** manipulates formulas exactly and applies the chain rule algebraically. The problem is that intermediate formulas can become very large. A simple example is the recursion
