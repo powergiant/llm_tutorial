@@ -149,7 +149,7 @@ $$
 
 In a more compact form, $f_\theta(x)$ can be written as
 $$
-  f_\theta(x) = W^{(L)} \sigma\!\Bigl(W^{(L-1)}\sigma\bigl(\cdots\sigma\bigl(W^{(1)} x + b^{(1)}\bigr)\cdots\bigr)+ b^{(L-1)}\Bigr)+ b^{(L)}.
+  f_\theta(x) = W^{(L)} \sigma \Bigl(W^{(L-1)}\sigma\bigl(\cdots\sigma\bigl(W^{(1)} x + b^{(1)}\bigr)\cdots\bigr)+ b^{(L-1)}\Bigr)+ b^{(L)}.
 $$
 
 The key point is that the composition of many simple nonlinear steps can represent functions that are much more complicated than a single linear layer.
