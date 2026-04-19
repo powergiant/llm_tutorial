@@ -808,7 +808,9 @@ Thus, the CNN inference pass transforms an image into local feature maps, repeat
 
 ### Seq2seq problem
 
-translation, nlp, decision, AGI
+translation, nlp, decision, 
+
+why AGI is a seq2seq problem? because it is a memory to action problem. Church-Turing thesis
 
 input/output discrete actions
 
@@ -819,6 +821,10 @@ input: one hot embedding, output: probability and sampling
 ### Long-short memory
 
 LSTM
+
+### Long term memory
+
+explosion of hidden state, memory, either forget or explosion
 
 ## Attention and transformer
 
@@ -846,7 +852,7 @@ tokenization, positional encoding, ... architectural framework
 
 # Basic machine learning theory
 
-TODO: linear transformer, mamba
+TODO: transformers are RNN, linear transformer, mamba
 
 TODO: expressiveness, convergence and generalization
 
@@ -859,6 +865,8 @@ TODO: case studies of expressiveness, mlp fits finite step function, finite step
 TODO: case studies of expressiveness, cnn fits locality function, more efficient
 
 TODO: case studies of expressiveness, transformer, Turing completeness of prompt (in-context learning, difference between linearization), Turing completeness of parameters (meta knowledge, some prompt implies something, then accumulant prompts. even meta meta knowledge, some prompt implies some meta knowledge)
+
+TODO: Church-Turing thesis, prompt completeness, machine can do everything human can execute, parameter completeness?? meta knowledge
 
 TODO: shape of loss landscope, flat minima, implicit regularization
 
