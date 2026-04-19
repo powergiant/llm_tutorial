@@ -808,20 +808,31 @@ Thus, the CNN inference pass transforms an image into local feature maps, repeat
 
 ### Seq2seq problem
 
-TODO: translation, nlp, decision, 
+Many important problems can be described as mappings between sequences. The input is a sequence
 
-why AGI is a seq2seq problem? because it is a memory to action problem. Church-Turing thesis
+$$
+x_{1:T} = (x_1,x_2,\dots,x_T),
+$$
 
-input/output discrete actions
+and the output is either one label, one sequence of labels, or another sequence
 
-input: one hot embedding, output: probability and sampling
+$$
+y_{1:S} = (y_1,y_2,\dots,y_S).
+$$
 
+Here $T$ and $S$ do not have to be the same. This is the general **sequence problem**. When both input and output are sequences, especially when their lengths may be different, it is called a **sequence-to-sequence** or **Seq2Seq** problem.
 
+Examples:
 
+* **Many-to-many with the same length.** Slot filling and part-of-speech tagging assign one label to each input token:
 
-Recurrent neural networks (RNNs) are designed for data with **sequential structure**. In a sequence, the meaning of an element often depends on the elements before or after it.
+$$
+(x_1,\dots,x_T)
+\mapsto
+(y_1,\dots,y_T).
+$$
 
-For example, in slot filling, we may hear the sentence
+For example, in slot filling, we may hear
 
 $$
 \text{``arrive in Shanghai on June 1''}.
@@ -835,7 +846,49 @@ $$
 \text{June 1} \mapsto \text{arrival time}.
 $$
 
-The word "Shanghai" alone is not enough. In "arrive in Shanghai", it is a destination. In "leave Shanghai", it is a departure location. Therefore the model needs **memory** of the surrounding context.
+* **Many-to-one.** Sentiment analysis reads a whole sentence or document and outputs one label:
+
+$$
+(x_1,\dots,x_T)
+\mapsto
+y.
+$$
+
+* **Many-to-many with different lengths.** Speech recognition maps a long acoustic sequence to a shorter character or word sequence:
+
+$$
+(x_1,\dots,x_T)
+\mapsto
+(y_1,\dots,y_S),
+\qquad
+S \neq T.
+$$
+
+* **Translation and general Seq2Seq.** Machine translation maps one token sequence to another token sequence:
+
+$$
+(\text{English words})
+\mapsto
+(\text{Chinese words}).
+$$
+
+The output length is not known before generation. The model must decide when to stop, often by producing a special end token.
+
+* **Decision and action sequences.** A decision-making system can also be viewed as a sequence problem. It observes a history
+
+$$
+(o_1,o_2,\dots,o_T)
+$$
+
+and produces actions
+
+$$
+(a_1,a_2,\dots).
+$$
+
+At a very abstract level, many intelligent behaviors can be described as memory-to-action sequence mappings: the system reads a history, stores useful information, and produces the next action. This is why sequence modeling is a central problem in NLP, speech, decision making, and broader AI.
+
+In these tasks, inputs and outputs are often discrete tokens or actions. A token can be represented by a one-hot vector or an embedding. The output is usually a probability distribution, and a concrete token is chosen by argmax or sampling.
 
 ### Encoding discrete tokens
 
@@ -1029,74 +1082,9 @@ $$
 
 where $g$ is the gradient vector and $\tau$ is a chosen threshold. Clipping does not solve vanishing gradients, but it prevents very large updates from destroying training. LSTM and GRU help with long-term memory and vanishing gradients.
 
-### Sequence tasks
-
-RNNs can be used in several input-output patterns.
-
-* **Many-to-many with the same length.** Slot filling and part-of-speech tagging take one label per token:
-
-$$
-(x_1,\dots,x_T)
-\mapsto
-(\hat y_1,\dots,\hat y_T).
-$$
-
-* **Many-to-one.** Sentiment analysis reads a whole sequence and outputs one label:
-
-$$
-(x_1,\dots,x_T)
-\mapsto
-\hat y.
-$$
-
-Usually we use the final hidden state, or a pooled version of all hidden states:
-
-$$
-\hat y
-=
-\operatorname{softmax}(W h_T + b).
-$$
-
-* **Many-to-many with different lengths.** Speech recognition has a long input sequence of acoustic frames but a shorter output sequence of characters or words. One method is CTC, which adds a blank or null symbol and then removes blanks and repeated symbols after decoding.
-
-* **Sequence-to-sequence.** Machine translation maps one sequence to another sequence whose length is not known in advance:
-
-$$
-(x_1,\dots,x_T)
-\mapsto
-(\hat y_1,\dots,\hat y_S).
-$$
-
-A classical RNN seq2seq model has an **encoder** and a **decoder**. The encoder reads the input sequence:
-
-$$
-h_t^{\mathrm{enc}}
-=
-f_{\mathrm{enc}}(x_t,h_{t-1}^{\mathrm{enc}}).
-$$
-
-The final encoder state summarizes the input. The decoder then generates one output token at a time:
-
-$$
-h_s^{\mathrm{dec}}
-=
-f_{\mathrm{dec}}(y_{s-1},h_{s-1}^{\mathrm{dec}}),
-$$
-
-$$
-p(y_s\mid y_{<s},x_{1:T})
-=
-\operatorname{softmax}(W h_s^{\mathrm{dec}}+b).
-$$
-
-Generation stops when the decoder outputs a special end token.
-
 ### Limitation
 
 RNNs process sequences step by step. This gives them a natural memory mechanism, but it also makes long-range dependency learning difficult and prevents full parallelization over time. These limitations motivate attention mechanisms and transformers.
-
-
-explosion of hidden state, memory, either forget or explosion
 
 ## Attention and transformer
 
