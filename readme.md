@@ -2,7 +2,7 @@
 
 This repository is a structured tutorial for studying large language models from first principles.
 
-The goal is to build enough background to understand modern LLM systems, including:
+The goal is to build enough background to reproduce a state-of-the-art, completely open-source model, including:
 
 - deep learning fundamentals
 - auto-differentiation and tensor calculus

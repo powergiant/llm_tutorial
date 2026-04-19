@@ -1,4 +1,4 @@
-Data sourcing, licensing, collection, cleaning, deduplication, filtering, and mixture design -> large scale scrapling
+Data sourcing, collection, cleaning, deduplication, filtering, and mixture design -> large scale scrapling
 
 synthetic data -> agent, prompting, templates
 

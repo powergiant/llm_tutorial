@@ -25,3 +25,13 @@ We need the following background:
 10. Advanced topics (multimodal and omni, long context and memory, efficient transformers, reasoning and verification, self-evolution and bootstrap, meta-learning): [adv_topics.md](./sections/adv_topics.md)
 
 For more detailed roadmap to a reproduction of the open source llm, see [roadmap.md](./roadmap.md)
+
+The following resources are also useful.
+
+1. [LeeDL-Tutorial](https://github.com/datawhalechina/leedl-tutorial?tab=readme-ov-file)
+2. [Dive into deep learning](https://d2l.ai/)
+3. [EasyRL](https://github.com/datawhalechina/easy-rl)
+4. [Hello-Agents](https://github.com/datawhalechina/hello-agents)
+5. [Happy-LLM](https://github.com/datawhalechina/happy-llm?tab=readme-ov-file)
+6. [The Principles of Diffusion Models: From Origins to Advances](https://arxiv.org/pdf/2510.21890)
+7. [Lectures on AI for Mathematics](https://arxiv.org/abs/2604.11504)
