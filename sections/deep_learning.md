@@ -1,10 +1,8 @@
 # Machine learning
 
-## Basic concepts
-
 [1] Chapter 1-2
 
-### Tasks, model, ground truth and loss function
+## Tasks, model, ground truth and loss function
 
 Machine learning tries to recover an unknown rule from data. We observe examples
 
@@ -66,7 +64,7 @@ For example, if $x$ is an email and $y$ is whether it is spam, then $f_\theta(x)
 
 **Question.** Why is cross-entropy a loss function?
 
-### Optimization
+## Optimization
 
 Once we choose a model and a loss, finding the parameter becomes an optimization problem. We adjust the parameters $\theta$ so that the loss on the training data becomes small.
 
@@ -80,7 +78,7 @@ where $\eta$ is the learning rate. This means we move the parameters in the nega
 
 **Question.** Why does gradient descent optimize the parameter?
 
-### Expressiveness, convergence and generalization
+## Expressiveness, convergence and generalization
 
 Three ideas appear throughout machine learning.
 
@@ -90,7 +88,7 @@ Three ideas appear throughout machine learning.
 
 **Generalization** asks whether a small loss on the observed samples really means that the model is close to the ground truth on unseen data as well. A model that fits the training samples but fails on new examples is overfitting.
 
-### Linear/convex model and their restriction
+## Linear/convex model and their restriction
 
 **Linear models** are an important starting point because they often lead to convex optimization problems, and convex losses usually have good convergence behavior. More generally, when the loss as a function of the parameters is convex, optimization is numerically more stable and it is easier to find a global optimum. This is one reason linear and other convex models were so popular before neural networks.
 
@@ -577,21 +575,131 @@ In short, initialization controls the scale at the beginning of training, while 
 
 ## Training strategies
 
-- **Learning-rate schedule.** The learning rate controls the step size of each parameter update. If it is too large, training may be unstable; if it is too small, training may be very slow. A schedule changes the learning rate over time. Warmup starts with a small learning rate and gradually increases it, which is useful at the beginning of training. Step decay and cosine decay reduce the learning rate later, allowing the optimizer to make smaller refinements near a good solution.
-
-- **Batch size.** The batch size is the number of training examples used to estimate one gradient update. Larger batches give more stable gradient estimates and better hardware utilization, but they require more memory. Smaller batches add more gradient noise. This noise can sometimes help the optimizer escape sharp or unstable regions, but it can also make training less smooth.
-
-- **Regularization.** Regularization reduces overfitting by discouraging the model from relying too much on accidental patterns in the training set. Common methods include weight decay, dropout, label smoothing, and data augmentation. Weight decay penalizes large weights; data augmentation creates modified training examples; label smoothing prevents the model from becoming too confident on the training labels.
-
-- **Dropout.** Randomly set some activations to zero during training:
+- **Learning-rate schedule.** The learning rate controls the step size of each parameter update:
 
   $$
-  \tilde{h} = m \odot h,
-  \qquad
-  m_i \sim \mathrm{Bernoulli}(p).
+  \theta_{t+1}
+  =
+  \theta_t - \eta_t \nabla_\theta \mathcal{L}(\theta_t).
   $$
 
-  This prevents the model from relying too heavily on a small set of features, because the feature may be missing in a particular training step. At inference time, dropout is turned off, and the full network is used.
+  Here $\eta_t$ is the learning rate at step $t$. If $\eta_t$ is too large, training may be unstable; if it is too small, training may be very slow. A learning-rate schedule chooses how $\eta_t$ changes during training.
+
+  - **Warmup.** At the beginning of training, the model parameters and optimizer statistics are not stable yet. Warmup starts with a small learning rate and gradually increases it:
+
+    $$
+    \eta_t
+    =
+    \eta_{\max}\frac{t}{T_{\mathrm{warmup}}},
+    \qquad
+    0 \le t \le T_{\mathrm{warmup}}.
+    $$
+
+    This is common in transformer training, where a large learning rate from the first step can cause unstable updates.
+
+  - **Constant learning rate.** After warmup, one simple strategy is to keep the learning rate fixed:
+
+    $$
+    \eta_t = \eta_{\max}.
+    $$
+
+    This is simple and can work well when the training length is not too long or when the optimizer is already adaptive.
+
+  - **Step decay.** Step decay reduces the learning rate at fixed milestones:
+
+    $$
+    \eta_t = \eta_0 \gamma^k,
+    $$
+
+    where $k$ is the number of decay milestones already passed and $0<\gamma<1$. This lets training make large progress early and smaller refinements later.
+
+  - **Cosine decay.** Cosine decay decreases the learning rate smoothly:
+
+    $$
+    \eta_t
+    =
+    \eta_{\min}
+    +
+    \frac{1}{2}(\eta_{\max}-\eta_{\min})
+    \left(
+    1+\cos\frac{\pi t}{T}
+    \right).
+    $$
+
+    It avoids sudden jumps in the update size and is widely used in large-scale training.
+
+  - **Cooldown.** Near the end of training, the learning rate can be reduced to a very small value. This allows the optimizer to make fine adjustments without moving far away from the solution already found.
+
+  In practice, a common schedule is: warmup first, reach the maximal learning rate, then continue training with either a constant learning rate or a decay schedule. Cooldown may be applied near the end of training: the learning rate is reduced to a small value so the optimizer can make fine adjustments. The actual stopping point is usually decided by a fixed training budget, validation performance, or early stopping.
+
+- **Batch size.** The batch size is the number of training examples used to estimate one gradient update. If the loss on one example is $\mathcal{L}_i(\theta)$, then a mini-batch gradient is
+
+  $$
+  g_B
+  =
+  \frac{1}{B}
+  \sum_{i\in \mathcal{B}}
+  \nabla_\theta \mathcal{L}_i(\theta),
+  $$
+
+  where $B$ is the batch size. Larger batches give more stable gradient estimates and better hardware utilization, but they require more memory. Smaller batches add more gradient noise, which can make training less smooth but may help the optimizer escape sharp regions and find flatter minima with better generalization.
+
+  In practice, batch size is often chosen by hardware constraints. We usually choose the largest batch that fits in memory and gives good throughput, then tune the learning rate. If the desired batch does not fit on one device, gradient accumulation can simulate a larger effective batch size. For example, using micro-batch size $b$ and accumulating gradients for $a$ steps gives
+
+  $$
+  B_{\mathrm{eff}} = ab.
+  $$
+
+  When increasing batch size, a common heuristic is the **linear scaling rule**:
+
+  $$
+  \eta_{\mathrm{new}}
+  =
+  \eta_{\mathrm{old}}
+  \frac{B_{\mathrm{new}}}{B_{\mathrm{old}}}.
+  $$
+
+  The intuition is that a larger batch gives a less noisy gradient, so the optimizer can often take a larger step. For example, if we double the batch size, we often try doubling the learning rate. This rule is only a starting point: very large batches can hurt generalization or become unstable, so warmup and validation checks are still important.
+
+- **Regularization.** Regularization reduces overfitting by making the learned function less sensitive to accidental patterns in the training set. The goal is not just to reduce training loss, but to find a solution that performs well on unseen data.
+
+  - **Weight decay.** Weight decay penalizes large weights. A common form adds an $\ell_2$ penalty to the training objective:
+
+    $$
+    \mathcal{L}_{\mathrm{reg}}(\theta)
+    =
+    \mathcal{L}(\theta)
+    +
+    \lambda \|\theta\|_2^2.
+    $$
+
+    This encourages smaller parameters and often leads to smoother functions.
+
+  - **Dropout.** Randomly set some activations to zero during training:
+
+    $$
+    \tilde{h} = m \odot h,
+    \qquad
+    m_i \sim \mathrm{Bernoulli}(p).
+    $$
+
+    This prevents the model from relying too heavily on a small set of features, because the feature may be missing in a particular training step. At inference time, dropout is turned off, and the full network is used.
+
+  - **Label smoothing.** In classification, the target label is often represented as a one-hot vector. Label smoothing replaces the hard target with a softened target:
+
+    $$
+    y_k^{\mathrm{smooth}}
+    =
+    (1-\varepsilon)y_k
+    +
+    \frac{\varepsilon}{K},
+    $$
+
+    where $K$ is the number of classes. This prevents the model from becoming too confident and can improve calibration.
+
+  - **Data augmentation.** Data augmentation creates modified training examples that should preserve the label. For images, this may include crops, flips, color changes, or noise. For text, it may include masking, paraphrasing, or small input perturbations. This teaches the model which changes should not affect the answer.
+
+  - **Early stopping.** Early stopping is also a form of regularization. If validation performance gets worse while training loss keeps improving, the model is starting to overfit. Stopping at the best validation checkpoint can generalize better than training until the training loss is minimized.
 
 - **Gradient clipping.** Limit the gradient norm to avoid unstable updates:
 
@@ -600,8 +708,6 @@ In short, initialization controls the scale at the beginning of training, while 
   $$
 
   This is especially useful for sequence models and large models, where a single batch can occasionally produce a very large gradient. Clipping keeps the update direction but limits its magnitude, making optimization more stable.
-
-- **Initialization and normalization.** Initialization controls the scale of weights before training begins, while normalization controls the scale of activations during training. Good initialization helps avoid vanishing or exploding signals in the first forward and backward passes. Normalization layers such as batch normalization and layer normalization keep intermediate representations in a stable range as the parameters change.
 
 - **Checkpointing.** A checkpoint saves the model parameters, optimizer state, and training progress. This allows training to resume after interruption. It also allows us to keep the best model according to validation performance, rather than only using the final model at the end of training.
 
@@ -617,13 +723,13 @@ In short, initialization controls the scale at the beginning of training, while 
 
 ### Images processing
 
-Mathematically, an image can be represented as a tensor
+Mathematically, an **image** can be represented as a tensor
 
 $$
 x \in \mathbb{R}^{H \times W \times C},
 $$
 
-where $H$ is height, $W$ is width, and $C$ is the number of channels. For an RGB image, $C=3$.
+where $H$ is height, $W$ is width, and $C$ is the number of channels. For an **RGB image**, $C=3$.
 
 For example, an RGB image has three channels: red, green, and blue. Each pixel is represented by three numbers, one for each channel. These numbers describe how much red, green, and blue light should be mixed to display that pixel. In a common 8-bit image, each channel value is an integer between $0$ and $255$. Thus a pixel can be written as
 
@@ -661,7 +767,7 @@ The intermediate steps of a typical image function often compute key visual patt
 
 ![Figure 4.5: pattern detection does not need the whole image](../pictures/cnn_fig_4_5_local_pattern.png)
 
-TODO: adjust the size of the pictures and remove chinese characters
+TODO: remove chinese characters
 
 **Simplification 1: receptive field**
 
@@ -1177,7 +1283,7 @@ $$
 x_1,x_2,\dots,x_T.
 $$
 
-A simple RNN maintains a hidden state $h_t$ as its memory. At each time step, it updates the hidden state using the current input and the previous hidden state:
+A simple **recurrent neural network (RNN)** maintains a hidden state $h_t$ as its memory. At each time step, it updates the hidden state using the current input and the previous hidden state:
 
 $$
 h_t
@@ -1262,7 +1368,7 @@ This is useful for sequence labeling, because the label of a word may depend on 
 
 Simple RNNs have difficulty storing information for a long time. The hidden state is overwritten at every step, and gradients must pass through many repeated applications of $W_h$. This can cause vanishing or exploding gradients.
 
-Long short-term memory networks (LSTMs) replace the simple hidden state update with a gated memory cell. An LSTM keeps a cell state $c_t$ and uses gates to decide what to write, what to forget, and what to output.
+**Long short-term memory networks (LSTMs)** replace the simple hidden state update with a gated memory cell. An LSTM keeps a cell state $c_t$ and uses gates to decide what to write, what to forget, and what to output.
 
 Given input $x_t$ and previous hidden state $h_{t-1}$, define
 
@@ -1301,7 +1407,7 @@ $$
 
 Because information can pass through the cell state additively, LSTMs are better at preserving long-term information than simple RNNs.
 
-GRU, or gated recurrent unit, is a simplified gated RNN. It uses fewer gates than LSTM and has fewer parameters, but often performs similarly in practice.
+<!-- GRU, or gated recurrent unit, is a simplified gated RNN. It uses fewer gates than LSTM and has fewer parameters, but often performs similarly in practice. -->
 
 ### Learning RNNs
 
@@ -1324,27 +1430,24 @@ $$
 p_\theta(y_t\mid x_1,\dots,x_T).
 $$
 
-Training uses **backpropagation through time** (BPTT). We unroll the RNN over time, compute the loss, and backpropagate through the unrolled computational graph. The difference from ordinary backpropagation is that the same recurrent parameters are reused at every time step, so their gradients accumulate across time.
-
-RNN training can be unstable. Gradients may become very small or very large because the same transition matrix is repeatedly applied through time. A simple way to control exploding gradients is **gradient clipping**:
+Training uses **backpropagation through time** (BPTT). We unroll the RNN over time, compute the loss, and backpropagate through the unrolled computational graph. The key difference from ordinary backpropagation is parameter sharing: the same recurrent parameters are reused at every time step, so the gradient with respect to the recurrent weight accumulates contributions from all time steps:
 
 $$
-g
-\leftarrow
-\begin{cases}
-g, & \|g\|\le \tau,\\
-\tau \dfrac{g}{\|g\|}, & \|g\|>\tau,
-\end{cases}
+\frac{\partial \mathcal{L}}{\partial W_h}
+=
+\sum_{t=1}^{T}
+\frac{\partial \ell_t}{\partial W_h}.
 $$
 
-where $g$ is the gradient vector and $\tau$ is a chosen threshold. Clipping does not solve vanishing gradients, but it prevents very large updates from destroying training. LSTM and GRU help with long-term memory and vanishing gradients.
+This makes RNN training natural for sequences, but it also exposes the model to long chains of repeated transformations.
 
 ### Limitation
 
-RNNs process sequences step by step. This gives them a natural memory mechanism, but it also creates two fundamental limitations:
+RNNs process sequences step by step. This gives them a natural memory mechanism, but it also creates three important limitations:
 
 * information from the past must be compressed into a fixed-size hidden state;
-* gradients must pass backward through many repeated recurrent transitions.
+* gradients must pass backward through many repeated recurrent transitions;
+* time steps are sequential, so training is hard to parallelize over the sequence length.
 
 The first issue is a **finite-bandwidth memory bottleneck**. At time $t$, the whole past
 
@@ -1429,15 +1532,36 @@ Therefore a finite-bandwidth recursive structure is forced into a difficult trad
 * if the recurrence is expansive, hidden states and gradients can explode;
 * if it is carefully balanced near the boundary, training becomes numerically delicate.
 
-LSTM and GRU reduce this problem by using gates and additive memory paths. For example, the LSTM cell update
+A practical fix for gradient explosion is **gradient clipping**. If $g$ is the gradient vector and $\tau$ is a chosen threshold, we replace $g$ by
+
+$$
+g
+\leftarrow
+\begin{cases}
+g, & \|g\|\le \tau,\\
+\tau \dfrac{g}{\|g\|}, & \|g\|>\tau.
+\end{cases}
+$$
+
+Clipping keeps the direction of a large gradient but limits its norm. It prevents one unstable batch from producing a destructive parameter update. However, clipping only controls exploding gradients; it does not solve vanishing gradients.
+
+LSTM addresses the memory and vanishing-gradient problems more directly by using gates and additive memory paths. For example, the LSTM cell update
 
 $$
 c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t
 $$
 
-allows information to persist through an additive path rather than being completely rewritten at every time step. This helps long-term memory, but it does not remove all sequential limitations. RNNs still process tokens one by one, so they are hard to parallelize over time and still struggle when very distant positions must interact directly.
+allows information to persist through an additive path rather than being completely rewritten at every time step. The forget gate $f_t$ controls how much old memory is kept, and the input gate $i_t$ controls how much new information is written. This helps long-term memory, but it does not remove all sequential limitations.
 
-These limitations motivate attention mechanisms and transformers, which allow information from different positions to interact more directly.
+The third issue is **limited parallelism**. Even if the gradient problem is improved, an RNN still computes
+
+$$
+h_1 \to h_2 \to \cdots \to h_T
+$$
+
+one step at a time. This makes training and inference over long sequences less parallel than attention-based models.
+
+These limitations motivate attention mechanisms and transformers. Attention stores token representations explicitly and lets different positions interact more directly, instead of forcing all information through a single recurrent state.
 
 ## Attention and transformer
 
@@ -1445,7 +1569,7 @@ These limitations motivate attention mechanisms and transformers, which allow in
 
 ### Attention
 
-Attention is another for seq2seq problem that improves the RNN. Many sequence problems start with a sequence of vectors
+**Attention** is another for seq2seq problem that improves the RNN. Many sequence problems start with a sequence of vectors
 
 $$
 X = (x_1,\ldots,x_T), \qquad x_i \in \mathbb{R}^{d}.
@@ -1524,7 +1648,7 @@ is the attention matrix. Its entry $A_{i,j}$ says how much position $i$ uses inf
 
 ### Multi-head attention
 
-A single attention operation retrieves information in one representation space. Multi-head attention runs several attention operations in parallel:
+A single attention operation retrieves information in one representation space. **Multi-head attention** runs several attention operations in parallel:
 
 $$
 \operatorname{head}_r
@@ -1564,7 +1688,7 @@ p(x_1,\ldots,x_T)
 \prod_{t=1}^{T}p(x_t \mid x_{<t}).
 $$
 
-This is called causal because the prediction at time $t$ cannot depend on future tokens $x_{t+1},\ldots,x_T$. During training, the whole sequence is available in memory, but the attention operation must be masked so that the model cannot cheat by looking at the answer.
+This is called **causal** because the prediction at time $t$ cannot depend on future tokens $x_{t+1},\ldots,x_T$. During training, the whole sequence is available in memory, but the attention operation must be masked so that the model cannot cheat by looking at the answer.
 
 For ordinary self-attention, position $i$ can attend to every position $j$:
 
@@ -1572,7 +1696,7 @@ $$
 s_{i,j} = \frac{q_i^\top k_j}{\sqrt{d_k}}.
 $$
 
-For causal self-attention, we add a mask:
+For **causal self-attention**, we add a mask:
 
 $$
 s_{i,j}^{\mathrm{causal}}
@@ -1622,9 +1746,9 @@ This lets all positions be trained in parallel while preserving the autoregressi
 
 ### Positional encoding
 
-Self-attention compares tokens by content. In non-causal self-attention, without extra information, it does not know the order of the sequence. If we permute the input tokens, the same self-attention layer is permuted in the same way. Therefore we need to inject position information. In causal self-attention, the mask already gives the model some order information because position $i$ can only attend to positions $j \le i$. However, explicit positional encoding still often improves performance a lot, because the model also needs to know distances and exact relative positions, not only whether a token is in the past or future.
+Self-attention compares tokens by content. In non-causal self-attention, without extra information, it does not know the order of the sequence. If we permute the input tokens, the same self-attention layer is permuted in the same way. Therefore we need to inject position information. In causal self-attention, the mask already gives the model some order information because position $i$ can only attend to positions $j \le i$. However, explicit **positional encoding** still often improves performance a lot, because the model also needs to know distances and exact relative positions, not only whether a token is in the past or future.
 
-One important method is rotary positional embedding, usually called RoPE. Instead of adding a positional vector to the token embedding, RoPE rotates the query and key vectors by an angle that depends on their positions.
+One important method is **rotary positional embedding**, usually called RoPE. Instead of adding a positional vector to the token embedding, RoPE rotates the query and key vectors by an angle that depends on their positions.
 
 Suppose the query and key dimensions are even. We group each query vector into two-dimensional pairs:
 
@@ -2008,6 +2132,10 @@ These principles explain the design of several important architectures.
 In short, architecture design is not arbitrary. CNNs come from locality, RNNs and LSTMs come from sequential computation, ResNets come from optimization of deep networks, and attention comes from direct retrieval over long contexts.
 
 # Basic machine learning theory
+
+TODO: flat minima better generalization, linear scaling law
+
+TODO: lottery ticket hypothesis
 
 
 TODO: transformers are RNN, linear transformer, mamba
