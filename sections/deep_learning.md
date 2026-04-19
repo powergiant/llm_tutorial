@@ -364,16 +364,19 @@ There are three common ways to compute derivatives:
 
   $$\frac{\partial \mathcal{L}}{\partial \theta_i}
     \approx
-    \frac{\mathcal{L}(\theta + \varepsilon e_i) - \mathcal{L}(\theta)}{\varepsilon}.$$
-  
+    \frac{\mathcal{L}(\theta + \varepsilon e_i) - \mathcal{L}(\theta)}{\varepsilon}.
+  $$
+
   This is simple but very expensive. To compute the full gradient with respect to $d$ parameters, numerical differentiation needs roughly $d$ separate forward evaluations, one for each coordinate. When $d$ is large, this is far more expensive than training can afford, and the finite-difference approximation is also numerically unstable when $\varepsilon$ is too small or too large.
 - **Symbolic differentiation** manipulates formulas exactly and applies the chain rule algebraically. The problem is that intermediate formulas can become very large. A simple example is the recursion
 
-  $$f_{n+1}(x) = f_n(x)\,f_n(x^2), \qquad f_0(x)=x.$$
+  $$f_{n+1}(x) = f_n(x)\,f_n(x^2), \qquad f_0(x)=x.
+  $$
 
   Then
 
-  $$f'_{n+1}(x) = f_n'(x) f_n(x^2) + 2x f_n(x) f_n'(x^2).$$
+  $$f'_{n+1}(x) = f_n'(x) f_n(x^2) + 2x f_n(x) f_n'(x^2).
+  $$
 
   If we keep substituting the full symbolic expression for $f_n(x)$ and then for $f_{n-1}(x)$ and so on, the expression quickly becomes enormous, because the same subexpression is copied again and again. This repeated duplication of identical intermediate terms is the classical **term explosion** problem.
 
@@ -481,16 +484,14 @@ where $\mu$ and $\sigma^2$ are a mean and variance computed from some group of a
 
 - **Batch normalization.** For a mini-batch of activations, batch normalization computes statistics across the batch. For one feature dimension $k$,
 
-  $$
-  \mu_k=\frac{1}{m}\sum_{i=1}^{m}x_{i,k},
+  $$\mu_k=\frac{1}{m}\sum_{i=1}^{m}x_{i,k},
   \qquad
   \sigma_k^2=\frac{1}{m}\sum_{i=1}^{m}(x_{i,k}-\mu_k)^2.
   $$
 
   Then
 
-  $$
-  \hat{x}_{i,k}=\frac{x_{i,k}-\mu_k}{\sqrt{\sigma_k^2+\varepsilon}},
+  $$\hat{x}_{i,k}=\frac{x_{i,k}-\mu_k}{\sqrt{\sigma_k^2+\varepsilon}},
   \qquad
   y_{i,k}=\gamma_k \hat{x}_{i,k}+\beta_k.
   $$
@@ -499,20 +500,19 @@ where $\mu$ and $\sigma^2$ are a mean and variance computed from some group of a
 
 - **Layer normalization.** For one token or one data point, layer normalization computes statistics across the feature dimension. If
 
-  $$x_i = (x_{i,1},\ldots,x_{i,d}),$$
+  $$x_i = (x_{i,1},\ldots,x_{i,d}),
+  $$
 
   then
 
-  $$
-  \mu_i=\frac{1}{d}\sum_{k=1}^{d}x_{i,k},
+  $$\mu_i=\frac{1}{d}\sum_{k=1}^{d}x_{i,k},
   \qquad
   \sigma_i^2=\frac{1}{d}\sum_{k=1}^{d}(x_{i,k}-\mu_i)^2.
   $$
 
   Then
 
-  $$
-  \hat{x}_{i,k}=\frac{x_{i,k}-\mu_i}{\sqrt{\sigma_i^2+\varepsilon}},
+  $$\hat{x}_{i,k}=\frac{x_{i,k}-\mu_i}{\sqrt{\sigma_i^2+\varepsilon}},
   \qquad
   y_{i,k}=\gamma_k \hat{x}_{i,k}+\beta_k.
   $$
@@ -525,16 +525,14 @@ In short, initialization controls the scale at the beginning of training, while 
 
 - **Learning-rate schedule.** The learning rate controls the step size of each parameter update:
 
-  $$
-  \theta_{t+1}=\theta_t - \eta_t \nabla_\theta \mathcal{L}(\theta_t).
+  $$\theta_{t+1}=\theta_t - \eta_t \nabla_\theta \mathcal{L}(\theta_t).
   $$
 
   Here $\eta_t$ is the learning rate at step $t$. If $\eta_t$ is too large, training may be unstable; if it is too small, training may be very slow. A learning-rate schedule chooses how $\eta_t$ changes during training.
 
   - **Warmup.** At the beginning of training, the model parameters and optimizer statistics are not stable yet. Warmup starts with a small learning rate and gradually increases it:
 
-    $$
-    \eta_t=\eta_{\max}\frac{t}{T_{\mathrm{warmup}}},
+    $$\eta_t=\eta_{\max}\frac{t}{T_{\mathrm{warmup}}},
     \qquad
     0 \le t \le T_{\mathrm{warmup}}.
     $$
@@ -543,24 +541,21 @@ In short, initialization controls the scale at the beginning of training, while 
 
   - **Constant learning rate.** After warmup, one simple strategy is to keep the learning rate fixed:
 
-    $$
-    \eta_t = \eta_{\max}.
+    $$\eta_t = \eta_{\max}.
     $$
 
     This is simple and can work well when the training length is not too long or when the optimizer is already adaptive.
 
   - **Step decay.** Step decay reduces the learning rate at fixed milestones:
 
-    $$
-    \eta_t = \eta_0 \gamma^k,
+    $$\eta_t = \eta_0 \gamma^k,
     $$
 
     where $k$ is the number of decay milestones already passed and $0<\gamma<1$. This lets training make large progress early and smaller refinements later.
 
   - **Cosine decay.** Cosine decay decreases the learning rate smoothly:
 
-    $$
-    \eta_t=\eta_{\min}
+    $$\eta_t=\eta_{\min}
     +
     \frac{1}{2}(\eta_{\max}-\eta_{\min})
     \left(
@@ -576,8 +571,7 @@ In short, initialization controls the scale at the beginning of training, while 
 
 - **Batch size.** The batch size is the number of training examples used to estimate one gradient update. If the loss on one example is $\mathcal{L}_i(\theta)$, then a mini-batch gradient is
 
-  $$
-  g_B=\frac{1}{B}
+  $$g_B=\frac{1}{B}
   \sum_{i\in \mathcal{B}}
   \nabla_\theta \mathcal{L}_i(\theta),
   $$
@@ -586,14 +580,12 @@ In short, initialization controls the scale at the beginning of training, while 
 
   In practice, batch size is often chosen by hardware constraints. We usually choose the largest batch that fits in memory and gives good throughput, then tune the learning rate. If the desired batch does not fit on one device, gradient accumulation can simulate a larger effective batch size. For example, using micro-batch size $b$ and accumulating gradients for $a$ steps gives
 
-  $$
-  B_{\mathrm{eff}} = ab.
+  $$B_{\mathrm{eff}} = ab.
   $$
 
   When increasing batch size, a common heuristic is the **linear scaling rule**:
 
-  $$
-  \eta_{\mathrm{new}}=\eta_{\mathrm{old}}
+  $$\eta_{\mathrm{new}}=\eta_{\mathrm{old}}
   \frac{B_{\mathrm{new}}}{B_{\mathrm{old}}}.
   $$
 
@@ -603,8 +595,7 @@ In short, initialization controls the scale at the beginning of training, while 
 
   - **Weight decay.** Weight decay penalizes large weights. A common form adds an $\ell_2$ penalty to the training objective:
 
-    $$
-    \mathcal{L}_{\mathrm{reg}}(\theta)=\mathcal{L}(\theta)
+    $$\mathcal{L}_{\mathrm{reg}}(\theta)=\mathcal{L}(\theta)
     +
     \lambda \|\theta\|_2^2.
     $$
@@ -613,8 +604,7 @@ In short, initialization controls the scale at the beginning of training, while 
 
   - **Dropout.** Randomly set some activations to zero during training:
 
-    $$
-    \tilde{h} = m \odot h,
+    $$\tilde{h} = m \odot h,
     \qquad
     m_i \sim \mathrm{Bernoulli}(p).
     $$
@@ -623,8 +613,7 @@ In short, initialization controls the scale at the beginning of training, while 
 
   - **Label smoothing.** In classification, the target label is often represented as a one-hot vector. Label smoothing replaces the hard target with a softened target:
 
-    $$
-    y_k^{\mathrm{smooth}}=(1-\varepsilon)y_k
+    $$y_k^{\mathrm{smooth}}=(1-\varepsilon)y_k
     +
     \frac{\varepsilon}{K},
     $$
@@ -637,8 +626,7 @@ In short, initialization controls the scale at the beginning of training, while 
 
 - **Gradient clipping.** Limit the gradient norm to avoid unstable updates:
 
-  $$
-  g \leftarrow g \cdot \min\left(1,\frac{c}{\|g\|}\right).
+  $$g \leftarrow g \cdot \min\left(1,\frac{c}{\|g\|}\right).
   $$
 
   This is especially useful for sequence models and large models, where a single batch can occasionally produce a very large gradient. Clipping keeps the update direction but limits its magnitude, making optimization more stable.
@@ -812,8 +800,7 @@ The inference can be described by
 
 * **Step 1: Input image.** Start from an image tensor
 
-  $$
-  h^{(0)}=x
+  $$h^{(0)}=x
   \in
   \mathbb{R}^{H_0 \times W_0 \times C_0}.
   $$
@@ -822,24 +809,21 @@ The inference can be described by
 
 * **Step 2: convolution.** At layer $\ell$, assume the input feature tensor is
 
-  $$
-  h^{(\ell-1)}
+  $$h^{(\ell-1)}
   \in
   \mathbb{R}^{H_{\ell-1} \times W_{\ell-1} \times C_{\ell-1}}.
   $$
 
   Applying $C_\ell$ shared filters gives pre-activation feature maps
 
-  $$
-  z^{(\ell)}=\mathrm{Conv}_{K^{(\ell)}, b^{(\ell)}}(h^{(\ell-1)})
+  $$z^{(\ell)}=\mathrm{Conv}_{K^{(\ell)}, b^{(\ell)}}(h^{(\ell-1)})
   \in
   \mathbb{R}^{H'_\ell \times W'_\ell \times C_\ell}.
   $$
 
   More explicitly, for output channel $m$,
 
-  $$
-  z^{(\ell)}_{i,j,m}=\sum_{u=0}^{k_h-1}
+  $$z^{(\ell)}_{i,j,m}=\sum_{u=0}^{k_h-1}
   \sum_{v=0}^{k_w-1}
   \sum_{c=1}^{C_{\ell-1}}
   K^{(\ell)}_{u,v,c,m}
@@ -851,33 +835,29 @@ The inference can be described by
   Each output channel $m$ is a feature map. Early layers may detect simple patterns such as edges, while deeper layers combine these into more abstract patterns. 
 
   If you think $z^{(\ell)}_{i,j}$, $b^{(\ell)}$ as vectors with index $m$, $h^{(\ell-1)}_{i s_h + u,\, j s_w + v}$ as vectors with index $c$ and $K^{(\ell)}_{u,v}$ matrix with index $c, m$, then the above formula can be rewritten as 
-  $$
-  z^{(\ell)}_{i,j}=\sum_{u=0}^{k_h-1}
+  $$z^{(\ell)}_{i,j}=\sum_{u=0}^{k_h-1}
   \sum_{v=0}^{k_w-1}
   K^{(\ell)}_{u,v}
   \,
   \tilde h^{(\ell-1)}_{i s_h + u,\, j s_w + v}
   + b^{(\ell)}.
   $$
-  
+
   In this formula, $\tilde h^{(\ell-1)}$ denotes the padded input. **Padding** adds extra pixels around the boundary before applying the filter. If we use zero padding with $p_h$ rows on the top and bottom and $p_w$ columns on the left and right, then the padded input has spatial size
 
-  $$
-  (H_{\ell-1}+2p_h) \times (W_{\ell-1}+2p_w).
+  $$(H_{\ell-1}+2p_h) \times (W_{\ell-1}+2p_w).
   $$
 
   Padding is useful because otherwise the feature map shrinks after every convolution, and boundary pixels are used less often than interior pixels.
 
   The **stride** controls how far the filter moves between two neighboring output locations. With stride $(s_h,s_w)$, the output location $(i,j)$ reads from the padded input location
 
-  $$
-  (i s_h, j s_w).
+  $$(i s_h, j s_w).
   $$
 
   Therefore the output spatial size after convolution is
 
-  $$
-  H'_\ell=\left\lfloor
+  $$H'_\ell=\left\lfloor
   \frac{H_{\ell-1}+2p_h-k_h}{s_h}
   \right\rfloor
   +1,
@@ -892,30 +872,26 @@ The inference can be described by
 
 * **Step 3: activation.** Apply a nonlinear function elementwise:
 
-  $$
-  a^{(\ell)}=\sigma(z^{(\ell)}).
+  $$a^{(\ell)}=\sigma(z^{(\ell)}).
   $$
 
   A common choice is ReLU:
 
-  $$
-  \sigma(t)=\max(t,0).
+  $$\sigma(t)=\max(t,0).
   $$
 
   The activation is necessary because without nonlinearities, stacking many convolution layers would still define only a linear function.
 
 * **Step 4: pooling or downsampling.** Pooling reduces the spatial resolution:
 
-  $$
-  h^{(\ell)}=\mathrm{Pool}_{\ell}(a^{(\ell)})
+  $$h^{(\ell)}=\mathrm{Pool}_{\ell}(a^{(\ell)})
   \in
   \mathbb{R}^{H_\ell \times W_\ell \times C_\ell}.
   $$
 
   For example, max pooling over a local region $R_{i,j}$ computes
 
-  $$
-  h^{(\ell)}_{i,j,c}=\max_{(a,b)\in R_{i,j}}
+  $$h^{(\ell)}_{i,j,c}=\max_{(a,b)\in R_{i,j}}
   a^{(\ell)}_{a,b,c}.
   $$
 
@@ -923,8 +899,7 @@ The inference can be described by
 
 * **Step 5: repeat convolution blocks.** A full convolution block is
 
-  $$
-  h^{(\ell)}=\mathrm{Pool}_{\ell}
+  $$h^{(\ell)}=\mathrm{Pool}_{\ell}
   \left(
   \sigma
   \left(
@@ -935,8 +910,7 @@ The inference can be described by
 
   Repeating blocks gives a sequence of tensors:
 
-  $$
-  H_0 \times W_0 \times C_0
+  $$H_0 \times W_0 \times C_0
   \rightarrow
   H_1 \times W_1 \times C_1
   \rightarrow
@@ -949,8 +923,7 @@ The inference can be described by
 
 * **Step 6: flatten.** Convert the final feature tensor into a vector:
 
-  $$
-  r=\mathrm{flatten}(h^{(L)})
+  $$r=\mathrm{flatten}(h^{(L)})
   \in
   \mathbb{R}^{H_L W_L C_L}.
   $$
@@ -959,8 +932,7 @@ The inference can be described by
 
   Feed the vector into an MLP classifier. With one linear classifier layer,
 
-  $$
-  o=W r + b,
+  $$o=W r + b,
   \qquad
   o \in \mathbb{R}^{N_{\mathrm{class}}},
   $$
@@ -971,15 +943,13 @@ The inference can be described by
 
   Convert logits into class probabilities:
 
-  $$
-  y_c=\frac{\exp(o_c)}
+  $$y_c=\frac{\exp(o_c)}
   {\sum_{c'=1}^{N_{\mathrm{class}}} \exp(o_{c'})}.
   $$
 
   The predicted class is usually chosen by
 
-  $$
-  c = \arg\max_{c'} y_{c'}.
+  $$c = \arg\max_{c'} y_{c'}.
   $$
 
 Thus, the CNN inference pass transforms an image into local feature maps, repeatedly combines and downsamples those maps, then uses an MLP classifier to produce class probabilities.
@@ -1791,34 +1761,29 @@ The whole model is built from token embeddings, positional information, causal s
 
 - **Tokenization.** Raw text is first converted into discrete tokens:
 
-  $$
-  \text{text} \longrightarrow (t_1,\ldots,t_T).
+  $$\text{text} \longrightarrow (t_1,\ldots,t_T).
   $$
 
   Each token is mapped to a vector by an embedding matrix $E$:
 
-  $$
-  e_i = E[t_i].
+  $$e_i = E[t_i].
   $$
 
 - **Absolute positional encoding.** One way to give the model position information is to add a position vector $p_i$ to each token embedding:
 
-  $$
-  h_i^{(0)} = e_i + p_i.
+  $$h_i^{(0)} = e_i + p_i.
   $$
 
   Here $p_i$ can be learned or fixed. In this case, the initial hidden states are
 
-  $$
-  H^{(0)} = (h_1^{(0)},\ldots,h_T^{(0)}).
+  $$H^{(0)} = (h_1^{(0)},\ldots,h_T^{(0)}).
   $$
 
 - **Rotary positional encoding.** Another common method is RoPE. Instead of adding $p_i$ to the embedding, RoPE rotates the query and key vectors inside attention. With RoPE, we can take the initial hidden state to be $h_i^{(0)}=e_i$, and inject position when forming attention scores.
 
   For one two-dimensional block,
 
-  $$
-  \begin{pmatrix}
+  $$\begin{pmatrix}
   \widetilde{q}_{i,2r} \\
   \widetilde{q}_{i,2r+1}
   \end{pmatrix}=\begin{pmatrix}
@@ -1833,8 +1798,7 @@ The whole model is built from token embeddings, positional information, causal s
 
   and similarly
 
-  $$
-  \begin{pmatrix}
+  $$\begin{pmatrix}
   \widetilde{k}_{j,2r} \\
   \widetilde{k}_{j,2r+1}
   \end{pmatrix}=\begin{pmatrix}
@@ -1849,34 +1813,29 @@ The whole model is built from token embeddings, positional information, causal s
 
   Then attention uses the rotated query and key:
 
-  $$
-  s_{i,j}=\frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
+  $$s_{i,j}=\frac{\widetilde{q}_i^\top \widetilde{k}_j}{\sqrt{d_k}}.
   $$
 
   RoPE makes the query-key interaction depend on relative position, because
 
-  $$
-  (R_i q_i)^\top(R_j k_j)=q_i^\top R_{j-i}k_j.
+  $$(R_i q_i)^\top(R_j k_j)=q_i^\top R_{j-i}k_j.
   $$
 
   The frequencies are usually chosen at different scales, for example
 
-  $$
-  \theta_r = 10000^{-2r/d}.
+  $$\theta_r = 10000^{-2r/d}.
   $$
 
 - **Causal self-attention.** A decoder-only transformer must not look at future tokens. In layer $\ell$, from the current hidden states $H^{(\ell-1)}$, we compute
 
-  $$
-  Q = H^{(\ell-1)}W_Q,\qquad
+  $$Q = H^{(\ell-1)}W_Q,\qquad
   K = H^{(\ell-1)}W_K,\qquad
   V = H^{(\ell-1)}W_V.
   $$
 
   The causal attention score is
 
-  $$
-  s_{i,j} =
+  $$s_{i,j} =
   \begin{cases}
   \dfrac{q_i^\top k_j}{\sqrt{d_k}}, & j \le i,\\
   -\infty, & j > i.
@@ -1885,16 +1844,14 @@ The whole model is built from token embeddings, positional information, causal s
 
   If RoPE is used, replace $q_i,k_j$ by $\widetilde{q}_i,\widetilde{k}_j$ in the same formula. The attention output is
 
-  $$
-  B=\mathrm{softmax}(S)V,
+  $$B=\mathrm{softmax}(S)V,
   $$
 
   where future positions have zero probability because their scores are $-\infty$.
 
 - **Transformer block.** A decoder-only transformer stacks many identical blocks. A common pre-normalization form is
 
-  $$
-  \widetilde{H}^{(\ell)}=H^{(\ell-1)}
+  $$\widetilde{H}^{(\ell)}=H^{(\ell-1)}
   +
   \mathrm{CausalMHA}
   \left(
@@ -1904,8 +1861,7 @@ The whole model is built from token embeddings, positional information, causal s
 
   followed by a position-wise feed-forward network:
 
-  $$
-  H^{(\ell)}=\widetilde{H}^{(\ell)}
+  $$H^{(\ell)}=\widetilde{H}^{(\ell)}
   +
   \mathrm{FFN}
   \left(
@@ -1915,40 +1871,34 @@ The whole model is built from token embeddings, positional information, causal s
 
   The feed-forward network is applied independently to each token position:
 
-  $$
-  \mathrm{FFN}(z)=W_2 \sigma(W_1 z + b_1) + b_2.
+  $$\mathrm{FFN}(z)=W_2 \sigma(W_1 z + b_1) + b_2.
   $$
 
   After $L$ layers, the final hidden states are
 
-  $$
-  H^{(L)}=(h_1^{(L)},\ldots,h_T^{(L)}).
+  $$H^{(L)}=(h_1^{(L)},\ldots,h_T^{(L)}).
   $$
 
 - **Output probability.** The final hidden vector $h_i^{(L)}$ is mapped to logits over the vocabulary:
 
-  $$
-  o_i = W_{\mathrm{vocab}}h_i^{(L)} + b_{\mathrm{vocab}}.
+  $$o_i = W_{\mathrm{vocab}}h_i^{(L)} + b_{\mathrm{vocab}}.
   $$
 
   The hidden state at position $i$ predicts the next token:
 
-  $$
-  p(t_{i+1} \mid t_{\le i})=\mathrm{softmax}(o_i).
+  $$p(t_{i+1} \mid t_{\le i})=\mathrm{softmax}(o_i).
   $$
 
   At inference time, a concrete next token can be chosen by greedy decoding,
 
-  $$
-  t_{i+1}=\arg\max_t p(t \mid t_{\le i}),
+  $$t_{i+1}=\arg\max_t p(t \mid t_{\le i}),
   $$
 
   or by sampling from the distribution. The generated token is appended to the context, and the same process repeats.
 
 - **Training.** During training, the correct prefix tokens are given to the model. The loss is the sum of next-token cross-entropies:
 
-  $$
-  \mathcal{L}=-
+  $$\mathcal{L}=-
   \sum_{i=1}^{T-1}
   \log p(t_{i+1}^\ast \mid t_{\le i}^\ast).
   $$
@@ -1959,32 +1909,27 @@ The whole model is built from token embeddings, positional information, causal s
 
 - **Advantage: parallel training.** An RNN processes tokens recursively, so $h_i$ depends on $h_{i-1}$ and the computation is hard to parallelize over time:
 
-  $$
-  h_i = f(h_{i-1},x_i).
+  $$h_i = f(h_{i-1},x_i).
   $$
 
   A transformer processes all token states together. In one attention layer,
 
-  $$
-  Q = HW_Q,\qquad K = HW_K,\qquad V = HW_V.
+  $$Q = HW_Q,\qquad K = HW_K,\qquad V = HW_V.
   $$
 
   Then all pairwise scores are computed by one matrix multiplication:
 
-  $$
-  S=\frac{QK^\top}{\sqrt{d_k}}.
+  $$S=\frac{QK^\top}{\sqrt{d_k}}.
   $$
 
   Even with a causal mask, all positions can be trained in parallel:
 
-  $$
-  Z = \mathrm{softmax}(S)V.
+  $$Z = \mathrm{softmax}(S)V.
   $$
 
 - **Advantage: direct retrieval.** An RNN must carry old information through a single hidden state. A transformer keeps token representations available and lets position $i$ retrieve useful previous tokens directly:
 
-  $$
-  b_i = \sum_{j=1}^{i} a_{i,j}v_j.
+  $$b_i = \sum_{j=1}^{i} a_{i,j}v_j.
   $$
 
   So if token $i$ needs token $j$, attention can create a direct connection instead of passing information step by step through all intermediate positions.
@@ -1995,14 +1940,12 @@ The whole model is built from token embeddings, positional information, causal s
 
 - **Disadvantage: quadratic context cost.** Full self-attention over a length-$T$ sequence uses a $T \times T$ attention matrix:
 
-  $$
-  S \in \mathbb{R}^{T \times T}.
+  $$S \in \mathbb{R}^{T \times T}.
   $$
 
   Therefore the memory and computation cost scale as
 
-  $$
-  O(T^2).
+  $$O(T^2).
   $$
 
 - **Disadvantage: expensive long context.** RNNs can process arbitrarily long streams with a fixed-size hidden state, although memory quality may degrade. Transformers keep explicit token-level memory, which is more flexible but expensive for very long contexts. Long-context transformers therefore need efficient attention, sparse attention, compression, or external memory.
@@ -2026,36 +1969,31 @@ These principles explain the design of several important architectures.
 
 - **Expressiveness of sequence-to-sequence problems -> RNN and LSTM.** Many tasks require variable-length input and output, such as speech, text, time series, and action sequences. RNNs express this kind of computation by updating a hidden state over time:
 
-  $$
-  h_t = f(h_{t-1},x_t).
+  $$h_t = f(h_{t-1},x_t).
   $$
 
   The hidden state is a memory of the previous tokens, so the same model can process sequences of different lengths. LSTMs add gates that control what to remember, forget, and output, making the sequence memory more stable than a simple RNN.
 
 - **Convergence of deep networks -> ResNet.** Very deep networks are expressive, but plain deep networks are hard to optimize because gradients can vanish across many layers. ResNet is designed to improve convergence by adding residual connections:
 
-  $$
-  h_{\ell+1} = h_\ell + F_\ell(h_\ell).
+  $$h_{\ell+1} = h_\ell + F_\ell(h_\ell).
   $$
 
   The identity path makes the layer-to-layer transformation closer to norm-preserving. If the residual term $F_\ell$ is small, then the Jacobian of the block is close to the identity matrix:
 
-  $$
-  \frac{\partial h_{\ell+1}}{\partial h_\ell}=I + \frac{\partial F_\ell}{\partial h_\ell}.
+  $$\frac{\partial h_{\ell+1}}{\partial h_\ell}=I + \frac{\partial F_\ell}{\partial h_\ell}.
   $$
 
   Thus the gradient norm is more likely to stay close to one as it passes through many layers. This helps avoid both gradient vanishing and gradient explosion, making very deep networks easier to train.
 
 - **Gradient vanishing along the time direction -> attention.** In long sequence modeling, information from an early token may need to affect a much later token. Attention is designed to avoid passing all information through every intermediate time step. It uses direct retrieval:
 
-  $$
-  b_i = \sum_{j\le i} a_{i,j}v_j.
+  $$b_i = \sum_{j\le i} a_{i,j}v_j.
   $$
 
   Thus token $i$ can directly use token $j$ when $a_{i,j}$ is large. This improves convergence along the time direction because the gradient does not need to pass through all intermediate states. It also improves training efficiency because all attention scores can be computed by matrix multiplication:
 
-  $$
-  S = \frac{QK^\top}{\sqrt{d_k}}.
+  $$S = \frac{QK^\top}{\sqrt{d_k}}.
   $$
 
   The cost is that full attention uses $O(T^2)$ memory and computation for a length-$T$ sequence.
