@@ -139,13 +139,45 @@ We will discuss this in [llm.md](./sections/llm.md).
 
 ## Supervised finetuning
 
-SFT -> data, agent
+### Instruction data mixture
+
+Supervised finetuning adapts a pretrained model to user-facing behavior. The data mixture should include single-turn instructions, multi-turn conversations, writing tasks, summarization, coding help, math solutions, tool-use examples, retrieval-augmented answers, safety examples, and domain-specific workflows.
+
+In practice, the mixture should reflect the expected product use cases. A model for coding needs many code-editing and debugging conversations, while a model for education needs explanations, examples, misconceptions, and step-by-step tutoring.
+
+### User collaboration
+
+SFT should teach the model to collaborate with the user, not only produce a final answer. The model should learn to preserve user intent, ask clarifying questions when necessary, follow formatting constraints, adapt to the user's level, and avoid doing unnecessary work.
+
+In practice, multi-turn data is important because many real tasks are interactive. The data should include correction, refinement, partial information, follow-up questions, and cases where the model must update its answer after the user gives new constraints.
+
+### Tool use and retrieval
+
+Many useful assistants need tools: search, code execution, file editing, calculators, databases, or APIs. SFT data should show when to use a tool, how to call it, how to interpret results, and how to explain the final answer.
+
+In practice, tool-use data should include failed tool calls, missing information, conflicting search results, and source-grounded answers. This prevents the model from treating tool output as magic and helps it learn robust workflows.
+
+### Safety and refusal behavior
+
+SFT also teaches boundaries. The model should learn when to answer directly, when to refuse, when to redirect to safer information, and when to avoid unsupported factual claims.
+
+In practice, safety data should not only contain refusals. It should also include allowed neighboring requests, safe completions, and examples where the model gives useful help without crossing the boundary.
+
+### Reasoning and chain-of-thought data
+
+Reasoning data can help on math, coding, planning, and technical explanation. However, noisy reasoning traces are harmful because the model may learn to imitate plausible but incorrect reasoning.
+
+In practice, reasoning data should be verified. For many user-facing tasks, a concise explanation with the important steps is better than a long chain of thought. For math and code, final answers should be checked by tests, symbolic tools, or independent verification when possible.
+
+### Evaluation and iteration
+
+SFT should be evaluated on the actual behaviors it is supposed to teach: instruction following, helpfulness, factuality, formatting, tool use, coding, math, safety, and multi-turn consistency.
+
+In practice, SFT is usually iterative. Failed prompts, corrected answers, high-quality user conversations, verifier-approved outputs, and examples from the RL phase can be converted into new supervised data for the next round.
 
 ## Reinforcement learning
 
-RL -> 
-
-evaluation -> domain specific
+verification
 
 Reinforcement learning: [rl.md](./sections/rl.md)
 
