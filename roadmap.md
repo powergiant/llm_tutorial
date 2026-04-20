@@ -92,25 +92,49 @@ In short, data work is not a preprocessing detail. It is one of the main design 
 ## Pre-training
 
 
-data diagnosis: find hallucination sources, trace errors back to data shards, then rewrite, downweight, or discard bad data
+### Data diagnosis
 
-data quality and data mixture: decide which domains, languages, code, math, synthetic data, and high-quality sources should receive more weight
+Data diagnosis asks where model errors come from. If the model hallucinates, repeats misinformation, fails on a domain, or learns an unwanted style, we need to trace the behavior back to data shards, source types, or filtering choices. Bad shards can then be rewritten, downweighted, removed, or replaced with better data.
 
-contamination control: remove benchmark leakage and duplicated evaluation examples
+In practice, this requires keeping provenance metadata for each document, such as source, crawl time, language, domain label, filter scores, and shard id. Without provenance, it is hard to connect an observed model error to the data that caused it.
 
-training phases: decide the order of data, such as broad web data first, then higher-quality or domain-specific data later
+### Data quality and data mixture
 
-stability: monitor loss spikes, gradient norms, data bugs, optimizer settings, and numerical issues
+Data quality decides which documents are worth training on. Data mixture decides how much weight each source receives. The mixture must balance domains, languages, code, math, synthetic data, high-quality books, papers, and web text. This choice strongly affects final capability.
 
-architecture design and parameter tuning: model size, context length, tokenizer, learning rate, batch size, and regularization
+In practice, mixture design should be treated as an experiment. Train smaller models or short runs with different mixtures, evaluate them on target benchmarks, then use the result to decide the large run.
 
-continued pretraining or domain adaptation: adapt a base model to math, code, science, medicine, law, or another target domain
+### Contamination control
 
+Contamination control removes benchmark leakage and duplicated evaluation examples. If test examples appear in training data, evaluation scores become unreliable. This is especially important for popular math, coding, and QA benchmarks that are widely copied online.
 
+In practice, exact matching is not enough. Near-duplicate detection, paraphrase detection, URL/source filtering, and manual checks are often needed for important evaluation sets.
 
+### Training phases
 
+Training data does not need to be shown in one fixed mixture from start to finish. A common strategy is to train first on broad web-scale data, then increase the weight of higher-quality, synthetic, or domain-specific data later. The order of data can affect stability, final knowledge, and specialization.
 
-Large language models: [llm.md](./sections/llm.md). 
+In practice, phase boundaries should be planned before training starts, but still monitored during training. If loss, evaluation scores, or stability changes sharply after a data switch, the schedule may need to be adjusted.
+
+### Stability
+
+Pretraining is sensitive to data bugs and optimization settings. We need to monitor loss spikes, gradient norms, optimizer behavior, numerical precision, tokenization problems, and corrupted batches. Stability problems can come from either the model/training setup or from bad data.
+
+In practice, training should log enough information to debug failures: batch ids, data shards, optimizer state, hardware errors, skipped batches, and checkpoint health. Frequent checkpoints are necessary because a large run can fail after consuming substantial compute.
+
+### Architecture design and parameter tuning
+
+Pretraining also depends on model and training choices: model size, context length, tokenizer, learning rate, batch size, regularization, optimizer, and parallel training strategy. These choices interact with the data mixture, so tuning them cannot be separated completely from data design.
+
+In practice, these choices are constrained by hardware. Memory, communication bandwidth, sequence length, and checkpoint cost often determine which architecture or batch size is actually feasible.
+
+### Continued pretraining or domain adaptation
+
+Continued pretraining adapts a base model to a target domain such as math, code, science, medicine, or law. The key problem is to improve the target capability without destroying general ability. This requires a careful domain mixture, learning rate, training length, and evaluation plan.
+
+In practice, domain adaptation should include both domain benchmarks and general benchmarks. If only domain scores are monitored, the model may silently lose general instruction-following, language quality, or safety behavior.
+
+We will discuss this in [llm.md](./sections/llm.md). 
  
 
 ## Supervised finetuning
