@@ -233,12 +233,52 @@ RL is not isolated from the rest of training. High-reward rollouts can become ne
 
 In practice, RL should be treated as part of a loop: generate rollouts, score them, inspect failures, improve data or verifiers, then retrain. This loop is especially useful for math, code, tool use, and agentic tasks.
 
-Reinforcement learning: [rl.md](./sections/rl.md)
+We will discuss this in [rl.md](./sections/rl.md)
 
 
 ## Agentic large language model
 
-agent framework
+### Agent task design
+
+Agentic LLMs are trained for tasks that require multiple steps rather than one direct answer. The task may involve search, tool use, file editing, code execution, planning, memory, or interaction with an external environment.
+
+In practice, agent tasks should specify the goal, available tools, constraints, success criteria, and stopping condition. Without a clear task definition, it is hard to evaluate whether the agent actually solved the problem.
+
+### Tool use and environment interface
+
+An agent needs to decide when to use a tool, which tool to use, what arguments to pass, and how to interpret the result. This is different from normal instruction following because the model must interact with an environment.
+
+In practice, tool schemas, error messages, permissions, timeouts, and sandbox behavior all affect training. The data should include successful calls, failed calls, retries, and cases where the correct action is not to use a tool.
+
+### Planning and decomposition
+
+Many agentic tasks are too large to solve in one step. The model needs to decompose the goal, track progress, update the plan, and recover when an intermediate step fails.
+
+In practice, training data should include realistic trajectories: initial plans, observations, revised plans, partial progress, failures, and final answers. Overly clean trajectories can make the model brittle when deployed.
+
+### Memory and context management
+
+Agents often work over long contexts: files, search results, conversation history, logs, or intermediate tool outputs. The model must decide what information to keep, summarize, retrieve, or ignore.
+
+In practice, context management is a major bottleneck. Training should include examples of summarizing long observations, selecting relevant evidence, avoiding stale information, and using external memory or retrieval when the context window is not enough.
+
+### Verification and self-correction
+
+Agentic systems need to check their own work. A useful agent should verify code changes, validate search-grounded claims, inspect tool outputs, and revise its plan when evidence contradicts the current answer.
+
+In practice, verification should be part of the trajectory, not only a final label. Good data shows the agent running tests, comparing sources, checking constraints, and correcting errors before giving the final result.
+
+### Safety, permissions, and control
+
+Agents can take actions, so safety is more complicated than ordinary chat. The model may access files, call APIs, run code, browse websites, or modify external state.
+
+In practice, training must teach permission boundaries, destructive-action avoidance, privacy handling, and safe tool use. The agent should know when to ask for confirmation, when to refuse, and when to stop.
+
+### Evaluation and rollout data
+
+Agentic LLMs need evaluation beyond final text quality. We need to measure task completion, tool-call correctness, number of steps, cost, latency, safety, and robustness to tool failures.
+
+In practice, agent training is usually iterative. Rollouts reveal failure modes, such as unnecessary tool calls, bad plans, ignored observations, or premature final answers. These failures can become new SFT data, RL prompts, or verifier tests.
 
 Agentic large language models: [agents.md](./sections/agents.md)
 
@@ -252,7 +292,7 @@ distributed level: distributed training (machine, megatron) -> llm infra, pipeli
 
 RL, training inference alignment, rollout, async
 
-Inference-time optimization, serving assumptions, quantization, and deployment constraints
+Inference-time optimization, serving assumptions, quantization, and deployment constraints, kv cache
 
 ### Cost and rollout infrastructure
 
