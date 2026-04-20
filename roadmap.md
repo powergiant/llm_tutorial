@@ -332,7 +332,7 @@ In practice, this includes fused kernels, FlashAttention, optimized layer normal
 
 Large models do not fit on one device, so training must be distributed across many GPUs or accelerators. The main problem is how to split computation, parameters, optimizer states, activations, and data.
 
-In practice, distributed training combines data parallelism, tensor parallelism, pipeline parallelism, sequence parallelism, expert parallelism, and optimizer sharding. Systems such as Megatron-style training are designed around these choices. The best strategy depends on model size, sequence length, batch size, network bandwidth, and memory limits.
+In practice, distributed training combines data parallelism, tensor parallelism, pipeline parallelism, sequence (context) parallelism, expert parallelism, and optimizer sharding. Systems such as Megatron-style training are designed around these choices. The best strategy depends on model size, sequence length, batch size, network bandwidth, and memory limits.
 
 ### Precision and quantization
 
@@ -344,7 +344,7 @@ In practice, precision choices must be tested carefully. Low precision can cause
 
 RL is expensive because it requires generating many samples, scoring them, and sometimes running tools, tests, search, or external verifiers. Agentic RL can be even more expensive because each rollout may involve multiple tool calls.
 
-In practice, the training system needs efficient inference, batching, caching, asynchronous rollout workers, reliable tool sandboxes, and careful logging. The infrastructure must align training and inference: the policy being trained, the rollout model, the reward model, and the verifier system all need to stay consistent.
+In practice, the training system needs efficient inference, batching, caching, asynchronous rollout workers, reliable tool sandboxes, and careful logging. The infrastructure must align training and inference: the policy being trained, the rollout model, the reward model, and the verifier system all need to stay consistent. TODO: alignment between training and inference (especially low precision)
 
 ### Multimodal infrastructure
 
@@ -366,7 +366,41 @@ In practice, a model that is easy to train may still be expensive to serve. Infe
 
 ## Task and benchmark
 
-searching, tool-use (agent), math, coding, ...
+### Search and retrieval
+
+Search tasks evaluate whether the model can find relevant information, compare sources, and answer with evidence. The special problem is that correctness depends not only on language generation, but also on whether the model used the right source.
+
+In benchmark construction, prompts should require retrieval rather than memorization. The benchmark should include source documents, expected evidence, freshness-sensitive questions, conflicting sources, and cases where the correct answer is "not enough information."
+
+### Tool use and agentic tasks
+
+Tool-use tasks evaluate whether the model can choose tools, call them with correct arguments, interpret results, and recover from errors. Agentic tasks add planning, multi-step execution, memory, and stopping decisions.
+
+In benchmark construction, the environment matters. The benchmark should define available tools, permissions, time limits, success criteria, and failure cases. It should measure not only final answer quality, but also tool-call correctness, number of steps, cost, and whether the agent followed constraints.
+
+### Math reasoning
+
+Math tasks evaluate symbolic manipulation, theorem use, proof understanding, calculation, and multi-step reasoning. The special problem is that a plausible-looking solution can still be wrong.
+
+In benchmark construction, final answers should be automatically checkable when possible. Problems should include different difficulty levels, hidden test variants, proof-based questions, counterexamples, and generated problems with verified solutions. To avoid contamination, benchmark problems should be separated from training data and near-duplicate web examples.
+
+### Coding
+
+Coding tasks evaluate code generation, debugging, code explanation, test writing, repository editing, and software engineering workflows. The special problem is that code quality is not only syntax; it depends on whether the code actually runs and satisfies hidden requirements.
+
+In benchmark construction, executable tests are essential. A good benchmark should include unit tests, hidden tests, dependency constraints, multi-file repositories, bug-fix tasks, performance constraints, and style or maintainability checks. For agentic coding, the benchmark should also measure whether the model inspected the right files and avoided unrelated changes.
+
+### Domain-specific tasks
+
+Domain benchmarks evaluate whether the model can work in areas such as medicine, law, finance, science, education, or engineering. The special problem is that general language ability is not enough; the model needs domain knowledge, caution, and source grounding.
+
+In benchmark construction, domain experts should help write and review examples. The benchmark should include realistic cases, edge cases, factual checks, citation requirements, and safety constraints. It should also separate pure knowledge recall from reasoning over provided documents.
+
+### Benchmark reliability
+
+Benchmarks must be reliable enough to guide training decisions. If the benchmark is contaminated, too easy, too narrow, or poorly scored, it can push the model in the wrong direction.
+
+In practice, benchmark construction should include held-out sets, hidden tests, near-duplicate filtering, human review for ambiguous examples, and multiple metrics. For open-ended tasks, automatic scores should be combined with model-judge or human evaluation, because exact-match metrics miss many important failures.
 
 ## Specific problems for math llm
 
