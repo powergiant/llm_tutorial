@@ -89,28 +89,35 @@ Reinforcement learning needs prompts, candidate answers, preference labels, rewa
 
 In short, data work is not a preprocessing detail. It is one of the main design problems in LLM training. A strong data pipeline combines web-scale collection, careful filtering, mixture design, synthetic generation, and verification. We will discuss this in [data.md](./sections/data.md)
 
-## Pre-training strategy
+## Pre-training
+
+
+data diagnosis: find hallucination sources, trace errors back to data shards, then rewrite, downweight, or discard bad data
+
+data quality and data mixture: decide which domains, languages, code, math, synthetic data, and high-quality sources should receive more weight
+
+contamination control: remove benchmark leakage and duplicated evaluation examples
+
+training phases: decide the order of data, such as broad web data first, then higher-quality or domain-specific data later
+
+stability: monitor loss spikes, gradient norms, data bugs, optimizer settings, and numerical issues
+
+architecture design and parameter tuning: model size, context length, tokenizer, learning rate, batch size, and regularization
+
+continued pretraining or domain adaptation: adapt a base model to math, code, science, medicine, law, or another target domain
 
 
 
-data diagonse, find hallucination -> from data, observe when error raise identify data shard, rewrite or discard. also decide data quality decide data mixture, 
 
-phase of training, order of data
-
-stability
-
-architecture design, parameter tuning, 
-
-Continued pretraining or domain adaptation 
 
 Large language models: [llm.md](./sections/llm.md). 
  
 
-## Supervised finetuning strategy
+## Supervised finetuning
 
 SFT -> data, agent
 
-## Reinforcement learning strategy
+## Reinforcement learning
 
 RL -> 
 
