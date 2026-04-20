@@ -404,4 +404,38 @@ In practice, benchmark construction should include held-out sets, hidden tests, 
 
 ## Specific problems for math llm
 
-MATH LLM, searching, synthetic data
+### Why math is a special target
+
+Math is a useful target for specialized LLM training because correctness is more objective than in many open-ended domains. Many answers can be checked by calculation, symbolic manipulation, proof checking, unit tests for generated code, or expert review.
+
+In practice, this makes the training loop cleaner: generate problems, solve them, verify the solution, keep the correct examples, and use failures to improve data or rewards.
+
+### Pretraining
+
+For a math LLM, pretraining can be much narrower than general pretraining. The target corpus can focus on textbooks, lecture notes, papers, theorem databases, problem sets, proof explanations, symbolic manipulation, and mathematical discussions. The model still needs general language ability, but it does not need to learn every domain, every language, multimodal behavior, broad product conversation, and all everyday use cases from scratch.
+
+This is one source of the possible 1/100 cost reduction. Instead of training a universal model on trillions of broadly mixed tokens, we can start from a strong base model and perform continued pretraining on a much smaller math-heavy corpus. The problem is simplified from "learn everything" to "improve mathematical representation, notation, theorem knowledge, and proof/problem-solving style."
+
+### Reinforcement learning
+
+RL for a math LLM is also simpler than general RL because many rewards are more objective. A math answer can often be checked by exact answer matching, symbolic computation, numerical testing, proof assistants, unit tests for generated code, or expert grading. This is different from general assistant RL, where helpfulness, tone, style, safety, and user preference are harder to define.
+
+This reduces cost because the reward signal can be more automatic and less dependent on broad human preference labeling. The scale of RL is also smaller: instead of covering all user behaviors, all domains, and all subjective preferences, the rollout distribution can focus on math problems, theorem use, proof critique, and symbolic reasoning. The RL problem becomes more focused: generate a solution, verify the final answer or proof step, assign reward, and improve the model on the failed cases. Credit assignment is still hard for long proofs, but the verification target is narrower than for open-ended chat.
+
+### Synthetic math data
+
+Math data can be expanded from textbooks, lecture notes, theorem statements, papers, and problem sets. A single theorem can generate explanations, examples, counterexamples, exercises, proof sketches, detailed proofs, and related-concept questions.
+
+This also lowers cost. In a general model, collecting high-quality data across every domain is expensive and hard to verify. In math, a small amount of expert-written seed material can generate many structured variants. This reduces the scale of human data work: experts design seeds, templates, taxonomies, and verification rules, while generation produces many examples from them. Algebra and computation can be checked by symbolic tools or numerical tests. Formal proofs can be checked by proof assistants when available. Informal proofs still need expert review or strong model-based critique, but the verification burden is narrower than for general web knowledge.
+
+### Search and retrieval
+
+Math reasoning often depends on finding the right definition, theorem, lemma, or analogous example. Search is therefore not just a tool for factual lookup; it is part of mathematical problem solving.
+
+Search reduces cost because the model does not need to memorize every theorem and proof detail in its parameters. A math LLM can retrieve relevant concepts, compare related theorems, check assumptions, and cite the source of a result. This reduces the required pretraining scale: some knowledge can live in an external theorem library, textbook corpus, or retrieval index instead of being fully compressed into model weights. This shifts part of the burden from model size and training tokens to retrieval quality and source organization. Benchmarks should therefore include problems where the answer requires using provided references rather than only memorized facts.
+
+### Role of mathematicians
+
+Mathematicians are needed to define the task distribution, write high-quality seed templates, design theorem and concept taxonomies, identify important examples and counterexamples, and judge whether generated solutions are mathematically meaningful.
+
+In practice, mathematicians do not need to manually write all training data. A better workflow is that they design seeds, rubrics, verification rules, and benchmark problems; AI systems then generate many variants; mathematicians audit samples, correct failure modes, and improve the templates or verifiers.
