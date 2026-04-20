@@ -322,21 +322,47 @@ In practice, evaluation should include both automatic benchmarks and manual insp
 
 ## Large scale training infra
 
-operator acceleration level
+### Operator acceleration
 
-distributed level: distributed training (machine, megatron) -> llm infra, pipeline, data, tensor, expert
+Large model training depends on fast kernels for attention, MLPs, normalization, communication, and optimizer updates. Operator-level acceleration reduces memory movement and improves hardware utilization.
 
-RL, training inference alignment, rollout, async
+In practice, this includes fused kernels, FlashAttention, optimized layer normalization, efficient MoE kernels, custom CUDA/Triton kernels, and careful profiling. A slow operator can dominate the whole training step at scale.
+
+### Distributed training
+
+Large models do not fit on one device, so training must be distributed across many GPUs or accelerators. The main problem is how to split computation, parameters, optimizer states, activations, and data.
+
+In practice, distributed training combines data parallelism, tensor parallelism, pipeline parallelism, sequence parallelism, expert parallelism, and optimizer sharding. Systems such as Megatron-style training are designed around these choices. The best strategy depends on model size, sequence length, batch size, network bandwidth, and memory limits.
+
+### Precision and quantization
+
+Precision affects speed, memory, and stability. Training usually uses mixed precision such as bf16 or fp16, while inference may use lower precision or quantization to reduce cost.
+
+In practice, precision choices must be tested carefully. Low precision can cause instability, accuracy loss, or bad behavior in sensitive parts such as attention scores, normalization, optimizer states, and long-context inference.
+
+### RL rollout infrastructure
 
 RL is expensive because it requires generating many samples, scoring them, and sometimes running tools, tests, search, or external verifiers. Agentic RL can be even more expensive because each rollout may involve multiple tool calls.
 
-In practice, the training system needs efficient inference, batching, caching, asynchronous rollout workers, reliable tool sandboxes, and careful logging. Infrastructure constraints often decide which RL tasks are feasible at scale.
+In practice, the training system needs efficient inference, batching, caching, asynchronous rollout workers, reliable tool sandboxes, and careful logging. The infrastructure must align training and inference: the policy being trained, the rollout model, the reward model, and the verifier system all need to stay consistent.
 
-hardware network storage
+### Multimodal infrastructure
 
-Inference-time optimization, serving assumptions, quantization, and deployment constraints, kv cache
+Multimodal training adds extra infrastructure problems because images, audio, and video require different preprocessing and much larger inputs than text.
 
-multimodal,
+In practice, the system needs image/video decoding, frame sampling, resolution control, multimodal packing, large object storage, and efficient dataloading. For video models, input pipelines can become a bottleneck even before the model computation starts.
+
+### Hardware, network, and storage
+
+Large-scale training depends on the whole cluster, not only the model code. Hardware failures, network bandwidth, storage throughput, and checkpoint speed all affect whether a run can finish.
+
+In practice, the system needs fast interconnects, reliable distributed storage, streaming dataloaders, checkpoint recovery, health monitoring, and fault tolerance. At large scale, rare failures become common because many machines are running for a long time.
+
+### Inference and deployment constraints
+
+Training choices should consider how the model will be served. Context length, KV cache size, quantization, batch scheduling, latency targets, and memory limits affect deployment cost.
+
+In practice, a model that is easy to train may still be expensive to serve. Inference-time optimization includes KV-cache management, batching, speculative decoding, quantization, serving parallelism, and choosing deployment assumptions early enough that they influence model design.
 
 ## Task and benchmark
 
