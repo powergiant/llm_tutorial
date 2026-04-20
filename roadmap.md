@@ -284,6 +284,42 @@ Agentic large language models: [agents.md](./sections/agents.md)
 
 ## Multi-modal model
 
+### Modality representation
+
+Multimodal models must convert images, audio, video, or other signals into representations that can interact with language tokens. The main problem is how to encode non-text inputs while preserving the information needed for reasoning.
+
+In practice, this involves choosing vision encoders, audio encoders, patch sizes, frame sampling, projection layers, and whether the model uses frozen encoders or trains them jointly with the language model.
+
+### Alignment between modalities
+
+The model must align visual or audio information with text. It should learn that an image region, video event, chart element, or audio segment corresponds to a particular concept in language.
+
+In practice, alignment data includes image-caption pairs, interleaved image-text documents, visual question answering, OCR data, chart/table understanding, video captions, and human-labeled instruction data.
+
+### Multimodal instruction tuning
+
+A multimodal model should not only describe inputs, but also follow user instructions about them. The user may ask for explanation, comparison, counting, spatial reasoning, OCR, chart interpretation, or step-by-step analysis.
+
+In practice, instruction data should include both simple perception tasks and harder reasoning tasks. The model should learn when the answer is visible in the input, when external knowledge is needed, and when uncertainty should be stated.
+
+### Data quality and hallucination
+
+Multimodal hallucination happens when the model claims to see something that is not present, misreads text, invents details, or uses language priors instead of evidence from the input.
+
+In practice, training needs negative examples, grounded captions, source-region supervision, OCR correction, and evaluation sets that check whether claims are supported by the actual image, video, or audio.
+
+### Resolution, context, and efficiency
+
+Images and videos can consume many tokens or embeddings. Higher resolution improves perception but increases memory and compute. Video adds another difficulty because the model must reason over time.
+
+In practice, training must balance resolution, number of frames, context length, batching, and inference cost. Efficient token compression or adaptive resolution is often needed for long videos or high-detail images.
+
+### Evaluation
+
+Multimodal evaluation should test perception, reasoning, grounding, OCR, charts, spatial relations, temporal reasoning, and instruction following. Text-only benchmarks are not enough.
+
+In practice, evaluation should include both automatic benchmarks and manual inspection, because many multimodal failures are subtle: the answer may sound reasonable while ignoring the input.
+
 ## Large scale training infra
 
 operator acceleration level
@@ -292,13 +328,15 @@ distributed level: distributed training (machine, megatron) -> llm infra, pipeli
 
 RL, training inference alignment, rollout, async
 
-Inference-time optimization, serving assumptions, quantization, and deployment constraints, kv cache
-
-### Cost and rollout infrastructure
-
 RL is expensive because it requires generating many samples, scoring them, and sometimes running tools, tests, search, or external verifiers. Agentic RL can be even more expensive because each rollout may involve multiple tool calls.
 
 In practice, the training system needs efficient inference, batching, caching, asynchronous rollout workers, reliable tool sandboxes, and careful logging. Infrastructure constraints often decide which RL tasks are feasible at scale.
+
+hardware network storage
+
+Inference-time optimization, serving assumptions, quantization, and deployment constraints, kv cache
+
+multimodal,
 
 ## Task and benchmark
 
