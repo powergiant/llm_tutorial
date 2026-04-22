@@ -145,7 +145,7 @@ $$
 
 depending on the task. Here $W^{(\ell)}$ are the weights, $b^{(\ell)}$ are the **biases**, and $\sigma$ is an **activation function** such as **ReLU** $(\operatorname{ReLU}(x)=\max(x,0))$, **sigmoid** $(\sigma(x)=\frac{1}{1+e^{-x}})$, or **tanh**.
 
-For classification, the output of the final layer is usually called the **logits**. These logits are then converted into a probability distribution over classes by the softmax function:
+For classification, the output of the final layer is usually called the **logits**. These logits are then converted into a probability distribution over classes by the **softmax** function:
 
 $$
 p_\theta(y_c \mid x)
@@ -280,7 +280,26 @@ $$
 v_{t+1} = \beta_2 v_t + (1-\beta_2) (g_t \odot g_t),
 $$
 
-and updates parameters using a normalized direction. Adam is usually easier to tune and converges faster early in training than plain SGD.
+then applies bias correction:
+
+$$
+\hat m_{t+1} = \frac{m_{t+1}}{1-\beta_1^{t+1}},
+\qquad
+\hat v_{t+1} = \frac{v_{t+1}}{1-\beta_2^{t+1}}.
+$$
+
+The parameter update is
+
+$$
+\theta_{t+1}
+=
+\theta_t
+-
+\eta
+\frac{\hat m_{t+1}}{\sqrt{\hat v_{t+1}}+\varepsilon}.
+$$
+
+Here the square root and division are applied coordinate-wise. Adam is usually easier to tune and converges faster early in training than plain SGD.
 
 **AdamW** separates weight decay from the adaptive gradient step, which makes the effect of regularization cleaner. This is the standard optimizer in much of modern deep learning, including large language models.
 
@@ -769,8 +788,6 @@ The intermediate steps of a typical image function often compute key visual patt
 
 ![Figure 4.5: pattern detection does not need the whole image](../pictures/cnn_fig_4_5_local_pattern.png)
 
-TODO: remove chinese characters
-
 **Simplification 1: receptive field**
 
 Instead of connecting every neuron to every pixel, each neuron only looks at a local patch of the image. This local patch is called its **receptive field**. If the input has $C_{\mathrm{in}}$ channels and the local patch has size $k_h \times k_w$, then one receptive field contains
@@ -846,6 +863,8 @@ In many deep learning libraries this formula is technically cross-correlation ra
 For image classification, small shifts usually do not change the label. If a local feature is detected nearby, the exact pixel location is often less important than the fact that the feature is present. Therefore, after we have produced feature maps, we can often reduce their spatial resolution while preserving the useful information.
 
 **Simplification 3: pooling**
+
+TODO: adding a picture
 
 **Pooling** downsamples a feature map without learning new parameters. In **max pooling**, each local region is replaced by its maximum value:
 

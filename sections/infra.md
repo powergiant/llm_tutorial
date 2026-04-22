@@ -4,4 +4,16 @@
 
 [Tiny-PyTorch](https://github.com/ImadDabbura/tiny-pytorch)
 
+[InfraTech](https://github.com/CalvinXKY/InfraTech)
+
 大模型动力引擎——PyTorch性能与显存优化手册
+
+vllm, SGlang, llama.cpp, Ollama, TGI、TensorRT-LLM、LMDeploy
+
+ray
+
+Kubernetes/Slurm
+
+division tensor problem: associativity commutativity is wrong
+
+flash attention, Triton
