@@ -3,32 +3,150 @@
 ## Outline
 
 1. Notions of expressiveness
-2. Expressiveness of MLPs
-3. Depth, width, and representation tradeoffs
-4. Step functions, Boolean functions, and finite-sample memorization
-5. Expressiveness of CNNs
-6. Locality, weight sharing, pooling, and receptive fields
-7. Equivariance, invariance, and group-symmetric architectures
-8. Metadata to record when surveying papers
+2. Universal approximation
+3. Expressiveness of MLPs
+4. Expressiveness of CNNs
+5. Locality, weight sharing, pooling, and receptive fields
+6. Equivariance, invariance, and group-symmetric architectures
+7. Metadata to record when surveying papers
 
-## 1. Notions of Expressiveness
+TODO: revise this section according to the following
 
-Before comparing MLPs and CNNs, it is useful to separate several meanings of
-"expressiveness." Different papers may study different notions, so their results
-should not be mixed without care.
+first explain that as discussed in the basic machine learning section, the basic task is we have ground truth $f$, we choose ansatz, ..., data, find parameter from data. question is if the family can really repr or approx the ground truth. 
 
-- Exact representability: whether a network architecture can represent a target
-  function exactly.
-- Universal approximation: whether a network class is dense in a target function
-  space.
-- Quantitative approximation: how the approximation error scales with width,
-  depth, number of parameters, or smoothness of the target function.
-- Separation results: whether one architecture can represent or approximate a
-  function much more efficiently than another.
-- Finite-sample interpolation: whether a network can fit arbitrary labels on a
-  finite dataset.
-- Geometric proxies: linear regions, oscillation count, trajectory length, rank,
-  and related measures.
+so we first intro Notions of expressiveness, approximate the ground truth and for small family of ground truth if can cover all in the family using how many parameters 1
+
+if we do not know anything about ground truth, we ask if the family is able to approximate any function this is universal app 2
+
+as in xxx, universal app often requies exponential params, then if we know the ground truth is compositional can we save parameter? also if no prior for any function can mlp improve? 3 (also Depth, width, and representation tradeoffs, and for special examples of functions Step functions, Boolean functions, and finite-sample memorization)
+
+what is locality? what is invariance? if ground truth local and invariance, can cnn save parameters? also analyze expressiveness in some simple cases capture the real picture
+
+## 1. Notions of Expressiveness 
+
+
+
+
+The word "expressiveness" is used in several different ways. For this topic, the
+useful notions are the ones that directly compare a network class with a target
+function class. A survey should state the notion first; otherwise two papers may
+look comparable even though they answer different questions.
+
+### Exact Representability
+
+Exact representability asks whether a target function \(f\) belongs exactly to a
+network class \(\mathcal{N}\). In other words, does there exist a choice of
+architecture parameters such that \(N(x) = f(x)\) on the whole domain?
+
+This is the strongest notion. It is natural for finite domains, Boolean
+functions, piecewise-linear functions, polynomial-like constructions, and
+architecture-specific algebraic analyses. It is less natural for discontinuous
+functions on continuous domains when the network class is continuous. For
+example, a ReLU network cannot exactly represent a discontinuous step function on
+all of \(\mathbb{R}^d\), because every ReLU network is continuous.
+
+When reading an exact-representation result, record the domain carefully. Exact
+representation on \(\{0,1\}^d\) is very different from exact representation on a
+continuous subset of \(\mathbb{R}^d\).
+
+### Universal Approximation
+
+Universal approximation asks whether a network class can approximate every
+function in a target function space arbitrarily well. Formally, for each target
+function \(f\), error tolerance \(\epsilon > 0\), and norm or metric \(d\), does
+there exist a network \(N\) such that \(d(N, f) < \epsilon\)?
+
+This notion answers a qualitative question: is the architecture expressive
+enough in principle? It does not say whether the required network is small,
+trainable, stable, or practical. A one-hidden-layer MLP may be universal, but the
+width required for a given accuracy can be enormous.
+
+Important details:
+
+- Target space: continuous functions, \(L^p\) functions, measurable functions,
+  invariant functions, equivariant functions, or another class
+- Domain: compact subset of \(\mathbb{R}^d\), discrete cube, image grid, or group
+  domain
+- Error notion: uniform norm, \(L^p\) norm, weak approximation, or finite-sample
+  error
+- Architecture constraints: fixed depth, bounded width, convolutional structure,
+  equivariance, pooling, or channel restrictions
+
+### Quantitative Approximation
+
+Quantitative approximation asks how efficiently a network approximates a target
+function class. Instead of only asking whether approximation is possible, it asks
+how the error decreases as the network size increases.
+
+A typical result has the form: functions in some class \(\mathcal{F}\) can be
+approximated to error \(\epsilon\) by networks with depth \(L\), width \(W\), or
+parameter count \(P\), where these quantities scale in a specified way with
+\(\epsilon\), dimension \(d\), and smoothness or structural assumptions on
+\(\mathcal{F}\).
+
+This is often more informative than universal approximation because it exposes
+the cost of approximation. It can show, for example, whether an architecture
+suffers from the curse of dimensionality, whether compositional structure helps,
+or whether convolutional locality gives a parameter advantage for spatially
+structured functions.
+
+When comparing quantitative results, do not compare only the final rate. Also
+record the target function class, norm, allowed weight sizes, depth, width,
+number of parameters, and whether the construction is explicit.
+
+### Efficient Representation and Separation
+
+Separation results compare two architectures or two resource regimes. The goal is
+to show that one network class represents or approximates some functions much
+more efficiently than another.
+
+Typical examples:
+
+- Deep networks versus shallow networks
+- Narrow deep networks versus wide shallow networks
+- CNNs versus fully connected networks
+- CNNs versus locally connected networks without weight sharing
+- Overlapping convolutional architectures versus non-overlapping ones
+
+A separation result usually has two parts: an upper bound for the stronger
+architecture and a lower bound for the weaker architecture. For example, a deep
+network may approximate a function with polynomially many parameters, while any
+shallow network needs exponentially many parameters.
+
+These results are useful because they formalize statements such as "depth helps"
+or "locality helps." However, the hard functions used in separations may be
+special constructions, so the survey should distinguish worst-case separation
+from evidence about typical practical tasks.
+
+### Finite-Sample Interpolation and Memorization
+
+Finite-sample interpolation asks whether a network can fit arbitrary labels on a
+finite set of inputs. Given samples \((x_i, y_i)_{i=1}^n\), does there exist a
+network \(N\) such that \(N(x_i) = y_i\) for every sample?
+
+This notion is useful for understanding overparameterization and memorization.
+It is not the same as universal approximation. Interpolating finitely many
+points says that the network can fit a dataset, but it says little by itself
+about behavior away from those points or about generalization.
+
+Important assumptions include:
+
+- Whether the inputs are distinct, separated, or in general position
+- Whether labels are scalar, vector-valued, Boolean, or real-valued
+- How many parameters or neurons are needed as a function of sample size
+- Whether the interpolation construction is robust to perturbations
+
+### Auxiliary Proxies
+
+Some papers use proxies such as number of linear regions, trajectory length,
+oscillation count, tensor rank, or separation rank. These quantities are useful
+diagnostics, but they should not be treated as expressiveness itself unless they
+are connected to an approximation or representation theorem.
+
+For example, a larger number of linear regions suggests greater geometric
+complexity, but it does not automatically imply better approximation of a target
+function class. In this note, such quantities should be recorded as supporting
+tools rather than primary notions.
 
 ## 2. Expressiveness of MLPs
 
