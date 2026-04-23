@@ -228,113 +228,187 @@ Section 2 says MLPs are universal; Section 3 asks when they are efficient. The m
 
 ## 4. More on Expressiveness of MLPs
 
-Depth, width, and parameter count should be treated as different resources. A
-function may be easy for a deep network but expensive for a shallow one; another
-function may require a minimum width before approximation is possible. Depth
-separation results formalize this by giving functions that deep networks
-represent or approximate with far fewer parameters than shallow networks.
+Section 3 focused on target structure: smoothness, Barron structure, composition, and depth separation. This section separates several other notions that are often mixed together under "expressiveness": minimum width, depth-width tradeoffs, exact piecewise-linear representation, finite-sample memorization, Boolean-domain representation, and combinatorial capacity. These are related, but they answer different questions.
 
-Special test cases make these issues concrete:
+### Width as a Bottleneck
 
-- Step and indicator functions test approximation of discontinuities or sharp
-  decision boundaries on continuous domains. Since ReLU networks are continuous,
-  discontinuous step functions are usually approximation targets, not exact
-  representation targets, on $\mathbb{R}^d$.
-- Boolean functions on $\{0,1\}^d$ are finite-domain problems. Exact
-  representation is possible in ways that are different from continuous-domain
-  approximation, and the topic connects to threshold circuits.
-- Finite-sample memorization asks whether a network can fit arbitrary labels
-  $(x_i, y_i)$. This measures interpolation capacity, but it does not imply
-  good approximation away from the sample points.
+The classical universal approximation theorem lets the hidden-layer width grow. A different question fixes width and lets depth grow. For ReLU networks with scalar output on compact subsets of $\mathbb{R}^d$, the sharp qualitative threshold is width $d+1$: [Hanin and Sellke 2017](https://arxiv.org/abs/1710.11278) show that width $d+1$ is enough for universal approximation, while width at most $d$ is not enough in general. [Lu, Pu, Wang, Hu, and Wang 2017](https://arxiv.org/abs/1709.02540) earlier proved bounded-width universality with width $d+4$ and emphasized the phase transition caused by width.
 
-Useful complexity measures include depth, width, number of neurons, number of
-nonzero parameters, weight magnitude, and number of linear regions. These should
-not be conflated.
+For vector-valued functions and more general activations, [Kidger and Lyons 2020](https://proceedings.mlr.press/v125/kidger20a.html) prove a deep-narrow universal approximation theorem: for input dimension $n$ and output dimension $m$, width $n+m+2$ is enough for broad continuous nonaffine activations. This result is qualitatively different from the one-hidden-layer theorem: deep narrow networks can be universal even for some activations, such as polynomial activations, that fail the classical shallow non-polynomial condition.
 
-### TODO: Approximation Rates and MLP Resource Tradeoffs
+The useful takeaway is that width is not just a proxy for parameter count. Below a critical width, a ReLU network cannot create the needed topology of level sets or decision regions no matter how deep it is. Above that threshold, extra depth can compensate for narrow layers, but the required depth may be very large.
 
-**Fixed-depth versus growing-depth networks.** The theorem above already shows that depth two, meaning one hidden layer plus a linear output layer, is enough for qualitative universality. Deeper networks are not needed for mere density in $C(K)$. Depth matters for efficiency: [Yarotsky 2017](https://doi.org/10.1016/j.neunet.2017.07.002) gives upper and lower approximation bounds for deep ReLU networks on Sobolev-type smoothness classes, while [Telgarsky 2016](https://proceedings.mlr.press/v49/telgarsky16.html) gives depth-separation examples where deeper networks represent oscillatory functions much more efficiently than shallow networks.
+### Depth-Width Tradeoffs
 
-**Minimal width results.** For ReLU networks on compact subsets of $\mathbb{R}^d$, depth can grow while width is fixed. [Lu, Pu, Wang, Hu, and Wang 2017](https://arxiv.org/abs/1709.02540) studies universality from the viewpoint of width, and [Hanin and Sellke 2017](https://arxiv.org/abs/1710.11278) shows the sharp scalar ReLU threshold: width $d+1$ is enough for universal approximation of continuous functions on compact domains, while width at most $d$ is not enough in general. Thus universality can be achieved by either making a shallow network very wide or making a narrow network sufficiently deep.
+Depth and width can sometimes substitute for each other, but not uniformly. A shallow network can approximate any continuous function if it is allowed to be sufficiently wide. A narrow network can also be universal if it is allowed to be sufficiently deep. But the parameter cost can be very different for specific function families.
+
+Depth separation theorems from Section 3 show one direction: some deep networks require exponentially or super-exponentially many units when represented by shallower networks. [Arora, Basu, Mianjy, and Mukherjee 2018](https://openreview.net/forum?id=B1J_rgWRW) strengthen this line for ReLU networks, giving hard families where reducing depth forces very large increases in size and also studying lower bounds through affine-piece counts. This literature is best read as a resource tradeoff theory: the same target may be cheap in one depth-width regime and expensive in another.
+
+This is why "number of parameters" is not a complete expressiveness measure. Two networks with the same number of parameters can have different depth, bottleneck width, linear-region geometry, and finite-sample interpolation capacity.
+
+### Exact Piecewise-Linear Representation and Sharp Boundaries
+
+For ReLU and leaky-ReLU MLPs, the represented function is continuous piecewise linear. This gives a clean exact-representation target class: continuous piecewise-linear functions. [Arora, Basu, Mianjy, and Mukherjee 2018](https://openreview.net/forum?id=B1J_rgWRW) study this class directly and relate ReLU-network expressiveness to affine pieces and polyhedral geometry.
+
+This viewpoint clarifies step and indicator functions. A ReLU network cannot exactly represent a discontinuous indicator function on a continuous domain, because the network output is continuous. But it can represent or approximate sharp continuous scores whose thresholded classifier has a polyhedral decision boundary. It can also approximate discontinuous targets in $L^p$ or away from the boundary. Thus for classification, one should distinguish the continuous score function from the discontinuous label map obtained after thresholding.
+
+### Finite-Sample Memorization
+
+Finite-sample memorization asks a different question from function approximation: given distinct inputs $x_1,\ldots,x_N$ and arbitrary labels $y_1,\ldots,y_N$, can the network satisfy $f_\theta(x_i)=y_i$ for all $i$? This is interpolation capacity on a finite set, not approximation of a ground-truth function between sample points.
+
+[Zhang, Bengio, Hardt, Recht, and Vinyals 2017](https://research.google/pubs/understanding-deep-learning-requires-rethinking-generalization/) made this distinction central by showing empirically that modern networks can fit random labels, and by giving simple finite-sample expressivity constructions. [Yun, Sra, and Jadbabaie 2019](https://papers.nips.cc/paper/9688-small-relu-networks-are-powerful-memorizers-a-tight-analysis-of-memorization-capacity) give a sharper ReLU memorization theory: three-layer ReLU networks with width on the order of $\sqrt{N}$ can memorize most $N$-point datasets, and they prove matching width-order bounds in that setting. [Vershynin 2020](https://doi.org/10.1137/20M1314884) studies memory capacity for threshold and ReLU networks and connects memorization to the number of connections.
+
+The practical lesson is negative and positive at the same time. Memorization capacity explains why training loss can go to zero even with arbitrary labels. But it does not imply good approximation away from the training set, and therefore it is not a substitute for generalization theory.
+
+### Boolean and Discrete-Domain Functions
+
+Boolean functions on $\{0,1\}^d$ are finite-domain problems. They should not be analyzed in the same way as uniform approximation on $[0,1]^d$. On a finite domain, exact representation is possible by lookup-table or DNF-style constructions, usually with size exponential in $d$ for arbitrary Boolean functions. The interesting question is which Boolean functions have small networks.
+
+This topic connects MLPs to threshold circuits. A threshold gate computes a sign of an affine function, so networks of threshold gates are a discrete analogue of MLPs. Classical references include [Muroga 1971](https://openlibrary.org/books/OL4918111M/Threshold_logic_and_its_applications.) on threshold logic and [Hajnal, Maass, Pudlak, Szegedy, and Turan 1993](https://doi.org/10.1016/0022-0000(93)90001-D) on bounded-depth threshold circuits. A survey-style reference connecting neural networks and Boolean functions is [Anthony 2005](https://researchonline.lse.ac.uk/13924/), with a later book-chapter version in [Anthony 2010](https://www.cambridge.org/core/books/boolean-models-and-methods-in-mathematics-computer-science-and-engineering/neural-networks-and-boolean-functions/ED18747A105CA243BE2BDFBB9C423DC8).
+
+For ReLU networks on Boolean inputs, one can often emulate threshold-like behavior because the input set is finite and margins can be enforced. But lower-bound questions are delicate. [Mukherjee and Basu 2017](https://arxiv.org/abs/1711.03073) study lower bounds over Boolean inputs for networks with ReLU gates, illustrating that discrete-domain expressiveness has its own complexity theory rather than being a direct corollary of continuous universal approximation.
+
+### VC Dimension and Combinatorial Capacity
+
+Another resource measure is the number of labelings a network class can realize on finite samples. This is captured by VC dimension for classifiers and pseudodimension for real-valued function classes. These measures are not the same as approximation error or memorization capacity, but they are useful for comparing architectures as combinatorial classes.
+
+[Bartlett, Harvey, Liaw, and Mehrabian 2019](https://jmlr.org/papers/v20/17-612.html) prove nearly tight VC-dimension and pseudodimension bounds for piecewise-linear networks. If $W$ is the number of weights and $L$ is the number of layers, they give bounds of order $O(WL\log W)$ with matching lower bounds over most parameter regimes. This shows that depth can affect combinatorial capacity even at fixed parameter count, but it still does not by itself explain why overparameterized networks generalize.
+
+### What to Keep Separate
+
+The main point of Section 4 is that several "expressiveness" questions are genuinely different:
+
+- universal approximation asks for density in a function space;
+- efficient approximation asks for parameter rates over a target class;
+- width-threshold results ask whether depth can compensate for narrow layers;
+- depth-separation results compare architectures under constrained resources;
+- memorization asks whether arbitrary finite labels can be interpolated;
+- Boolean-function representation studies exact computation on $\{0,1\}^d$;
+- VC and pseudodimension measure finite-sample combinatorial capacity.
+
+Conflating these leads to misleading statements. For example, a network can be universal but inefficient for a target class; it can memorize finite data but generalize poorly; and it can represent every Boolean function by an exponential-size construction while still failing to represent some structured Boolean functions efficiently at bounded depth.
 
 ## 5. Expressiveness of CNNs
 
-CNNs are designed for ground truths with spatial structure. The key question is
-not only whether CNNs are universal, but whether they approximate structured
-functions more efficiently than fully connected networks.
+CNNs are not just smaller MLPs. They impose a structural hypothesis: nearby coordinates should be processed together, the same local rule should be reused across positions, and the output should often respect a symmetry such as translation equivariance or translation invariance. The basic expressiveness question is therefore not only "are CNNs universal?", but "when does the convolutional bias reduce the number of parameters or samples needed for the relevant target class?"
 
-The relevant structures are:
+### Universality of CNNs
 
-- Locality: the output depends on nearby variables or local patterns.
-- Weight sharing: the same local rule is reused across positions.
-- Invariance: transforming the input should not change the output.
-- Equivariance: transforming the input should transform the output in a
-  predictable way.
+CNNs can be universal under suitable architectural assumptions. [Zhou 2020](https://doi.org/10.1016/j.acha.2019.06.004) proves a universal approximation theorem for deep CNNs, showing that convolutional structure does not automatically destroy density in continuous function spaces when depth is allowed to grow. Later work studies more specialized architectures: [Bao, Li, Shen, Tai, Wu, and Xiang 2023](https://doi.org/10.4208/eajam.2022-270.070123) analyze CNNs of the form $g\circ T$, where $T$ is a stack of convolutional layers and $g$ is a fully connected readout, and give conditions under which universality and approximation advantages hold. [Li, Lin, and Shen 2025](https://doi.org/10.1137/23M1570119) study fully convolutional networks for shift-invariant and shift-equivariant functions, proving universal approximation with constant channel width in residual fully convolutional settings and giving necessity results for channel count and kernel size.
 
-For example, image classification often benefits from approximate translation invariance, while segmentation benefits from translation equivariance. A CNN can save parameters when the same local pattern matters at many positions, because convolution reuses weights rather than learning separate parameters for each location.
+The important caveat is that "CNN universality" depends strongly on details: padding, boundary handling, kernel size, channel count, depth, pooling, and whether a final dense layer is allowed. A CNN with a final dense readout can eventually recover arbitrary global dependence, while a fully convolutional architecture without dense readout is naturally constrained toward equivariant or invariant maps. So universality should be stated together with the exact architecture class.
 
-Main CNN questions:
+### Locality and Receptive Fields
 
-- Under what conditions are CNNs universal?
-- Which structured target classes do CNNs approximate efficiently?
-- Which gains come from locality and which come from weight sharing?
-- How much depth is needed for local information to combine into global
-  information?
+Locality is the simplest CNN bias. A convolution with a small kernel can only mix nearby coordinates in one layer. After $L$ layers with kernel size $r$, the effective receptive field grows on the order of $L(r-1)$ in one dimension, or analogously in higher-dimensional grids. Thus depth has a concrete spatial role: it lets local information propagate until distant parts of the input can interact.
+
+This helps when the target is local or locally compositional. If the label depends on local patches, a CNN can learn one patch rule and reuse it. If the label depends on features that combine locally into larger features, depth can mirror that hierarchy. But if the target depends on arbitrary long-range interactions with no locality, a small-kernel CNN may need many layers or a dense/global aggregation layer.
+
+### Weight Sharing Versus Local Connectivity
+
+Locality and weight sharing are different biases. A locally connected network uses local receptive fields but has separate weights at each location. A CNN uses local receptive fields and shares the same filter across locations. The distinction matters:
+
+- locality reduces the number of input coordinates each unit sees;
+- weight sharing says the same feature detector should apply at many positions;
+- pooling or global aggregation can turn equivariant features into invariant outputs.
+
+Recent sample-complexity results separate these effects. [Li, Zhang, and Arora 2021](https://openreview.net/forum?id=uCY5MuAxcxU) give a task where convolutional architectures need far fewer samples than fully connected networks trained by standard orthogonally equivariant algorithms. [Lahoti, Karp, Winston, Singh, and Li 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/71b17f00017da0d73823ccf7fbce2d4f-Abstract-Conference.html) sharpen the comparison using a Dynamic Signal Distribution task: CNNs, locally connected networks, and fully connected networks separate because weight sharing and locality contribute different statistical advantages.
+
+### Equivariance and Invariance
+
+Convolution is naturally translation-equivariant: shifting the input shifts the feature map in the corresponding way. Classification usually wants invariance: shifting an object should not change the class label. Dense prediction tasks such as segmentation usually want equivariance: shifting the image should shift the output mask.
+
+This distinction is a common source of confusion. A stack of convolutions is equivariant, not automatically invariant. Invariance usually requires pooling, global averaging, canonicalization, data augmentation, or a symmetry-constrained readout. Empirically, standard CNN classifiers are not automatically invariant to all translations or small transformations. [Azulay and Weiss 2019](https://jmlr.org/papers/v20/19-519.html) show failures of generalization to small image transformations, and [Biscione and Bowers 2021](https://www.jmlr.org/papers/v22/21-0019.html) show that CNNs are not architecturally invariant to translation in general, though they can learn invariance from suitable data.
+
+The broader equivariant-network literature makes the principle precise. [Cohen and Welling 2016](https://proceedings.mlr.press/v48/cohenc16.html) introduce group-equivariant CNNs, extending weight sharing beyond translations to discrete groups such as rotations and reflections. [Kondor and Trivedi 2018](https://proceedings.mlr.press/v80/kondor18a.html) show, under natural assumptions, that convolutional structure is not only sufficient but necessary for equivariance to compact group actions. [Cohen, Geiger, and Weiler 2019](https://papers.nips.cc/paper_files/paper/2019/hash/b9cfe8b6042cf759dc4c0cccb27a6737-Abstract.html) give a general theory of equivariant CNNs on homogeneous spaces. Approximation-theoretic versions include [Yarotsky 2022](https://doi.org/10.1007/s00365-021-09546-1) for invariant/equivariant maps and [Li, Lin, and Shen 2024](https://www.jmlr.org/papers/v25/22-0982.html) for invariant functions through symmetry-constrained dynamical systems.
+
+### Depth, Pooling, and Tensor Viewpoints
+
+Another literature studies why deep convolutional architectures can be more expressive than shallow ones for compositional data. [Cohen, Sharir, and Shashua 2016](https://proceedings.mlr.press/v49/cohen16.html) connect convolutional arithmetic circuits to hierarchical tensor factorizations: shallow networks resemble CP decompositions, while deep hierarchical networks resemble Hierarchical Tucker decompositions. [Cohen and Shashua 2016](https://proceedings.mlr.press/v48/cohenb16.html) extend this viewpoint to convolutional rectifier networks using generalized tensor decompositions.
+
+Pooling geometry also matters. [Cohen and Shashua 2017](https://openreview.net/forum?id=BkVsEMYel) analyze how pooling structure controls which input partitions can have high separation rank, giving a formal way to say that a convolutional architecture favors some correlation patterns over others. This is a useful bridge between architecture and data: the pooling graph should match the correlation structure of the input domain.
+
+### What Section 5 Contributes
+
+The main CNN expressiveness lessons are:
+
+- CNNs can be universal, but universality depends on exact architectural details;
+- locality controls how information flows spatially through depth;
+- weight sharing is a separate bias from local connectivity;
+- convolution gives equivariance, not invariance by itself;
+- pooling and global aggregation decide how local equivariant features become invariant predictions;
+- tensor and sample-complexity results show that CNN advantages are strongest when the target has local, repeated, hierarchical, or symmetry-constrained structure.
 
 ## 6. More on Expressiveness of CNNs
 
-To understand CNN expressiveness, it is useful to study simple function classes inspired by pictures. The goal is not to model natural images perfectly. The goal is to isolate the structures that make CNNs useful: local patches, repeated features, spatial composition, and translation symmetry.
+To understand CNN expressiveness, it is useful to study simple image-inspired target classes rather than arbitrary functions. These toy classes are not meant to model natural images perfectly. They isolate the structures CNNs are designed for: patch locality, repeated local features, local-to-global composition, and translation symmetry.
 
-### Patch-Based Image Functions
+### Patch and Signal-Detection Functions
 
-A simple image model divides the input into $k$ patches, each of dimension
-$d$. The label may depend on whether a signal or feature appears in one of the patches. This captures two basic properties of image tasks:
+A basic model divides the input into $k$ patches, each of dimension $d$:
+$$
+x=(x^{(1)},\ldots,x^{(k)}),\qquad x^{(i)}\in\mathbb{R}^d.
+$$
+The target may depend on whether a local signal appears in one of the patches. For example, one can imagine a local template $w_\star$ and a label depending on whether some patch has large correlation with $w_\star$. This captures two image-like facts: the relevant evidence is local, and the same evidence may appear at many positions.
 
-- locality: the relevant signal is contained in a small patch;
-- translation structure: the same signal may appear at many possible locations.
-
-One relevant result is the Dynamic Signal Distribution task in Lahoti, Karp, Winston, Singh, and Li. The task models an image as $k$ patches with a sparse signal that can appear in any patch. Their ICLR 2024 result gives a sample complexity separation: CNNs need about $\tilde O(k+d)$ samples, while locally connected networks need $\Omega(kd)$ samples; they also separate locally connected networks from fully connected networks. This is a clean theoretical model for the benefits of weight sharing and locality in image-like tasks. See [Lahoti et al. 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/71b17f00017da0d73823ccf7fbce2d4f-Abstract-Conference.html).
+In this setting, a CNN has a natural advantage over a fully connected network because the same filter can be reused across patches. A locally connected network can exploit locality, but if it does not share weights it must learn the same patch rule repeatedly. The Dynamic Signal Distribution task of [Lahoti, Karp, Winston, Singh, and Li 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/71b17f00017da0d73823ccf7fbce2d4f-Abstract-Conference.html) formalizes this separation: for an image with $k$ patches of dimension $d$, CNNs need about $\tilde O(k+d)$ samples, locally connected networks require $\Omega(kd)$ samples in the relevant comparison, and fully connected networks are worse in the locality comparison.
 
 ### Local Compositional Functions
 
-Another simple class consists of functions built by repeatedly combining nearby features. This resembles the way CNN layers combine local edges or textures into larger patterns. In this setting, depth is important because each layer expands the effective receptive field and combines local information into more global features.
+Another useful target class consists of functions built by repeatedly combining neighboring features:
+$$
+f(x_1,\ldots,x_n)
+= h_{\mathrm{top}}\bigl(h_1(x_1,x_2), h_2(x_3,x_4), \ldots\bigr),
+$$
+or more generally by a local tree or grid computation. This is the CNN analogue of the compositional MLP targets discussed in Section 3, but with the additional constraint that the composition respects spatial adjacency.
 
-Approximation results for CNNs show that convolutional architectures can be advantageous for target classes with compositional form. Bao, Li, Shen, Tai, Wu, and Xiang analyze CNN approximation and show that, for certain compositional target classes, CNNs can be more parameter-efficient than fully connected networks. See [Bao et al. 2023](https://global-sci.org/index.php/EAJAM/article/view/9619).
+Deep CNNs match this structure because each layer expands the receptive field and combines nearby information. [Bao, Li, Shen, Tai, Wu, and Xiang 2023](https://doi.org/10.4208/eajam.2022-270.070123) give approximation results showing that CNNs can be more parameter-efficient than fully connected networks for certain compositional target classes. Tensor-decomposition work gives a different formal lens: [Cohen, Sharir, and Shashua 2016](https://proceedings.mlr.press/v49/cohen16.html) and [Cohen and Shashua 2016](https://proceedings.mlr.press/v48/cohenb16.html) connect hierarchical convolutional architectures to tensor factorizations and depth efficiency.
 
-### Translation-Invariant and Shift-Equivariant Functions
+### Translation-Invariant Classification Functions
 
-For classification, the desired output is often approximately invariant to
-translation: moving an object should not change the class. For dense prediction tasks such as segmentation, the desired map is often shift-equivariant: shifting the input should shift the output.
+For classification, a natural target family consists of functions satisfying
+$$
+f(\tau_s x)=f(x)
+$$
+for shifts $\tau_s$ in a translation group. This is a model for tasks where moving an object should not change the label. A CNN usually builds translation-equivariant features first and then uses pooling or global aggregation to produce an invariant output.
 
-This distinction matters. Convolutions are naturally translation-equivariant, not translation-invariant. Invariance usually requires additional operations such as pooling, global aggregation, or training over translated examples. Empirical work also shows that standard CNN classifiers are not automatically translation invariant in all settings, although they can learn invariance from suitable data. See [Biscione and Bowers 2021](https://www.jmlr.org/papers/v22/21-0019.html).
+This distinction matters experimentally and theoretically. Convolutional layers preserve spatial shifts in feature maps, but pooling and boundary effects can break exact equivariance, and invariance is not guaranteed. [Azulay and Weiss 2019](https://jmlr.org/papers/v20/19-519.html) and [Biscione and Bowers 2021](https://www.jmlr.org/papers/v22/21-0019.html) show that standard CNNs can fail to be invariant to translations or small transformations unless the data and training procedure support that invariance. Approximation results for invariant function classes, such as [Yarotsky 2022](https://doi.org/10.1007/s00365-021-09546-1) and [Li, Lin, and Shen 2024](https://www.jmlr.org/papers/v25/22-0982.html), give architecture-level conditions under which invariant/equivariant approximation is complete.
 
-There are also approximation results for invariant function classes. For example, Li, Lin, and Shen study approximation of permutation-invariant functions, including translation-invariant functions relevant to image tasks, using symmetry-constrained deep architectures. See [Li, Lin, and Shen 2024](https://www.jmlr.org/papers/v25/22-0982.html).
+### Shift-Equivariant Dense-Prediction Maps
 
-### Feature-Detection Models
+For segmentation, optical flow, denoising, and many signal-processing tasks, the target is not invariant but equivariant:
+$$
+F(\tau_s x)=\tau_s F(x).
+$$
+This says that shifting the input should shift the output. Fully convolutional networks are a natural model class here because they preserve spatial layout at every layer.
 
-A picture-inspired expressiveness question is whether a CNN can implement
-feature extraction: detect whether a local pattern appears somewhere in the
-image and then classify based on the detected feature. This is the simplest
-abstraction of many visual tasks.
+[Li, Lin, and Shen 2025](https://doi.org/10.1137/23M1570119) study deep fully convolutional networks from this perspective, proving universal approximation for shift-invariant or shift-equivariant functions in certain residual and non-residual convolutional architectures. This is closer to dense prediction than a CNN followed by a dense classifier, because the architecture itself is constrained to respect the spatial transformation law.
 
-Some recent preprints study mathematical models of image classification based on feature extraction and construct CNNs that realize such feature-detection functions. These are useful as toy models, even when they are not yet canonical theorems. See the OpenReview preprint [Revisiting the expressiveness of CNNs](https://openreview.net/forum?id=BDUB1wWR1X).
+### Pooling Geometry and Correlation Structure
 
-### What to Take From These Simple Classes
+Pooling is not just a computational convenience. It defines how local information is aggregated and which regions of the input are encouraged to interact. [Cohen and Shashua 2017](https://openreview.net/forum?id=BkVsEMYel) formalize this using separation rank: different pooling geometries favor different input partitions, so the architecture's pooling tree encodes an inductive bias about which parts of the image should have strong correlations.
 
-These examples suggest a better way to organize CNN expressiveness:
+This gives a useful design principle. For ordinary images, local contiguous pooling is natural because nearby pixels and nearby patches tend to form meaningful larger structures. For data with different geometry, such as nonlocal physical variables or graph-like relations, the pooling or aggregation geometry should change accordingly.
 
-- Use patch tasks to test locality and weight sharing.
-- Use local compositional functions to test the role of depth.
-- Use translation-invariant functions to test classification-style symmetry.
-- Use shift-equivariant maps to test dense-prediction-style symmetry.
-- Compare CNNs with locally connected networks and fully connected networks to separate the effects of locality and sharing.
+### Comparing CNNs, LCNs, and FCNs
 
-This is closer to the real picture than asking only whether CNNs are universal. The main question is: for which image-inspired ground-truth classes do CNNs achieve better parameter or sample complexity than less structured networks?
+A clean expressiveness experiment should compare:
 
-### TODO: CNN Universality and Symmetry-Constrained Universality
+- CNNs: local receptive fields and shared weights;
+- locally connected networks: local receptive fields without shared weights;
+- fully connected networks: no locality constraint and no sharing.
 
-**CNNs and structured architectures.** CNNs can also be universal, but the statement depends on padding, channel count, pooling, boundary handling, and whether fully connected layers are allowed at the end. [Zhou 2020](https://doi.org/10.1016/j.acha.2019.06.004) proves a universality theorem for deep CNNs, showing that depth can compensate for convolutional weight sharing in a qualitative approximation sense. The more interesting question is not universality itself, but whether the CNN approximates translation-structured or local functions with fewer parameters than an unconstrained MLP.
+This comparison separates the effects of locality and weight sharing. [Li, Zhang, and Arora 2021](https://openreview.net/forum?id=uCY5MuAxcxU) show a sample-complexity gap between convolutional and fully connected architectures for a natural distribution under standard training symmetries. [Lahoti, Karp, Winston, Singh, and Li 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/71b17f00017da0d73823ccf7fbce2d4f-Abstract-Conference.html) explicitly separates CNNs, LCNs, and FCNs on an image-like patch task. This is often more informative than comparing CNNs only to MLPs, because it tells us whether the gain comes from locality, sharing, or both.
 
-**Invariant and equivariant networks.** If the target is known to be invariant or equivariant under a group action, then the relevant universal approximation theorem should be restricted to that function class. [Zaheer et al. 2017](https://papers.nips.cc/paper/6931-deep-sets) characterizes permutation-invariant set functions and motivates the Deep Sets architecture, while [Keriven and Peyre 2019](https://arxiv.org/abs/1905.04943) proves universality results for invariant and equivariant graph networks. These theorems are more useful than unrestricted universality when the ground truth has symmetry.
+### Takeaway
 
-**Residual networks and other modern architectures.** ResNets, neural ODE models, graph neural networks, and transformers each have their own universality results under suitable assumptions. For example, [Yun et al. 2020](https://arxiv.org/abs/1912.10077) proves universal approximation results for transformers as sequence-to-sequence models. The same lesson applies: qualitative density is usually only the first test. The central expressiveness question is whether the architecture gives an efficient representation of the target family we actually care about.
+The right CNN expressiveness question is not "can CNNs approximate every function?" In many settings they can, after adding enough depth, channels, padding, or dense readout. The sharper question is:
+
+- Does the target have local structure?
+- Is the same local rule reused across positions?
+- Should the output be invariant or equivariant?
+- How large must the receptive field be?
+- Does the pooling or aggregation geometry match the target's correlation structure?
+- Compared with LCNs and FCNs, which parameter or sample-complexity advantage is actually being tested?
+
+These questions turn CNN expressiveness from a generic universal approximation topic into a theory of architectural bias for spatially structured functions.
