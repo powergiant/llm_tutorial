@@ -155,30 +155,76 @@ The universal approximation theorem justifies MLPs as a very general ansatz: wit
 
 ## 3. Expressiveness of MLPs
 
-For MLPs, the first question is classical universality: under what conditions on
-the activation function and architecture can an MLP approximate arbitrary
-continuous functions? This explains why MLPs are a reasonable general ansatz,
-but it does not explain when they are parameter-efficient.
+For MLPs, classical universality answers only the question of density: with a suitable non-polynomial activation, can the network approximate arbitrary continuous functions on compact domains? Section 2 says yes. The expressiveness question in this section is sharper: for which target classes can an MLP approximate with a reasonable number of units, layers, and parameters?
 
-The next question is whether MLPs exploit structure in the ground truth. If
-$f$ is compositional, hierarchical, sparse, smooth, or low-dimensional in some
-sense, an MLP may approximate it with fewer parameters than would be needed for
-an arbitrary function. Depth is especially relevant for compositional structure:
-a deep network can mirror the nested structure of the target.
+### From Universality to Efficient Approximation
 
-There is also a separate composition viewpoint from the Kolmogorov-Arnold
-theorem. Even without assuming that the target comes with a known compositional
-structure, continuous multivariate functions admit representations using
-compositions of univariate functions. This gives a conceptual reason to study
-composition as a source of expressiveness, though it does not by itself settle
-practical approximation rates for standard neural networks.
+The useful quantity is an approximation rate. For a target class $\mathcal{F}$ and a network budget $N$, define
+$$
+E_N(\mathcal{F})
+= \sup_{f\in\mathcal{F}} \inf_{g\in\mathcal{N}_N} \|f-g\|,
+$$
+where $\mathcal{N}_N$ is a class of networks with at most $N$ parameters, neurons, or nonzero weights. Universal approximation says only that $E_N(\{f\})\to 0$ for each fixed continuous $f$ as $N\to\infty$. Efficient approximation asks how fast $E_N(\mathcal{F})$ decays uniformly over a structured class $\mathcal{F}$.
 
-Main MLP questions:
+For generic $s$-smooth functions on $[0,1]^d$, the usual nonparametric approximation scale is roughly $\epsilon^{-d/s}$ parameters for accuracy $\epsilon$, up to constants and architecture-dependent details. This is the curse of dimensionality. Results such as [Yarotsky 2017](https://doi.org/10.1016/j.neunet.2017.07.002) show that deep ReLU networks achieve near-optimal rates for Sobolev-type smoothness classes, but the dimension dependence remains unless the target has more structure. The main role of MLP expressiveness theory is therefore to identify structures that reduce this dependence.
 
-- Which activation functions give universality?
-- What target classes admit efficient approximation?
-- How do approximation rates depend on dimension and smoothness?
-- When does depth reduce the number of required parameters?
+### Smoothness, Barron Structure, and Spectral Control
+
+One classical positive result is Barron's theorem. [Barron 1993](https://doi.org/10.1109/18.256500) studies functions whose Fourier transform has a bounded first moment and shows that shallow networks can achieve dimension-free-looking $L^2$ approximation rates of order $O(1/n)$ in the squared error with $n$ hidden units, under the relevant Barron norm. The important point is not that all smooth functions are easy; the point is that spectral structure can make a high-dimensional function easier than a worst-case $C^s$ or Sobolev function.
+
+Modern work often phrases this through Barron spaces or related variation norms. These classes are naturally matched to two-layer or mean-field neural networks: the target is represented as an integral over ridge features, and a finite network is a finite-sample approximation of that integral. This gives a different route to avoiding the curse of dimensionality than depth: instead of assuming local smoothness in all $d$ coordinates, one assumes a global ridge-feature representation with controlled norm. The survey [DeVore, Hanin, and Petrova 2021](https://doi.org/10.1017/S0962492921000052) is a broad reference for these approximation-theoretic viewpoints.
+
+### Compositional and Hierarchical Structure
+
+Depth becomes powerful when the target function is compositional. A typical model is a binary tree
+$$
+f(x_1,\ldots,x_d)
+= h_{1}\bigl(h_{2}(x_{i_1},x_{i_2}), h_{3}(x_{i_3},x_{i_4}),\ldots\bigr),
+$$
+where each constituent function depends on only a few variables. A deep MLP can mirror this computation graph: early layers approximate low-dimensional components, later layers compose them, and the number of required units grows with the complexity of the small constituent functions rather than with the full ambient dimension $d$.
+
+This is the core message of the compositional-function literature. [Poggio, Mhaskar, Rosasco, Miranda, and Liao 2017](https://doi.org/10.1007/s11633-017-1054-2) review results showing when deep networks can avoid the curse of dimensionality for hierarchical compositional functions, while shallow networks may require exponentially many units. The phrase "deep is better than shallow" should be read carefully: depth helps when the target has a compositional structure that the network can exploit. It does not mean that depth automatically defeats high dimensionality for arbitrary functions.
+
+### Depth Separation
+
+Depth separation results make the previous intuition formal by constructing functions that are easy for deeper networks and hard for shallower ones. [Eldan and Shamir 2016](https://proceedings.mlr.press/v49/eldan16.html) construct a radial function representable by a small three-layer network but requiring exponential width for approximation by two-layer networks under broad activation assumptions. [Telgarsky 2016](https://proceedings.mlr.press/v49/telgarsky16.html) gives another influential construction based on highly oscillatory sawtooth-like functions, showing that depth can create repeated folding/composition that shallow networks cannot efficiently reproduce.
+
+These theorems are separator results, not universal claims about every practical target. Their value is conceptual: they prove that depth is a genuine expressiveness resource, not merely a different parameterization of width. They also explain why compositional toy functions are useful tests for expressiveness experiments: if the target is generated by repeated composition, a deep network can reuse a small module many times through layers.
+
+### Linear Regions and Piecewise-Linear Complexity
+
+For ReLU and leaky-ReLU MLPs, another concrete measure of expressiveness is the number of linear regions into which the network partitions input space. A shallow ReLU network forms a piecewise-linear function with regions induced by hyperplane arrangements. A deep ReLU network composes such partitions layer by layer, so later layers can fold and reuse regions created earlier.
+
+[Montufar, Pascanu, Cho, and Bengio 2014](https://papers.nips.cc/paper/5422-on-the-number-of-linear-regions-of-deep-neural-networks) show that the number of linear regions can grow rapidly, often exponentially with depth for fixed width regimes. This does not by itself prove good approximation of a specific target, because many linear regions may be placed in unhelpful locations. But it gives a useful geometric explanation of why deep piecewise-linear networks can represent complicated decision boundaries and highly oscillatory functions with relatively few parameters.
+
+### Kolmogorov-Arnold Viewpoint
+
+There is also a separate composition viewpoint from the Kolmogorov-Arnold representation theorem. The theorem was originally part of the resolution of Hilbert's thirteenth problem: it showed that arbitrary continuous multivariate functions can be written using only univariate continuous functions and addition, so multivariate continuity does not by itself force irreducibly multivariate building blocks. See [Kolmogorov 1957](https://www.mathnet.ru/eng/dan22050) for the original superposition theorem; refinements appear in Sprecher's work, such as [Sprecher 1965](https://www.ams.org/journals/tran/1965-115-00/S0002-9947-1965-0210852-X/S0002-9947-1965-0210852-X.pdf).
+
+A common sample statement is the following. For each $d\geq 2$, there exist continuous inner functions $\phi_{q,p}:[0,1]\to\mathbb{R}$, independent of the target function $f$, such that every $f\in C([0,1]^d)$ can be written as
+$$
+f(x_1,\ldots,x_d)
+= \sum_{q=0}^{2d} \Phi_q\left(\sum_{p=1}^{d}\phi_{q,p}(x_p)\right),
+$$
+where the outer functions $\Phi_q:\mathbb{R}\to\mathbb{R}$ are continuous and depend on $f$. The important features are: the number of outer summands is finite, the inner functions are universal for the dimension $d$, and the only multivariate operation is addition after applying univariate functions.
+
+This looks superficially similar to a neural network: each term first applies univariate transformations to coordinates, sums them, applies a univariate outer function, and then sums over $q$. Thus the theorem says that composition and summation are, in principle, sufficient to express all continuous multivariate functions. Kůrková used this connection to give a direct neural-network approximation argument with two hidden layers; see [Kůrková 1992](https://doi.org/10.1016/0893-6080(92)90012-8).
+
+However, the theorem is not a practical efficiency theorem for ordinary MLPs. The outer functions $\Phi_q$ depend on the target $f$ and may be highly irregular; the inner functions in the classical theorem are continuous but not the standard activations used in MLPs; and the theorem gives exact representation in terms of arbitrary continuous univariate functions, not parameter counts for ReLU, tanh, or GELU networks. Constructive versions are subtle: [Braun and Griebel 2009](https://doi.org/10.1007/s00365-009-9054-2) discuss constructive proofs and corrections to earlier constructions. Therefore the theorem should not be read as saying that any standard neural network efficiently learns or represents any continuous function.
+
+More recent work revisits this gap between the representation theorem and trainable networks. [Igelnik and Parikh 2003](https://doi.org/10.1109/TNN.2003.813830) proposed Kolmogorov's spline network, using cubic splines to parameterize both inner and outer univariate functions. [Montanelli and Yang 2020](https://doi.org/10.1016/j.neunet.2019.12.013) derive error bounds for deep ReLU networks using a constructive Kolmogorov-Arnold superposition theorem, but only for function subclasses whose outer superposition functions can themselves be efficiently approximated. [Schmidt-Hieber 2021](https://doi.org/10.1016/j.neunet.2021.01.020) emphasizes the same caveat: the classical theorem resembles a two-hidden-layer network syntactically, but the outer functions can be too irregular; modified representations are needed to transfer smoothness to pieces that ReLU networks can approximate. [Polar and Poluektov 2021](https://doi.org/10.1016/j.engappai.2020.104137) study algorithms for constructing Kolmogorov-Arnold-type representations from data. The recent KAN literature takes a more architectural route: [Liu et al. 2024](https://arxiv.org/abs/2404.19756) propose Kolmogorov-Arnold Networks, replacing scalar linear weights and fixed node activations by learnable univariate spline functions on edges; follow-up work applies this idea to scientific computing, for example [Wang et al. 2024](https://doi.org/10.1016/j.cma.2024.117518) on Kolmogorov-Arnold-informed neural networks for PDEs. These papers are inspired by the KA theorem, but their empirical and approximation properties should be evaluated as properties of the proposed spline-edge architectures, not as automatic consequences of the classical theorem.
+
+The useful lesson for MLP expressiveness is conceptual. Kolmogorov-Arnold shows that composition can be universal at the level of continuous functions; modern deep-learning approximation theory asks the sharper quantitative question: when the univariate pieces are restricted to standard activations and finite parameter budgets, which compositional target classes still admit efficient approximation?
+
+### What Section 3 Contributes Beyond Section 2
+
+Section 2 says MLPs are universal; Section 3 asks when they are efficient. The main answers from the literature are:
+
+- smoothness alone gives approximation rates, but generally with dimension dependence;
+- Barron or ridge-feature structure can give better high-dimensional rates for two-layer networks;
+- compositional or hierarchical structure can make deep networks much more efficient than shallow networks;
+- depth separation theorems prove that some functions require exponentially more width when depth is restricted;
+- for ReLU-type networks, linear-region counts give a geometric proxy for the extra complexity created by depth.
 
 ## 4. More on Expressiveness of MLPs
 
