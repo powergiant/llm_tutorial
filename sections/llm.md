@@ -27,3 +27,5 @@ niah transformer expensiveness
 length generalization
 
 the relation of performance and activation parameters and number of experts
+
+jianlin su blog
