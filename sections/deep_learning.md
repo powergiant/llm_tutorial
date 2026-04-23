@@ -2367,45 +2367,32 @@ These principles explain the design of several important architectures.
 
 In short, architecture design is not arbitrary. CNNs come from locality, RNNs and LSTMs come from sequential computation, ResNets come from optimization of deep networks, and attention comes from direct retrieval over long contexts.
 
-## Basic machine learning theory
-
-### Expressiveness
-
-TODO: case studies of expressiveness, mlp fits finite step function, finite step boolean function
-
-TODO: case studies of expressiveness, cnn fits locality function, more efficient
-
-TODO: case studies of expressiveness, transformer, Turing completeness of prompt (in-context learning, difference between linearization), Turing completeness of parameters (meta knowledge, some prompt implies something, then accumulant prompts. even meta meta knowledge, some prompt implies some meta knowledge)
-
-TODO: Church-Turing thesis, prompt completeness, machine can do everything human can execute, parameter completeness?? meta knowledge
-
-### Generalization
-
-TODO: flat minima better generalization, linear scaling law
-
-TODO: lottery ticket hypothesis
-
-TODO: neural network pruning
-
-TODO: transformers are RNN, linear transformer, mamba
-
-TODO: expressiveness, convergence and generalization
-
-TODO: basic proof of generalization, n data n param
-
-TODO: contradiction between them, overparametrization
-
-TODO: shape of loss landscope, flat minima, implicit regularization
-
-### Convergence
-
-TODO: mean field limit
-
 ## What next?
 
-pytorch, autograd (why is fast?), tensor calculus [tensor_calculus.md](./tensor_calculus.md)
+### Implementation of deep neural networks
 
-more on llm [llm.md](./llm.md)
+Tensor calculus, Autograd, PyTorch [tensor_calculus.md](./tensor_calculus.md)
+
+### Large language model
+
+More explanation on transformer and llm [llm.md](./llm.md)
+
+### Basic machine learning theory
+
+* Expressiveness
+
+  * [Expressiveness of MLP and CNN](adv_topic_mlp_cnn_expr.md)
+  * [Expressiveness of transformers](adv_topic_transformer_expr.md)
+
+* Generalization
+
+  * [Convergence of deep learning](adv_topic_convergence.md)
+
+* Convergence and scaling
+
+  * [Generalization of deep learning](adv_topic_generalization.md)
+  * [Scaling limit of deep networks](adv_topic_scaling_limit_nn.md)
+  * [Scaling limit of gradient descent](adv_topic_scaling_limit_sgd.md)
 
 ## References
 

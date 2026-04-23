@@ -1,5 +1,7 @@
 pytorch, jax, tensorflow
 
+start with a simple graph drawing DSL.
+
 write a pytorch style prototype, with a few basic operator (reshape, multiplication). adding forward graph construction and backward. then explain how far was pytorch go beyond this simple architecture
 
 write a jax style prototype, with a few basic operator (reshape, multiplication). adding forward graph construction and backward. then explain how far was jax go beyond this simple architecture
