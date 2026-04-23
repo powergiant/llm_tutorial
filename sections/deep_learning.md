@@ -594,6 +594,84 @@ where $\mu$ and $\sigma^2$ are a mean and variance computed from some group of a
 
 In short, initialization controls the scale at the beginning of training, while normalization controls the scale during training.
 
+### Skip connections
+
+Skip connections are another tool for improving convergence in deep networks. To see the issue, first consider a plain deep MLP. It passes information through one layer after another:
+
+$$
+h_{\ell+1}
+=
+\sigma(W_\ell h_\ell + b_\ell).
+$$
+
+This is expressive, but optimization becomes harder when the network is very deep. During backpropagation, the gradient from a later layer must pass through the Jacobian of every earlier layer. Roughly, if
+
+$$
+h_L
+=
+f_{L-1}\circ f_{L-2}\circ \cdots \circ f_0(x),
+$$
+
+then the gradient with respect to an earlier hidden state contains a product of many Jacobian matrices:
+
+$$
+\frac{\partial \mathcal{L}}{\partial h_\ell}
+=
+\frac{\partial \mathcal{L}}{\partial h_L}
+\frac{\partial h_L}{\partial h_{L-1}}
+\frac{\partial h_{L-1}}{\partial h_{L-2}}
+\cdots
+\frac{\partial h_{\ell+1}}{\partial h_\ell}.
+$$
+
+If these Jacobians repeatedly shrink vectors, the gradient vanishes. If they repeatedly enlarge vectors, the gradient explodes. This is one reason that simply stacking many plain MLP layers can be difficult to train.
+
+A **skip connection** gives the next layer a direct copy of the current representation. Instead of forcing the layer to compute the entire next representation from scratch, we ask it to compute a correction term:
+
+$$
+h_{\ell+1}
+=
+h_\ell + F_\ell(h_\ell).
+$$
+
+Here $F_\ell$ can itself be a small MLP block, for example
+
+$$
+F_\ell(h)
+=
+W_{\ell,2}
+\sigma(W_{\ell,1}h+b_{\ell,1})
++ b_{\ell,2}.
+$$
+
+The output of the block is therefore the old representation $h_\ell$ plus a learned residual update $F_\ell(h_\ell)$. This is why the architecture is called a **residual network** or **ResNet**. If the best transformation at some depth is close to doing nothing, the block only needs to learn $F_\ell(h_\ell)\approx 0$. This is usually easier than making a plain stack of nonlinear layers learn an exact identity map.
+
+Very deep networks are expressive, but plain deep networks are hard to optimize because gradients can vanish across many layers. ResNet is designed to improve convergence by adding residual connections:
+
+$$
+h_{\ell+1} = h_\ell + F_\ell(h_\ell).
+$$
+
+The identity path makes the layer-to-layer transformation closer to norm-preserving. If the residual term $F_\ell$ is small, then the Jacobian of the block is close to the identity matrix:
+
+$$
+\frac{\partial h_{\ell+1}}{\partial h_\ell}
+=
+I + \frac{\partial F_\ell}{\partial h_\ell}.
+$$
+
+Thus the gradient norm is more likely to stay close to one as it passes through many layers. This helps avoid both gradient vanishing and gradient explosion, making very deep networks easier to train.
+
+The formula $h_{\ell+1}=h_\ell+F_\ell(h_\ell)$ requires $h_\ell$ and $F_\ell(h_\ell)$ to have the same dimension. If their dimensions differ, we can add a learned projection on the skip path:
+
+$$
+h_{\ell+1}
+=
+P_\ell h_\ell + F_\ell(h_\ell),
+$$
+
+where $P_\ell$ maps the old representation into the correct output dimension. In the simplest residual MLP, however, the hidden dimension is kept fixed across many layers so that the identity skip path can be used directly.
+
 ### Training strategies
 
 - **Learning-rate schedule.** The learning rate controls the step size of each parameter update:
