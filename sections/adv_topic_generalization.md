@@ -12,56 +12,57 @@ R(\theta)=\mathbb{E}_{(x,y)\sim\mathcal{D}}[\ell(f_\theta(x),y)].
 $$
 Generalization asks why a parameter $\theta$ found by training can have small $R(\theta)$, even when the network has enough parameters to interpolate the training set and even to fit random labels.
 
-1. classical TODO:
+1. classical generalization bound.
 
-1. What changed in deep learning
+    some explanation
+
+2. What changed in deep learning
 
     more complicated loss landscape
 
 
     Classical generalization theory often controls a whole hypothesis class uniformly, using VC dimension, Rademacher complexity, covering numbers, margins, or norms. Modern deep networks complicate this picture because they are heavily overparameterized, can drive training error to zero, and yet often generalize well. The survey therefore separates capacity of the architecture from the implicit restrictions imposed by data, optimization, initialization, normalization, and training protocol.
 
-2. Experimental phenomenology
+    explanation of the notion of Implicit regularization of optimization, gradient prefer flat, robust, low dimensional
+
+3. Experimental phenomenology
 
     The starting point is empirical. Networks can fit random labels, small-batch and large-batch training may converge to different solutions, learning-rate schedules and batch size affect sharpness, and different optimizers can select different interpolating models. These observations motivate flatness, implicit regularization, and loss-landscape explanations, but they also show why a single scalar complexity measure is unlikely to explain every regime.
 
-3. Measuring flatness and curvature
-
-    A flat minimum is a solution whose loss changes slowly under parameter perturbations. In practice, people measure top Hessian eigenvalues, Hessian trace, spectral density, perturbation sharpness, local entropy, normalized sharpness, or filter-normalized visualizations. These quantities are related through the quadratic approximation, but they are not identical, and raw parameter-space sharpness is not invariant under common neural-network reparameterizations.
-
-4. Theoretical results: stationary phase, Laplace evidence, and the Hessian
-
-    The cleanest mathematical route from curvature to model complexity is the asymptotic expansion of an integral over parameters. Around a regular nondegenerate minimum, stationary phase or Laplace's method gives an Occam factor involving $\det H$, where $H$ is the Hessian of the empirical loss. This explains why wide basins can have higher Bayesian evidence, but it also exposes a caveat: deep networks are often singular and degenerate, so ordinary Hessian-based Laplace theory must be used locally and carefully.
-
-5. PAC-Bayes, perturbation stability, and norm-based bounds
-
-    A second theoretical route is to bound the risk of a distribution over parameters. If perturbing a trained model does not increase empirical loss much, and if the perturbation distribution remains close to a prior, PAC-Bayes gives a nonvacuous path from flatness to generalization. Related norm and margin bounds replace raw parameter count by scale-sensitive quantities such as spectral norms, path norms, margins, and compression length.
-
-6. Implicit regularization of optimization
+4. Implicit regularization in classical statistics
 
     Overparameterized training has many empirical minimizers, so the algorithm matters. Gradient descent, stochastic gradient descent, Adam, weight decay, normalization, sharpness-aware minimization, stochastic weight averaging, and learning-rate schedules all bias the selected solution. In simple models this bias can be characterized exactly, for example as max-margin behavior; in deep networks the theory is less complete but still central.
 
-7. Implicit low-dimensional effects
+5. Flatness
+
+    * Measuring flatness and curvature
+
+        A flat minimum is a solution whose loss changes slowly under parameter perturbations. In practice, people measure top Hessian eigenvalues, Hessian trace, spectral density, perturbation sharpness, local entropy, normalized sharpness, or filter-normalized visualizations. These quantities are related through the quadratic approximation, but they are not identical, and raw parameter-space sharpness is not invariant under common neural-network reparameterizations.
+
+    * Theoretical results: stationary phase, Laplace evidence, and the Hessian, gradient descent prefer flat minima
+
+        The cleanest mathematical route from curvature to model complexity is the asymptotic expansion of an integral over parameters. Around a regular nondegenerate minimum, stationary phase or Laplace's method gives an Occam factor involving $\det H$, where $H$ is the Hessian of the empirical loss. This explains why wide basins can have higher Bayesian evidence, but it also exposes a caveat: deep networks are often singular and degenerate, so ordinary Hessian-based Laplace theory must be used locally and carefully.
+
+    * PAC-Bayes, perturbation stability, and norm-based bounds
+
+        A second theoretical route is to bound the risk of a distribution over parameters. If perturbing a trained model does not increase empirical loss much, and if the perturbation distribution remains close to a prior, PAC-Bayes gives a nonvacuous path from flatness to generalization. Related norm and margin bounds replace raw parameter count by scale-sensitive quantities such as spectral norms, path norms, margins, and compression length.
+
+    explain that low dimensionality is a special type of flatness
+
+
+6. Implicit low-dimensional effects
 
     Deep learning often behaves as if training were happening in a much smaller effective space than the raw parameter dimension. Hessian spectra have many near-zero directions and a small number of outliers; random low-dimensional subspaces can sometimes support successful training; fine-tuning large language models often needs only low-rank or low-dimensional updates. These observations connect flatness, representation learning, pruning, and parameter-efficient fine-tuning.
 
-8. Pruning, sparsity, and compression
+    Pruning, sparsity, and compression
 
     Pruning asks whether a trained network contains a smaller subnetwork that preserves performance. Compression-based generalization bounds say that a predictor that can be described with fewer bits should generalize better, while lottery-ticket experiments show that sparse subnetworks can sometimes train or transfer surprisingly well. Hessian-aware pruning makes the connection to curvature explicit by removing weights that least increase the quadratic loss.
 
-9. Shape of the loss landscape
+7. More on the shape of the loss landscape
 
     Local curvature is only one part of landscape geometry. The global landscape includes mode connectivity, low-loss paths between independently trained models, low-loss manifolds, permutation symmetries, barriers, and the geometry induced by normalization and residual connections. This section studies the shape of the loss landscape as a global object rather than reducing it to one Hessian at one solution.
 
-10. Neural tangent kernel and lazy training
-    
-    In the infinite-width neural tangent kernel regime, the network behaves like a kernel method around initialization. The tangent kernel stays almost fixed, training is approximately linear in parameters, and generalization is governed by the data geometry and the induced kernel rather than by feature learning. This gives a rigorous theory of some overparameterized networks, but it is not the whole story.
-
-11. Mean-field theory and feature learning
-
-    Mean-field theory studies a different infinite-width limit in which the distribution of neurons evolves during training. This captures feature learning more directly than the lazy NTK regime and leads to gradient-flow equations over probability measures. The useful contrast is not "NTK versus mean field" as competing slogans, but kernel-like interpolation versus representation-changing dynamics.
-
-12. Negative results and survey methodology
+8. Negative results and survey methodology
 
     Generalization measures must be interpreted with care. Raw flatness can be changed by reparameterization without changing the represented function; many measures correlate with test error only under restricted experimental protocols; and robustness, calibration, and distribution-shift performance are not automatic consequences of clean test generalization. A good survey records the architecture, optimizer, batch size, learning rate, normalization convention, perturbation radius, and whether the paper claims correlation, bound, or causal mechanism.
 
@@ -192,42 +193,6 @@ Mode connectivity is one of the most striking empirical landscape findings. [Gar
 Symmetry complicates global geometry. Hidden units can often be permuted without changing the represented function, and homogeneous layers can be rescaled across adjacent layers. Recent work on linear mode connectivity after weight matching, such as [Ainsworth, Hayase, and Srinivasa 2023](https://openreview.net/forum?id=CQsmMYmlP5T), shows that some apparent barriers are artifacts of permutation symmetries rather than intrinsic functional differences. This reinforces the earlier flatness caveat: parameter-space geometry is informative only after accounting for the representation's symmetries.
 
 The practical consequence is that landscape geometry can support generalization in several ways. Wide connected regions make stochastic weight averaging and ensembling more effective. Low-loss valleys can contain many predictors with similar training loss but different test behavior. Flat directions can permit pruning and fine-tuning. But landscape geometry alone does not determine generalization; the same landscape must be interpreted together with data geometry and optimization dynamics.
-
-## 10. Neural Tangent Kernel and Lazy Training
-
-The neural tangent kernel gives a rigorous theory for one important overparameterized regime. Let $f_\theta(x)$ be a network and define the tangent kernel
-$$
-K_\theta(x,x')=\nabla_\theta f_\theta(x)^\top \nabla_\theta f_\theta(x').
-$$
-Near initialization, the first-order expansion is
-$$
-f_\theta(x)\approx f_{\theta_0}(x)+\nabla_\theta f_{\theta_0}(x)^\top(\theta-\theta_0).
-$$
-If the network is sufficiently wide under the standard NTK scaling, the tangent kernel changes little during training. Gradient descent in parameter space then becomes approximately kernel gradient descent in function space.
-
-[Jacot, Gabriel, and Hongler 2018](https://proceedings.neurips.cc/paper/2018/hash/5a4be1fa34e62bb8a6ec6b91d2462f5a-Abstract.html) introduced the NTK limit, and [Lee et al. 2019](https://papers.nips.cc/paper/9063-wide-neural-networks-of-any-depth-evolve-as-linear-models-under-gradient-descent) showed that wide networks of any depth can evolve as linear models under gradient descent in this regime. Generalization is then controlled by the induced kernel, the target function's alignment with the kernel eigenfunctions, the noise level, regularization, and the sample size. The theory explains how an infinitely overparameterized model can interpolate without arbitrary behavior: the implicit bias is kernel regression with a specific data-dependent kernel.
-
-The NTK regime is powerful because it is mathematically tractable. It gives global convergence results, exact training dynamics in the infinite-width limit, and connections to classical kernel generalization. It also helps explain why overparameterization can make optimization easier: the linearized model has a well-conditioned tangent feature representation when the kernel matrix is favorable.
-
-The limitation is equally important. In lazy training, features barely change, so representation learning is mostly absent. Many practical networks, especially those trained with finite width, large learning rates, normalization, pretraining, or feature-rich architectures, appear to learn representations that improve over the initial kernel. Therefore NTK theory is a correct theory of a regime, not a complete theory of deep learning.
-
-## 11. Mean-Field Theory and Feature Learning
-
-Mean-field theory studies a different infinite-width limit. For a two-layer network, write
-$$
-f_\rho(x)=\int a\,\sigma(w^\top x)\,d\rho(a,w),
-$$
-where $\rho$ is a distribution over neurons. Training becomes the evolution of $\rho$ rather than the movement of finitely many individual neurons. In the infinite-width limit, gradient descent can converge to a gradient flow over probability measures:
-$$
-\partial_t \rho_t = \nabla\cdot\left(\rho_t \nabla \frac{\delta R(\rho_t)}{\delta \rho}\right),
-$$
-with the exact form depending on the parameterization and loss.
-
-This line includes [Mei, Montanari, and Nguyen 2018](https://doi.org/10.1073/pnas.1806579115), [Chizat and Bach 2018](https://proceedings.neurips.cc/paper/2018/hash/a1afc58c6ca9540d057299ec3016d726-Abstract.html), [Rotskoff and Vanden-Eijnden 2018](https://arxiv.org/abs/1805.00915), and [Sirignano and Spiliopoulos 2020](https://doi.org/10.1137/18M1192184). These works make different assumptions, but they share the idea that an overparameterized network can be treated as an interacting-particle system or probability distribution whose evolution changes the feature representation.
-
-The contrast with NTK was sharpened by [Chizat, Oyallon, and Bach 2019](https://proceedings.neurips.cc/paper/2019/hash/ae614c557843b1df326cb29c57225459-Abstract.html), who described lazy training as a regime caused by parameterization and scaling: if the network output is scaled so that parameters move little, the model behaves like a kernel method; if parameters move substantially, the model can enter a richer feature-learning regime. [Woodworth et al. 2020](https://proceedings.mlr.press/v125/woodworth20a.html) studied kernel and rich regimes in overparameterized models and showed that the same architecture can have different implicit biases depending on scaling and optimization.
-
-Mean-field theory is attractive for generalization because it gives a language for learned features, not only fixed kernels. It can explain how a network adapts its representation to data, why width helps optimization, and how distributional dynamics can avoid some finite-particle pathologies. But the theory is still most mature for simplified two-layer or special architectures. Extending it cleanly to practical transformers, normalization-heavy networks, and modern pretraining remains an active research direction.
 
 ## 12. Robustness, Shift, and Caveats
 

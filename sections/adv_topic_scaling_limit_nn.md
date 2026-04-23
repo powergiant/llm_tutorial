@@ -339,3 +339,40 @@ Finally, ask what the limit leaves out. Fixed-kernel limits often leave out repr
 ### Overall Takeaway
 
 The original three topics, the neural tangent kernel, the mean-field limit, and the long-context transformer limit, are three major branches of a broader scaling-limit taxonomy. The clean map is: NNGP describes random functions at infinite width; NTK describes lazy training as kernel dynamics; mean-field and muP-style limits describe feature learning; finite-width and depth limits describe corrections and signal propagation; proportional limits connect to high-dimensional statistics; and transformer-specific limits split further by width, heads, depth, token interactions, and context length.
+
+
+## 10. Neural Tangent Kernel and Lazy Training
+
+The neural tangent kernel gives a rigorous theory for one important overparameterized regime. Let $f_\theta(x)$ be a network and define the tangent kernel
+$$
+K_\theta(x,x')=\nabla_\theta f_\theta(x)^\top \nabla_\theta f_\theta(x').
+$$
+Near initialization, the first-order expansion is
+$$
+f_\theta(x)\approx f_{\theta_0}(x)+\nabla_\theta f_{\theta_0}(x)^\top(\theta-\theta_0).
+$$
+If the network is sufficiently wide under the standard NTK scaling, the tangent kernel changes little during training. Gradient descent in parameter space then becomes approximately kernel gradient descent in function space.
+
+[Jacot, Gabriel, and Hongler 2018](https://proceedings.neurips.cc/paper/2018/hash/5a4be1fa34e62bb8a6ec6b91d2462f5a-Abstract.html) introduced the NTK limit, and [Lee et al. 2019](https://papers.nips.cc/paper/9063-wide-neural-networks-of-any-depth-evolve-as-linear-models-under-gradient-descent) showed that wide networks of any depth can evolve as linear models under gradient descent in this regime. Generalization is then controlled by the induced kernel, the target function's alignment with the kernel eigenfunctions, the noise level, regularization, and the sample size. The theory explains how an infinitely overparameterized model can interpolate without arbitrary behavior: the implicit bias is kernel regression with a specific data-dependent kernel.
+
+The NTK regime is powerful because it is mathematically tractable. It gives global convergence results, exact training dynamics in the infinite-width limit, and connections to classical kernel generalization. It also helps explain why overparameterization can make optimization easier: the linearized model has a well-conditioned tangent feature representation when the kernel matrix is favorable.
+
+The limitation is equally important. In lazy training, features barely change, so representation learning is mostly absent. Many practical networks, especially those trained with finite width, large learning rates, normalization, pretraining, or feature-rich architectures, appear to learn representations that improve over the initial kernel. Therefore NTK theory is a correct theory of a regime, not a complete theory of deep learning.
+
+## 11. Mean-Field Theory and Feature Learning
+
+Mean-field theory studies a different infinite-width limit. For a two-layer network, write
+$$
+f_\rho(x)=\int a\,\sigma(w^\top x)\,d\rho(a,w),
+$$
+where $\rho$ is a distribution over neurons. Training becomes the evolution of $\rho$ rather than the movement of finitely many individual neurons. In the infinite-width limit, gradient descent can converge to a gradient flow over probability measures:
+$$
+\partial_t \rho_t = \nabla\cdot\left(\rho_t \nabla \frac{\delta R(\rho_t)}{\delta \rho}\right),
+$$
+with the exact form depending on the parameterization and loss.
+
+This line includes [Mei, Montanari, and Nguyen 2018](https://doi.org/10.1073/pnas.1806579115), [Chizat and Bach 2018](https://proceedings.neurips.cc/paper/2018/hash/a1afc58c6ca9540d057299ec3016d726-Abstract.html), [Rotskoff and Vanden-Eijnden 2018](https://arxiv.org/abs/1805.00915), and [Sirignano and Spiliopoulos 2020](https://doi.org/10.1137/18M1192184). These works make different assumptions, but they share the idea that an overparameterized network can be treated as an interacting-particle system or probability distribution whose evolution changes the feature representation.
+
+The contrast with NTK was sharpened by [Chizat, Oyallon, and Bach 2019](https://proceedings.neurips.cc/paper/2019/hash/ae614c557843b1df326cb29c57225459-Abstract.html), who described lazy training as a regime caused by parameterization and scaling: if the network output is scaled so that parameters move little, the model behaves like a kernel method; if parameters move substantially, the model can enter a richer feature-learning regime. [Woodworth et al. 2020](https://proceedings.mlr.press/v125/woodworth20a.html) studied kernel and rich regimes in overparameterized models and showed that the same architecture can have different implicit biases depending on scaling and optimization.
+
+Mean-field theory is attractive for generalization because it gives a language for learned features, not only fixed kernels. It can explain how a network adapts its representation to data, why width helps optimization, and how distributional dynamics can avoid some finite-particle pathologies. But the theory is still most mature for simplified two-layer or special architectures. Extending it cleanly to practical transformers, normalization-heavy networks, and modern pretraining remains an active research direction.
