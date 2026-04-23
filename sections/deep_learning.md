@@ -2381,18 +2381,18 @@ More explanation on transformer and llm [llm.md](./llm.md)
 
 * Expressiveness
 
-  * [Expressiveness of MLP and CNN](adv_topic_mlp_cnn_expr.md)
-  * [Expressiveness of transformers](adv_topic_transformer_expr.md)
+  * [Expressiveness of MLP and CNN](./adv_topic_mlp_cnn_expr.md)
+  * [Expressiveness of transformers](./adv_topic_transformer_expr.md)
 
 * Generalization
 
-  * [Convergence of deep learning](adv_topic_convergence.md)
+  * [Convergence of deep learning](./adv_topic_convergence.md)
 
 * Convergence and scaling
 
-  * [Generalization of deep learning](adv_topic_generalization.md)
-  * [Scaling limit of deep networks](adv_topic_scaling_limit_nn.md)
-  * [Scaling limit of gradient descent](adv_topic_scaling_limit_sgd.md)
+  * [Generalization of deep learning](./adv_topic_generalization.md)
+  * [Scaling limit of deep networks](./adv_topic_scaling_limit_nn.md)
+  * [Scaling limit of gradient descent](./adv_topic_scaling_limit_sgd.md)
 
 ## References
 
