@@ -51,376 +51,603 @@ As in the MLP and CNN section, the basic expressiveness question starts from a g
 
 ## 1. Model Assumptions and Resource Regime
 
-A transformer is not expressive in the abstract; it is expressive relative to a resource regime. For a fixed length $n$, we can view it as a sequence-to-sequence map $f_{\theta,n}:\mathcal X^n\to\mathcal Y^{m(n)}$ or as a recognizer $r_{\theta,n}:\Sigma^n\to\{0,1\}$. The recognizer view matches formal languages $L=\{x:r_{\theta,n}(x)=1\}$, while the seq2seq view matches translation, parsing, retrieval, and next-token prediction. The asymptotic analogue is a circuit family $\{C_n\}$, one circuit per input length. Uniformity means a Turing machine can generate $C_n$ from $1^n$; nonuniformity means there need not be such a generator, so a separate parameter setting may hide length-specific advice. This is why circuit classes such as $\mathsf{AC}^0$ and $\mathsf{TC}^0$ are relevant background objects here, and why $P$ and $NP$ matter only as reference points: $P$ is polynomial-time computation by a Turing machine, while $NP$ is polynomial-time verifiable search. The main question is not "what is a transformer?" but "which resources are fixed, and which are allowed to grow?"
+Before asking what transformers can express, we have to specify the resource regime. For transformers, expressiveness is not a single property of an architecture name. It depends on what counts as input, what grows with sequence length, how positions are represented, what numerical precision is allowed, and whether inference is a single bounded forward pass or an iterative procedure that writes intermediate tokens.
 
-The basic attention layer makes those assumptions explicit. With hidden states $X\in\mathbb{R}^{n\times d}$, a head computes $Q=XW_Q$, $K=XW_K$, $V=XW_V$, and then $\mathrm{Attn}(X)=\mathrm{softmax}((QK^\top)/\sqrt{d_k}+M)V$, where the mask $M$ determines which positions can interact. Masking is a genuine computational assumption. A causal mask gives autoregressive access, a bidirectional mask lets every visible token interact with every other visible token, and stricter masks can force local or unique-choice behavior. Positional encoding is equally structural. Absolute encodings add a position vector to each token, relative encodings bias pairwise distances, and rotary encodings inject position through phase rotation; without positional information, self-attention is permutation-equivariant, so order-sensitive tasks are not directly available. The original encoder-decoder Transformer of [Vaswani et al. 2017](https://arxiv.org/abs/1706.03762) is the baseline reference for this picture, because it already separates source encoding, target decoding, attention masking, and positional information.
+At a high level, this section does three things:
 
-Three more axes matter throughout the theory. First, sequence length versus model size: a theorem for a fixed $n$ is a density statement on a finite domain, while a theorem that works uniformly over all $n$ is a genuine asymptotic computation statement. Second, finite versus infinite precision: if each scalar is stored with only $O(1)$ or $O(\log n)$ bits, the model can only carry bounded information per coordinate; if exact reals or idealized unbounded precision are allowed, a single state variable can hide much more structure. Third, one-pass inference versus iterative inference: a model that answers immediately is closer to a bounded circuit, while a model that writes intermediate tokens, loops over hidden state, or uses a scratchpad is closer to a sequential machine. Section 3 will treat chain of thought in detail; here we only need the regime distinction.
+- define the basic computational objects and complexity classes that appear later;
+- separate the main assumption axes that change the answer;
+- explain why different assumptions move transformers between fixed-length universality, bounded-circuit regimes such as $\mathsf{AC}^0$ and $\mathsf{TC}^0$, and more sequential regimes that can reach polynomial-time or Turing-complete behavior in idealized settings.
 
-The cleanest positive theorem in the fixed-length regime is [Yun, Bhojanapalli, Rawat, Reddi, and Kumar 2020](https://openreview.net/forum?id=ByxRM0Ntvr), which shows that transformers are universal approximators of continuous sequence-to-sequence functions on compact domains, once the architecture has enough width and the positional assumptions break permutation symmetry. The proof strategy is the familiar universality pattern: self-attention first constructs a contextual representation that mixes information across positions, and then position-wise feed-forward layers approximate the desired continuous map on that representation. This is a theorem about density, not about efficient asymptotics. It says that at fixed length the architecture is not missing whole classes of continuous targets, but it does not say that one bounded-size model handles arbitrary lengths. A useful cautionary companion is [Luo, Li, Zheng, Liu, Wang, and He 2022](https://openreview.net/forum?id=NQFFNdsOGD), which shows that relative positional encoding does not automatically restore universality: under their assumptions, some continuous sequence-to-sequence functions remain unapproximable no matter how large the model becomes. Other results in this fixed-length approximation family include [Alberti, Dern, Thesing, and Kutyniok 2023](https://proceedings.mlr.press/v221/alberti23a.html) and [Takakura and Suzuki 2023](https://proceedings.mlr.press/v202/takakura23a.html), along with the prompt-based universality results of [Petrov, Torr, and Bibi 2024](https://proceedings.mlr.press/v235/petrov24a.html) and [Wang, Chauhan, Wang, and Hsieh 2023](https://openreview.net/forum?id=zWxKYyW9ik).
+### Core definitions
 
-At the opposite end, the bounded-circuit regime gives the cleanest asymptotic upper bounds for constant-depth transformers. A representative theorem is [Merrill, Sabharwal, and Smith 2022](https://aclanthology.org/2022.tacl-1.49/): saturated transformers with floating-point values can be simulated by constant-depth threshold circuits, so their formal-language power is upper-bounded by a $\mathsf{TC}^0$-style computation. The proof idea is to compile each layer into a threshold-circuit description. Saturated attention behaves like a controlled selection or comparison mechanism, bounded-precision arithmetic can be expressed by threshold predicates, and a constant number of layers composes to a constant-depth circuit family. A closely related result is [Hao, Angluin, and Frank 2022](https://aclanthology.org/2022.tacl-1.46/), which places unique-hard-attention and generalized unique-hard-attention transformers in $\mathsf{AC}^0$, while showing that averaging hard attention can recognize some non-$\mathsf{AC}^0$ languages such as $\mathsf{MAJORITY}$ and $\mathsf{DYCK}\text{-}1$ in their setting. Logic characterizations sharpen the same story: [Chiang, Cholak, and Pillay 2023](https://proceedings.mlr.press/v202/chiang23a.html) identify a first-order logic with counting quantifiers that is both an upper and lower bound for fixed-precision transformer encoders, and [Merrill and Sabharwal 2023](https://openreview.net/forum?id=uR8TtWCIsr) show that log-precision transformers admit a first-order characterization with majority quantifiers. The common proof pattern is always the same: bounded precision and bounded depth prevent the model from storing arbitrarily rich state, so attention becomes a form of constant-round counting or thresholding rather than a full sequential algorithm. [Hahn 2020](https://aclanthology.org/2020.tacl-1.11/) is the early limitation theorem that makes this intuition concrete by showing that self-attention cannot model periodic finite-state languages or hierarchical structure unless the number of layers or heads grows with input length.
+A useful starting point is to distinguish the two main mathematical views of a transformer.
 
-To move from bounded circuits toward $P$-like or Turing-complete behavior, the decisive change is not just more parameters but more rounds of computation or a richer notion of state. A transformer that is allowed to generate a visible scratchpad, or to loop over its own hidden state, is no longer a one-shot circuit; it has become an iterated computation with externalized workspace. In the idealized exact-arithmetic setting, this can go all the way to Turing completeness. [Perez, Barcelo, and Marinkovic 2021](https://www.jmlr.org/papers/v22/20-302.html) prove that hard-attention transformers are Turing complete, and [Bhattamishra, Patel, and Goyal 2020](https://aclanthology.org/2020.conll-1.37/) give a simpler proof and show that even transformers with positional masking but no positional encoding can be Turing complete under their assumptions. The proof strategy is to encode the machine configuration in dense vectors or position-indexed slots, then use attention, masking, and residual updates to simulate one Turing-machine step per layer or decoding step. This is an exact simulation claim, not a practical claim: it depends on idealized arithmetic, carefully chosen encodings, and unbounded time or length. The point for this section is that the same architecture can live in a circuit regime or a Turing-machine regime depending on how much sequential state and numerical idealization we grant it.
+- `Seq2seq map`: for fixed input length $n$, a transformer can be viewed as a function
+  $$
+  f_{\theta,n}:\mathcal X^n\to\mathcal Y^{m(n)}
+  $$
+  or, in fixed-length tasks, $f_{\theta,n}:\mathcal X^n\to\mathcal Y^n$. This is the natural viewpoint for translation, tagging, retrieval, or next-token prediction.
 
-Prompting and prefixing define a different axis again. Parameter expressiveness asks how the function class changes as $\theta$ varies; prompt expressiveness asks how the function class changes as a prompt or prefix $p$ varies while $\theta$ is frozen. Formally, one studies $f_{\theta,p}$ rather than $f_\theta$, so the prompt acts like an additional, inference-time control surface rather than a new set of learned parameters. This is not the same as ordinary fine-tuning, and it is not the same as chain of thought, though the resource logic is similar. The sample theorem here is [Petrov, Torr, and Bibi 2024](https://proceedings.mlr.press/v235/petrov24a.html): prefix-tuning a pretrained transformer can be a universal approximator of sequence-to-sequence functions, and in their construction a single attention head already suffices to approximate any continuous function. The proof idea is that the prefix steers attention into a rich family of basis features, so the frozen backbone plus prefix behaves like a programmable approximator. [Wang, Chauhan, Wang, and Hsieh 2023](https://openreview.net/forum?id=zWxKYyW9ik) complement this with both positive and negative results for soft-prompt tuning: prompt tuning can be universal in stylized settings, but finite-depth fixed-weight models also have hard limitations and lower bounds on the prompt budget. The broader lesson is that inference-time expressiveness is a separate resource from parameter expressiveness; a frozen model with a long or learnable prefix can implement behaviors unavailable to the same model with no prompt, but this is still an assumption about how the model is being used, not a theorem about the backbone alone.
+- `Recognizer map`: for discrete strings over an alphabet $\Sigma$, the transformer may instead be viewed as
+  $$
+  r_{\theta,n}:\Sigma^n\to\{0,1\},
+  $$
+  which asks whether a length-$n$ input is accepted. Over all $n$, such a family defines a formal language $L\subseteq\Sigma^\ast$.
 
-The regime map is therefore the main content of this section. Fixed-length, continuous seq2seq approximation lives in the universality literature; bounded precision and constant depth push transformers into $\mathsf{AC}^0$, $\mathsf{TC}^0$, or first-order logic with counting and majority; iterated generation and explicit scratchpads shift the relevant notion of computation toward $P$ or, under idealized encodings, Turing completeness; and prompt or prefix tuning moves part of the expressive burden from learned parameters into inference-time control. Before asking what transformers can express, we have to say exactly which transformer, with which mask, which positional signal, which precision, which length regime, and which inference protocol.
+These two viewpoints lead to different kinds of theorems. Fixed-length approximation theorems usually study $f_{\theta,n}$ for one $n$ at a time. Formal-language and complexity results study the whole family $\{r_{\theta,n}\}_{n\ge 1}$ and ask what happens uniformly as $n$ grows.
+
+A few complexity-theoretic definitions are therefore unavoidable.
+
+- `Circuit`: a directed acyclic graph of logic gates computing a Boolean function on inputs of one fixed length $n$.
+- `Circuit family`: a sequence $\{C_n\}$ of circuits, one for each input length $n$. This is the circuit analogue of an algorithm that works on all lengths.
+- `Uniform` versus `nonuniform`: a family is uniform if there is an efficient Turing machine that outputs $C_n$ given $1^n$. It is nonuniform if no such requirement is imposed. This matters because a theorem that allows the parameters or wiring to depend arbitrarily on $n$ is closer to a nonuniform circuit statement than to a single algorithmic procedure.
+- `Turing machine`: the standard abstract model of sequential computation, with finite control plus an unbounded tape used as memory.
+- `Turing completeness`: an architecture is Turing complete if, under the assumptions of the theorem, it can simulate any Turing machine computation.
+- `\mathsf{P}`: the class of languages decidable in polynomial time by a Turing machine.
+- `\mathsf{NP}`: the class of languages whose yes-instances have polynomial-size certificates verifiable in polynomial time. $\mathsf{NP}$ is not the main target class in this section, but it is a useful reference point when comparing bounded parallel computation with general sequential computation.
+- `\mathsf{AC}^0`: constant-depth, polynomial-size Boolean circuits with unbounded-fan-in AND, OR, and NOT gates.
+- `\mathsf{TC}^0`: constant-depth, polynomial-size threshold-circuit families, where a gate can compute a threshold or majority-type predicate. Since attention naturally performs weighted comparisons and aggregation, $\mathsf{TC}^0$ often appears as the right upper-bound class for idealized bounded-depth transformers.
+
+The reason these classes appear is simple: a transformer with fixed depth performs only a bounded number of global communication rounds. That makes it look much more like a parallel circuit than like a sequential machine with reusable memory.
+
+### The basic transformer resource model
+
+For a length-$n$ sequence with hidden states $X\in\mathbb{R}^{n\times d}$, a single attention head computes
+$$
+Q=XW_Q,\qquad K=XW_K,\qquad V=XW_V,
+$$
+followed by
+$$
+\operatorname{Attn}(X)=\operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}+M\right)V,
+$$
+where $M$ is the mask. This formula already exposes the main resources.
+
+- `Depth` $L$: number of layers, hence number of global rounds of interaction.
+- `Heads` $H$: number of parallel attention channels.
+- `Width` $d$: embedding dimension or state size.
+- `Sequence length` $n$: number of input positions. This is a problem resource, not the same thing as model size.
+- `Precision` $b$: how many bits of information each scalar can effectively store.
+- `Inference steps` $T$: whether the model answers in one bounded forward pass or is allowed to run autoregressively for additional steps.
+- `Prompt or scratchpad budget` $P$: extra tokens available at inference time, including learned prefixes or generated intermediate tokens.
+
+It is useful to think of the regime as a tuple
+$$
+\mathcal R=(L,H,d,n,b,T,P).
+$$
+Different papers keep different parts of $\mathcal R$ fixed and let others grow. Most apparent disagreements in the literature are really differences in which entries of $\mathcal R$ are being treated as resources.
+
+### Structural assumptions that change expressiveness
+
+Some assumptions look architectural but are really computational.
+
+- `Masking`: the mask $M$ determines which positions can read which others.
+  - In an encoder, masking is typically bidirectional, so each token can attend to all visible input positions.
+  - In a decoder-only model, masking is usually causal, so position $i$ can only use tokens up to $i$.
+  - In encoder-decoder models, the encoder is bidirectional while the decoder is causal and can cross-attend to the encoder output.
+
+  These are not minor implementation choices. They change the dependency graph of the computation.
+
+- `Positional information`: without positional encodings, self-attention is permutation equivariant, so it can react to content but not to order in the intended way.
+  - Absolute positional encodings attach a position vector to each token.
+  - Relative positional encodings represent distances or offsets between positions.
+  - Rotary encodings inject position through rotations in query-key space.
+
+  Positional information is therefore a structural assumption about whether the model can distinguish sequence order and distance.
+
+- `Finite vs infinite precision`:
+  - Under finite precision, each hidden coordinate carries only bounded information, so the architecture behaves more like a bounded-state machine or a circuit with arithmetic gates.
+  - Under idealized exact real arithmetic or unbounded precision, a single vector entry may encode much more information, which can dramatically enlarge the formal expressive power.
+
+These assumptions explain why the same high-level architecture can appear weak in one theorem and extremely strong in another.
+
+### The main regime split: fixed length vs asymptotic computation
+
+The first major split is between fixed-length approximation and uniform computation over unbounded lengths.
+
+- `Fixed-length regime`:
+  - Here $n$ is fixed.
+  - One studies whether the model family can represent or approximate arbitrary maps on $\mathcal X^n$.
+  - This is analogous to universal approximation results for MLPs on compact domains.
+
+- `Asymptotic regime`:
+  - Here one asks for a single architecture family that works for all $n$, or equivalently for a recognizer family $\{r_{\theta,n}\}$.
+  - This is where formal languages, circuit classes, and Turing-machine comparisons become natural.
+
+This distinction matters because universality at fixed $n$ does not imply algorithmic power over arbitrary lengths. A theorem saying "for every $n$, there exists parameters $\theta_n$ that approximate the target on length $n$" is much weaker than a theorem saying "one uniform construction works for all $n$."
+
+### The second split: one-pass parallel computation vs iterative computation
+
+The second major split is the form of inference.
+
+- `One-pass inference`:
+  - The model reads the input and outputs after one bounded forward pass.
+  - This is the natural setting for circuit-style upper bounds.
+  - Depth is then the number of communication rounds, so constant depth suggests constant-depth circuit classes such as $\mathsf{AC}^0$ or $\mathsf{TC}^0$.
+
+- `Iterative inference`:
+  - The model is allowed to generate intermediate tokens, loop, or otherwise reuse its own outputs as state.
+  - This introduces a form of sequential workspace.
+  - Once intermediate state can be written and reread, the architecture is no longer only a bounded parallel computation.
+
+This section only sets up that distinction. The dedicated chain-of-thought section will analyze the iterative regime in detail.
+
+### The third split: parameter expressiveness vs prompt expressiveness
+
+A third distinction is easy to overlook but important.
+
+- `Parameter expressiveness`: vary the learned weights $\theta$, keep the input format fixed, and ask what functions are representable.
+- `Prompt expressiveness`: keep $\theta$ fixed and vary an input-side control object such as a textual prompt, a learned soft prompt, or a prefix $p$. Then the relevant family is $f_{\theta,p}$, not just $f_\theta$.
+
+These are different notions. Parameter expressiveness is closer to what the architecture could realize after training. Prompt expressiveness is closer to what a frozen pretrained backbone can be induced to do at inference time. In practice they interact, but they should not be conflated.
+
+### Representative result class 1: fixed-length universality
+
+`Sample result.` [Yun, Bhojanapalli, Rawat, Reddi, and Kumar 2020](https://arxiv.org/abs/1912.10077) show that transformers are universal approximators of fixed-length sequence functions under suitable assumptions.
+
+`Why it belongs here.` This is the canonical positive theorem for the fixed-length seq2seq regime. It says that, once length is fixed and the architectural assumptions are favorable, transformers are not missing whole classes of continuous sequence functions.
+
+`Proof idea at a high level.` The proof is constructive. Attention is used to move and aggregate information across positions, creating the right contextual representation, and feed-forward blocks then approximate the desired continuous map on that representation, much as in standard universal approximation arguments for feed-forward networks.
+
+`What it does not say.` It does not show that one bounded-size transformer solves arbitrary-length problems, and it does not imply a strong asymptotic complexity class.
+
+`Other results in this category.` [Alberti, Dern, Thesing, and Kutyniok 2023](https://proceedings.mlr.press/v221/alberti23a.html) and [Takakura and Suzuki 2023](https://proceedings.mlr.press/v202/takakura23a.html) study related universality questions. The negative side also matters: [Luo, Li, Zheng, Liu, Wang, and He 2022](https://openreview.net/forum?id=NQFFNdsOGD) show that relative positional encoding does not automatically give universal approximation in the relevant sense.
+
+### Representative result class 2: bounded-depth transformers as low-depth circuits or logic
+
+`Sample result.` [Merrill, Sabharwal, and Smith 2022](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00493/112604/Saturated-Transformers-are-Constant-Depth) analyze saturated transformers and relate them to constant-depth threshold circuits, giving a $\mathsf{TC}^0$-style upper-bound picture.
+
+`Why it belongs here.` This is the clearest expression of the "no-CoT transformer as bounded parallel computation" viewpoint. If depth is fixed and precision is controlled, then each layer is only one more parallel aggregation round, so the overall computation behaves like a constant-depth circuit.
+
+`Proof idea at a high level.` One compiles each transformer layer into an equivalent threshold-style circuit description. Saturated attention behaves like a controlled selection or comparison mechanism, bounded-precision arithmetic can be implemented by threshold predicates, and composing a constant number of layers yields a constant-depth circuit family.
+
+`Other results in this category.` [Hao, Angluin, and Frank 2022](https://aclanthology.org/2022.tacl-1.46/) place unique-hard-attention encoders in $\mathsf{AC}^0$ and show that average-hard-attention can reach some languages outside $\mathsf{AC}^0$, including $\mathsf{MAJORITY}$ and $\mathsf{DYCK}$-1 in their setting. [Chiang, Cholak, and Pillay 2023](https://proceedings.mlr.press/v202/chiang23a.html) give a logic characterization with counting quantifiers for fixed-precision encoders, and [Merrill and Sabharwal 2023](https://openreview.net/forum?id=uR8TtWCIsr) show that log-precision transformers can be expressed in first-order logic with majority quantifiers. [Hahn 2020](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00306/43545/Theoretical-Limitations-of-Self-Attention-in) is the canonical limitation result showing that fixed-size self-attention cannot robustly capture some periodic and hierarchical languages unless resources grow with input length.
+
+### Representative result class 3: idealized Turing-completeness results
+
+`Sample result.` [Perez, Barcelo, and Marinkovic 2021](https://www.jmlr.org/papers/v22/20-302.html) and [Bhattamishra, Patel, and Goyal 2020](https://aclanthology.org/2020.conll-1.37/) give Turing-completeness results for transformers under idealized assumptions.
+
+`Why it belongs here.` These papers sit at the opposite end of the regime map from the $\mathsf{AC}^0$/$\mathsf{TC}^0$ results. They show that if one allows the right kind of positional access, state encoding, and arithmetic idealization, a transformer can simulate general sequential computation.
+
+`Proof idea at a high level.` The construction encodes a Turing-machine configuration into token representations or position-indexed memory slots. Attention, masking, and residual updates are then arranged so that one layer or one decoding step simulates one machine transition. Repeating this simulation yields an arbitrary Turing computation.
+
+`What assumption is doing the work.` The key gain is not merely more parameters. It is the availability of a richer state representation and an effectively unbounded sequential process. That is exactly what separates these theorems from bounded-circuit upper bounds.
+
+`Caution.` These are idealized formal results. They do not mean that practical finite-precision transformers with bounded context and bounded inference depth are automatically universal computers in the same operative sense.
+
+### Representative result class 4: prompt-space expressiveness
+
+`Sample result.` [Petrov, Torr, and Bibi 2024](https://proceedings.mlr.press/v235/petrov24a.html) show that prefix-tuning a pretrained transformer can be a universal approximator of sequence-to-sequence functions under their assumptions.
+
+`Why it belongs here.` This is the cleanest illustration of prompt expressiveness as distinct from weight expressiveness. The backbone is frozen; the control variable is the prefix.
+
+`Proof idea at a high level.` The prefix is used to steer attention into a rich enough family of basis features so that the frozen backbone, together with the prefix, can approximate the target sequence map.
+
+`Other results in this category.` [Wang, Chauhan, Wang, and Hsieh 2023](https://arxiv.org/abs/2305.18787) give both positive universality results and limitations for prompt tuning in stylized transformer settings. The broader lesson is that a frozen model may still have substantial inference-time expressiveness when the prompt interface is sufficiently powerful.
+
+### What assumptions move the model between regimes?
+
+The main transitions can now be summarized cleanly.
+
+- `Toward bounded circuits`:
+  - constant depth;
+  - one-pass inference;
+  - finite or logarithmic precision;
+  - no extra sequential workspace;
+  - fixed masking pattern.
+
+  These assumptions support upper bounds in terms of $\mathsf{AC}^0$, $\mathsf{TC}^0$, or related logical formalisms.
+
+- `Toward richer sequential computation`:
+  - iterative generation or looping;
+  - visible or hidden scratchpad state;
+  - stronger positional access;
+  - idealized arithmetic or more permissive state encoding.
+
+  These are the assumptions that move the model toward polynomial-time or Turing-complete regimes in formal analyses.
+
+- `Orthogonal control through prompting`:
+  - frozen weights;
+  - expressive prompt or prefix interface;
+  - enough prompt length or learned control tokens.
+
+  This does not change the backbone architecture, but it does change the effective function family available at inference time.
+
+### Takeaway
+
+The main lesson of this section is organizational. There is no single answer to "how expressive is a transformer?" If sequence length is fixed, universality theorems are the right language. If depth is bounded and inference is one-shot, circuit and logic classes such as $\mathsf{AC}^0$ and $\mathsf{TC}^0$ become the right comparison. If the model is allowed to iterate, write intermediate state, or exploit idealized encodings, the comparison shifts toward polynomial-time and even Turing-complete computation. Prompting adds another axis by changing what can be done with a frozen backbone. Later sections will study these regimes separately, but the core discipline is already here: always specify the resource model before stating an expressiveness claim.
 
 ## 2. No-CoT Transformers as Bounded Parallel Computation
 
-A no-CoT transformer is best understood as a fixed-depth parallel machine. The model reads the entire input, runs a bounded number of attention-and-MLP layers, and produces an answer immediately. There is no visible scratchpad, no loop whose length grows with the input, and no opportunity to write intermediate tokens and read them back later. That is why the right comparison class is not a Turing machine or a general sequential program, but a bounded-depth circuit family or an equivalent logical formalism. CoT changes this resource model by adding visible intermediate state; this section stays on the no-CoT side and asks what one bounded forward pass can express.
+A no-CoT transformer is best read as a bounded parallel computation. The model sees the whole input, runs a fixed number of attention-and-MLP layers, and outputs an answer immediately. There is no visible scratchpad and no length-dependent loop. That is why the natural comparison class is not a general sequential machine, but a shallow circuit or an equivalent logical formalism. CoT is the contrasting regime: once the model can write intermediate tokens and attend to them later, it gains explicit sequential workspace and leaves the bounded-parallel picture.
 
-To make that precise, fix an input length $n$. A circuit is a directed acyclic graph of gates computing a Boolean function on $n$ input bits. A circuit family $\{C_n\}_{n\ge 1}$ gives one circuit for each length $n$. The depth of $C_n$ is the longest input-to-output path, so bounded depth means $\sup_n \mathrm{depth}(C_n) < \infty$. The size is the number of gates, and the usual expressiveness questions allow polynomial size in $n$. Uniformity matters because otherwise the family can hide arbitrary advice in the description of each $C_n$; informally, a uniform family is one that can be generated from $n$ by a small algorithm. Two standard bounded-parallel classes are $\mathsf{AC}^0$, the class of constant-depth, polynomial-size, unbounded-fan-in AND/OR/NOT circuits, and $\mathsf{TC}^0$, which adds threshold or majority gates and is therefore strictly better at counting and aggregation. On strings, a formal-language recognizer is simply a yes/no computation deciding membership in a language $L \subseteq \Sigma^\ast$ uniformly over all lengths, usually by reading a designated output token or classifier position.
+The basic vocabulary is worth fixing up front.
 
-The same idea can be described in logic. First-order logic on strings, usually written $\mathsf{FO}[<]$, quantifies over positions $1,\dots,n$ and can mention the order relation and letter predicates such as "position $i$ contains $a$." Counting quantifiers extend this language by allowing statements of the form $\exists^{\ge k}x\,\varphi(x)$, meaning that at least $k$ positions satisfy $\varphi$. Majority quantifiers allow statements such as $\mathsf{Maj}_x\,\varphi(x)$, meaning that more than half of the positions satisfy $\varphi$. These are not decorative choices of notation. They are the logical mirrors of constant-depth circuits with counting or threshold power, so when transformer results land in $\mathsf{FO}$ with counting or majority, they are saying that a no-CoT transformer behaves like a bounded-parallel counting device rather than a sequential algorithm.
+- `Circuit family`: a sequence $\{C_n\}_{n\ge 1}$ with one circuit for each input length $n$.
+- `Bounded depth`: the circuit depth is bounded by a constant independent of $n$, that is, $\sup_n \mathrm{depth}(C_n) < \infty$.
+- `Uniformity`: the family is generated by a simple algorithm from $n$, rather than hiding arbitrary advice in the description of each $C_n$.
+- `\mathsf{AC}^0`: constant-depth, polynomial-size, unbounded-fan-in AND/OR/NOT circuits.
+- `\mathsf{TC}^0`: the same bounded-depth setting, but with threshold or majority gates, so it can express stronger counting behavior.
+- `Formal-language recognizer`: a yes/no computation deciding whether a string $x \in \Sigma^\ast$ belongs to a language $L$, uniformly over all input lengths.
+- `\mathsf{FO}[<]`: first-order logic over string positions $1,\dots,n$, with order and letter predicates.
+- `Counting quantifier`: an expression such as $\exists^{\ge k}x\,\varphi(x)$, meaning that at least $k$ positions satisfy $\varphi$.
+- `Majority quantifier`: an expression such as $\mathsf{Maj}_x\,\varphi(x)$, meaning that more than half of the positions satisfy $\varphi$.
+- `Finite precision`: hidden states and scores carry only $O(1)$ or $O(\log n)$ effective bits, which prevents a single real number from encoding unbounded information.
+- `Hard attention`: a head selects a maximizing position by an $\arg\max$-type rule.
+- `Soft attention`: a head outputs a softmax-weighted average over positions.
+- `Average-hard` and `saturated` attention: intermediate variants that are easier to analyze than full softmax but richer than strict one-position hard attention.
 
-Two modeling assumptions are especially important. First, finite precision: if hidden states and scores have only $O(1)$ or $O(\log n)$ effective bits, then the forward pass can be discretized and analyzed using circuit and logic machinery. Without such a restriction, a single real-valued coordinate can in principle encode unbounded information. Second, the attention rule matters. In hard attention, a head selects a maximizing position by an $\arg\max$-type rule. In soft attention, it takes a softmax-weighted average over all positions. Average-hard and saturated variants sit between these extremes; they are stylized enough to analyze but still expressive enough to illuminate what real transformer layers are doing. With these definitions in place, the main question becomes straightforward: once we treat a no-CoT transformer as a bounded-parallel computation, where does it sit?
+With these definitions in place, the literature falls into four closely related families: limitations, circuit upper bounds, logic characterizations, and exact characterizations for restricted models.
 
 ### Limitations
 
-The first family of results is negative: fixed-depth transformers cannot robustly express some global counting and nesting patterns unless some resource grows with the input length. A canonical example is [Hahn 2020](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00306/43545/Theoretical-Limitations-of-Self-Attention-in), which shows that fixed-size self-attention cannot capture certain periodic finite-state languages and hierarchical languages unless the number of layers or heads scales with the sequence length. The point is not that transformers mysteriously fail on formal languages; the point is that a bounded number of parallel communication rounds cannot maintain arbitrarily fine global phase or stack-like information. Once the strings are long enough, many inputs that differ only in long-range periodicity or deep nesting become indistinguishable to the fixed architecture.
+The negative results say that a fixed-depth transformer cannot robustly express certain global counting or nesting behaviors unless some architectural resource grows with input length. This is the cleanest first-pass interpretation of the no-CoT regime: one bounded forward pass gives only a bounded number of global communication rounds.
 
-The proof strategy in this line is usually an indistinguishability argument. One shows that with only finitely many layers, heads, and precision states, the model can only partition long inputs into a bounded collection of coarse interaction patterns. Then one constructs strings that fall into the same pattern even though one should be accepted and the other rejected. For periodic languages, the separator is often exact phase information modulo some period. For hierarchical languages, the separator is unbounded nesting depth. In both cases, the bounded-parallel model runs out of room to propagate the needed dependency through the entire string.
+- `Sample result`: [Hahn 2020](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00306/43545/Theoretical-Limitations-of-Self-Attention-in) shows that fixed-size self-attention cannot model some periodic finite-state languages or hierarchical languages unless the number of layers or heads grows with input length.
+- `Why it matters`: periodicity and hierarchical structure are canonical tests of global coordination. If a fixed architecture cannot maintain exact phase or deep nesting information over arbitrary lengths, then it is behaving like a bounded-parallel device rather than a general sequential machine.
+- `Proof idea`: the proof uses an indistinguishability argument on long strings. With only finitely many layers, heads, and precision states, the model collapses many long inputs into the same coarse interaction pattern. One then constructs strings that the language must separate but the fixed architecture cannot reliably distinguish.
 
-Other major results sharpen the same message. [Hao, Angluin, and Frank 2022](https://aclanthology.org/2022.tacl-1.46/) analyze hard-attention transformers as formal-language recognizers and show that unique-hard-attention variants lie in $\mathsf{AC}^0$, which immediately rules out classic constant-depth separators such as parity. They also show that stronger average-hard variants can recognize tasks outside $\mathsf{AC}^0$, including MAJORITY and DYCK-1, where DYCK-1 is the one-bracket balanced-parentheses language. [Barcelo et al. 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/5f0fdc1acd47431f7f3bb8ee85598cef-Abstract-Conference.html) strengthen the picture further by exhibiting an $\mathsf{AC}^0$ language that unique-hard-attention encoders still cannot recognize. Read together, these results say that no-CoT transformers are not generic sequential devices in disguise. They inherit the same separator tasks that organize bounded-depth circuit complexity.
+The same theme reappears in sharper circuit-style statements.
+
+- `Other results`: [Hao, Angluin, and Frank 2022](https://aclanthology.org/2022.tacl-1.46/) show that unique-hard-attention variants lie in $\mathsf{AC}^0$, so classic constant-depth separator tasks such as parity are out of reach in that setting. The same paper shows that stronger average-hard variants can recognize languages outside $\mathsf{AC}^0$, including MAJORITY and DYCK-1.
+- `Other results`: [Barcelo et al. 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/5f0fdc1acd47431f7f3bb8ee85598cef-Abstract-Conference.html) strengthen the picture by exhibiting an $\mathsf{AC}^0$ language not recognized by unique-hard-attention encoders.
+- `Takeaway`: no-CoT transformers are not generic sequential devices in disguise. Their failure modes line up with the same separator problems that organize bounded-depth circuit complexity.
 
 ### Circuit Upper Bounds
 
-The second family of results is positive: many transformer variants can be simulated by shallow circuit families. A representative theorem is [Merrill, Sabharwal, and Smith 2022](https://aclanthology.org/2022.tacl-1.49/), which shows that saturated transformers are simulable by constant-depth threshold circuits, placing them naturally in a $\mathsf{TC}^0$-style regime. This is a strong upper bound. It says that even though attention looks like a global operation, once the number of layers is fixed and the numerical behavior is controlled, the whole forward pass can be flattened into a bounded-depth threshold computation.
+The positive side of the theory asks how far a no-CoT transformer can go within bounded parallelism. Here the main strategy is to compile the forward pass into a classical shallow circuit family.
 
-The proof is constructive and proceeds layer by layer. Each attention head is compiled into a shallow gadget that compares scores, identifies the relevant positions, and routes values to the next layer. The value aggregation step becomes shallow arithmetic, which threshold gates can implement efficiently. Because the number of layers does not grow with $n$, stacking these gadgets preserves constant depth. The proof therefore follows the same logic as many classical circuit simulations: isolate the primitive operations, show that each primitive belongs to a shallow class, and then note that a constant number of shallow stages stays shallow.
+- `Sample result`: [Merrill, Sabharwal, and Smith 2022](https://aclanthology.org/2022.tacl-1.49/) show that saturated transformers are simulable by constant-depth threshold circuits, giving a natural $\mathsf{TC}^0$-style upper bound.
+- `Why it matters`: this places a fairly realistic attention variant inside a standard classical class. The message is not just that transformers are limited, but that they are limited in a very specific and familiar way.
+- `Proof idea`: the simulation proceeds layer by layer. Each attention head becomes a shallow comparison-and-routing gadget, and each aggregation step becomes shallow threshold-style arithmetic. Because the number of layers is fixed, composing these gadgets preserves constant depth.
 
-Other upper-bound results fit the same template. [Hao, Angluin, and Frank 2022](https://aclanthology.org/2022.tacl-1.46/) place unique-hard-attention models inside $\mathsf{AC}^0$ and show how average-hard attention escapes that class on some examples. [Chiang, Cholak, and Pillay 2023](https://proceedings.mlr.press/v202/chiang23a.html) tie fixed-precision transformer encoders to a counting-logic fragment and therefore to a constant-depth upper-bound picture. [Barcelo et al. 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/5f0fdc1acd47431f7f3bb8ee85598cef-Abstract-Conference.html) show that hard-attention encoders with richer positional resources can recognize correspondingly richer logical fragments. The unifying idea is simple: attention is global communication, but it is still only a bounded number of rounds of global communication.
+This upper-bound viewpoint also clarifies how model variants differ.
+
+- `Other results`: [Hao, Angluin, and Frank 2022](https://aclanthology.org/2022.tacl-1.46/) place unique-hard-attention models in $\mathsf{AC}^0$, while showing that average-hard attention can already express stronger counting behavior such as MAJORITY and DYCK-1.
+- `Other results`: [Chiang, Cholak, and Pillay 2023](https://proceedings.mlr.press/v202/chiang23a.html) connect fixed-precision transformer encoders to a counting-logic fragment and therefore to a bounded-depth upper-bound regime.
+- `Other results`: [Barcelo et al. 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/5f0fdc1acd47431f7f3bb8ee85598cef-Abstract-Conference.html) show that hard-attention encoders with richer numerical predicates can recognize correspondingly richer logical fragments.
+- `Takeaway`: attention is global communication, but in the no-CoT setting it is still only a bounded number of communication rounds. That is why these models fit naturally into shallow circuit classes.
 
 ### Logic Characterizations
 
-Circuit upper bounds say what class a transformer computation belongs to. Logic characterizations say the same thing in a more structural language. The key papers here are [Chiang, Cholak, and Pillay 2023](https://proceedings.mlr.press/v202/chiang23a.html), [Merrill and Sabharwal 2023](https://openreview.net/forum?id=W668diqwp4l), and [Merrill and Sabharwal 2023](https://proceedings.neurips.cc/paper_files/paper/2023/hash/a48e5877c7bf86a513950ab23b360498-Abstract-Conference.html). Their shared claim is that, under finite-precision or $\log n$-precision assumptions, transformer computations can be expressed in first-order logic enriched with counting or majority. This matters because logic makes explicit what information the model is allowed to aggregate in one bounded pass: local predicates over positions, bounded-depth compositions of those predicates, and global counting or threshold summaries.
+Circuit upper bounds say what class the computation belongs to. Logic characterizations say the same thing in a more structural language: they describe exactly what a model can state about positions in a string, how those local facts are combined, and what forms of counting are available.
 
-A sample result is [A Logic for Expressing Log-Precision Transformers](https://proceedings.neurips.cc/paper_files/paper/2023/hash/a48e5877c7bf86a513950ab23b360498-Abstract-Conference.html), which characterizes log-precision transformers using first-order logic with majority quantifiers. The proof strategy follows a standard two-step route. First, compile the transformer into a highly uniform threshold circuit. Second, invoke the circuit-to-logic correspondence that matches threshold computation with majority quantification. Each layer becomes a formula describing which positions are reachable, which predicates hold at those positions, and whether sufficiently many of them satisfy some condition. Counting quantifiers express bounded aggregation directly; majority quantifiers express the threshold case directly. In this way, the logic is not an analogy layered on top of the model. It is a re-description of the same bounded-parallel computation.
+- `Sample result`: [A Logic for Expressing Log-Precision Transformers](https://proceedings.neurips.cc/paper_files/paper/2023/hash/a48e5877c7bf86a513950ab23b360498-Abstract-Conference.html) shows that log-precision transformers can be expressed in first-order logic with majority quantifiers.
+- `Why it matters`: majority quantifiers are the logical counterpart of threshold gates, so this result explains why log-precision transformers sit naturally near $\mathsf{TC}^0$-style computation.
+- `Proof idea`: the transformer is first compiled into a highly uniform threshold circuit. One then uses the standard circuit-to-logic correspondence to translate that circuit into a first-order formula with majority. Each layer becomes a formula describing which positions can influence which others and whether enough of them satisfy some property.
 
-Other results fill out the landscape. [Transformers Implement First-Order Logic with Majority Quantifiers](https://openreview.net/forum?id=W668diqwp4l) gives a broad first-order-with-majority viewpoint for transformer networks, while [Tighter Bounds on the Expressivity of Transformer Encoders](https://proceedings.mlr.press/v202/chiang23a.html) identifies a counting-logic formalism that both upper-bounds fixed-precision encoders and lower-bounds a more general encoder class. The practical moral is that parity, exact counting, and majority are not arbitrary benchmark choices. They are canonical probes of where a bounded-parallel architecture sits between $\mathsf{AC}^0$, $\mathsf{TC}^0$, and their logical counterparts.
+Counting-based logic gives a closely related picture.
 
-### Exact Characterizations for Restricted Models
+- `Other results`: [Transformers Implement First-Order Logic with Majority Quantifiers](https://openreview.net/forum?id=W668diqwp4l) gives a broad first-order-with-majority perspective for transformer networks.
+- `Other results`: [Chiang, Cholak, and Pillay 2023](https://proceedings.mlr.press/v202/chiang23a.html) identify a first-order logic with counting quantifiers that upper-bounds fixed-precision transformer encoders and lower-bounds more general encoders.
+- `Takeaway`: parity, exact counting, and majority are not arbitrary benchmark tasks. They are canonical probes of what bounded-depth aggregation can or cannot express once precision and attention are fixed.
 
-Upper bounds and logic embeddings are useful, but the sharpest results are exact characterizations, where a restricted transformer model matches a classical language class exactly. The cleanest example is [Yang, Chiang, and Angluin 2024](https://proceedings.neurips.cc/paper_files/paper/2024/hash/13d7f172259b11b230cc5da8768abc5f-Abstract-Conference.html), which shows that masked hard-attention transformers with strict masking and no position embeddings recognize exactly the star-free languages. A star-free language is a regular language built using union, concatenation, and complement, but without Kleene star; equivalently, it is a language definable in $\mathsf{FO}[<]$. This is exactly the kind of theorem one wants in a mature expressiveness theory: a concrete architectural restriction lines up with a named classical class.
+### Exact Characterizations For Restricted Models
 
-The proof strategy is especially pedagogical. The authors first translate the transformer into a Boolean sequence-program formalism based on [RASP](https://proceedings.mlr.press/v139/weiss21a.html). They then translate those programs into linear temporal logic, and finally use the classical equivalence between temporal logic, $\mathsf{FO}[<]$, and star-free languages. The architecture is therefore characterized by a chain of exact correspondences rather than by a loose simulation. Once that bridge is established, familiar closure properties and separations from automata theory become directly relevant to transformers.
+The sharpest theorems are exact characterizations: instead of merely placing a transformer in a large upper-bound class, they identify the precise language class recognized by a restricted transformer family.
 
-Other exact or near-exact results for restricted models extend the same philosophy. [Barcelo et al. 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/5f0fdc1acd47431f7f3bb8ee85598cef-Abstract-Conference.html) show that hard-attention encoders capture specific logical fragments once unary numerical predicates and, for stronger variants, counting terms are allowed. [Thinking Like Transformers](https://proceedings.mlr.press/v139/weiss21a.html) is important here not because it proves a language-theoretic theorem by itself, but because it provides the intermediate language that makes exact compilation arguments possible. The broader lesson is that exact characterizations usually appear only after the model class has been restricted enough to become rigid. But once that rigidity is in place, the resulting statement is much sharper and easier to interpret than a generic upper bound.
+- `Sample result`: [Yang, Chiang, and Angluin 2024](https://proceedings.neurips.cc/paper_files/paper/2024/hash/13d7f172259b11b230cc5da8768abc5f-Abstract-Conference.html) prove that masked hard-attention transformers with strict masking and no position embeddings recognize exactly the star-free languages.
+- `Why it matters`: a star-free language is a regular language built using union, concatenation, and complement, but not Kleene star; equivalently, it is definable in $\mathsf{FO}[<]$. So this theorem turns a concrete architectural restriction into an exact classical characterization.
+- `Proof idea`: the proof goes through an intermediate programming language. Transformer computations are first rewritten as Boolean RASP-style programs, then translated into temporal logic, and finally matched to the classical equivalence between temporal logic, $\mathsf{FO}[<]$, and star-free languages.
 
-The overall picture is now fairly coherent. In the no-CoT regime, a transformer is best modeled as a uniform bounded-parallel computation. Under stricter hard-attention assumptions it often sits near $\mathsf{AC}^0$; under richer but still discretizable attention it can move toward $\mathsf{TC}^0$; and in logic it corresponds to first-order formalisms with counting or majority. The exact boundary depends on masking, positional information, precision, and the attention rule, but the conceptual boundary is stable: without externally written intermediate tokens, the model gets only a bounded number of global communication rounds. That is the core reason no-CoT transformers are fruitfully studied through circuits, logic, and formal-language recognition rather than through general sequential computation.
+This exact style of result works because the restricted architecture is rigid enough to analyze completely.
+
+- `Other results`: [Barcelo et al. 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/5f0fdc1acd47431f7f3bb8ee85598cef-Abstract-Conference.html) show that hard-attention encoders capture specific logical fragments once unary numerical predicates, and for stronger variants counting terms, are added.
+- `Other results`: [Thinking Like Transformers](https://proceedings.mlr.press/v139/weiss21a.html) is important here because RASP provides the intermediate language that makes exact compilation arguments possible.
+- `Takeaway`: exact characterizations usually require a sufficiently restricted model, but when they apply they are much more informative than a generic upper bound. They tell us precisely which formal-language phenomena the architecture can and cannot realize.
+
+The overall picture is now fairly clean. In the no-CoT regime, a transformer is best treated as a uniform bounded-parallel computation. Under stricter hard-attention assumptions it often sits near $\mathsf{AC}^0$; under richer but still discretizable attention it moves toward $\mathsf{TC}^0$; and in the logical mirror it becomes a fragment of first-order logic with counting or majority. The exact boundary depends on masking, positional information, precision, and the attention rule, but the guiding idea is stable: without externally written intermediate tokens, the model gets only a bounded number of global communication rounds.
 
 ## 3. Chain of Thought as a General Computation
 
-Chain of thought changes the resource model. In the no-CoT setting, a transformer reads the input and answers after one bounded forward pass, so the right abstractions are bounded-depth circuits and finite-variable logics. In the CoT setting, the model instead generates an intermediate trace
-$$
-x \to z_1 \to z_2 \to \cdots \to z_T \to y,
-$$
-and each new token is computed from the growing context $(x,z_1,\dots,z_{t-1})$. A scratchpad is precisely this visible intermediate trace when it is used as workspace rather than as part of the final task output. The crucial point is that the $z_t$ tokens are not merely text. They are append-only, rereadable state. Once the model can write intermediate symbols and later attend back to them, it is no longer only a bounded parallel map; it has acquired a sequential workspace.
+### Definitions
 
-This is also the place where parameter expressiveness and prompt expressiveness must be separated. Parameter expressiveness asks what functions or languages are realizable by some choice of model weights $\theta$. Prompt expressiveness fixes $\theta$ and asks what can be induced by varying the prompt or prefix. Formal CoT expressiveness results usually belong to the first category: they show that there exists a trained or chosen parameter setting that uses generated tokens as a work tape. Ordinary CoT prompting belongs to the second category: the backbone is frozen, and the prompt tries to elicit a computation the model already knows how to perform. Learned soft prompts or prefixes sit in between in a practical sense, but formally they are still trainable parameters rather than pure prompt execution.
+- **No-CoT inference:** a decoder-only transformer reads the input context $x$ and produces an answer immediately, after one bounded forward computation.
+- **CoT / scratchpad inference:** the model first generates intermediate tokens
+  $$
+  x \to z_1 \to z_2 \to \cdots \to z_T \to y,
+  $$
+  and step $t$ is computed from the growing context $(x,z_1,\ldots,z_{t-1})$.
+- **Sequential workspace:** the generated tokens $z_1,\ldots,z_T$ act as externalized state. They are not just extra text; they are visible memory that later steps can read.
+- **Parameter expressiveness:** what the architecture can realize when the weights are chosen or trained appropriately.
+- **Prompt expressiveness:** what a fixed pretrained model can be made to do by changing only the prompt.
 
-Once the number of decoding steps $T$ is allowed to grow with input length $n$, the natural benchmark is no longer $\mathsf{AC}^0$ or $\mathsf{TC}^0$, but polynomial-time computation. A language lies in $\mathsf{PTIME}=\mathsf{P}$ if there is a Turing machine deciding inputs of length $n$ in at most $n^k$ steps for some fixed $k$. A problem is $P$-complete if it is in $P$ and every problem in $P$ logspace-reduces to it. Such problems matter here because they are the standard hard boundary cases once a theorem claims that a CoT-enabled architecture has reached full polynomial-time power. Turing completeness is a stronger claim still: it says that, under the assumptions of the theorem, the model can simulate arbitrary Turing machines. That is an important boundary result, but it is more idealized than the finite-precision $\mathsf{P}$-characterizations.
+The main conceptual shift is simple: without CoT, the transformer is still a bounded parallel computation; with CoT, it gets $T$ extra rounds of sequential computation and $T$ pieces of writable workspace.
 
-### 3.1 CoT as Externalized Sequential State
+### Formal CoT Expressiveness
 
-The right way to read CoT, in the formal literature, is therefore not as "reasoning in words" but as computation with visible memory. The generated symbols need not be grammatical language at all. They can be tags, counters, delimiters, or encoded machine states. What matters is that they persist in the context and can be revisited by later attention steps. This is why CoT can fundamentally change expressive power while leaving the basic transformer block unchanged: the architecture is the same, but the inference protocol now includes repeated write-read cycles through the context window.
+- **Sample result:** [Merrill and Sabharwal 2023](https://arxiv.org/abs/2310.07923) give a clean complexity-theoretic account of CoT for decoder-only transformers.
+- **Statement:** under their projected-pre-norm and generalized-pre-norm assumptions, logarithmic-length CoT only modestly extends a standard decoder-only transformer, linear-length CoT can recognize all regular languages, linear CoT remains within context-sensitive languages, and polynomial-length CoT characterizes polynomial-time computation.
+- **Proof idea:** the model uses scratchpad tokens as a work tape. The construction shows how later decoding steps can recover and update state written earlier in the trace, so one generated token can play the role of one step of a more general sequential machine. The converse direction simulates the whole decoding process by a standard machine model to obtain the upper bounds.
+- **Why this matters:** the theorem formalizes the idea that CoT is not merely a stylistic change in output format. It changes the resource model from bounded parallel depth toward general sequential computation.
 
-This distinction also clarifies the relationship between explicit CoT and other ways of carrying state. A recurrent model keeps state in hidden activations. A looped transformer reuses its hidden layers across time. A CoT transformer stores part of its state in visible tokens. These are not identical mechanisms, but they play the same complexity-theoretic role: they add sequential computation to an otherwise bounded-depth parallel map. CoT is the most transparent version because the state is written into the prompt itself.
+### CoT as Serial Computation
 
-### 3.2 Formal CoT Hierarchies: From Regular Languages to $\mathsf{P}$
+- **Sample result:** [Li, Liu, Zhou, and Ma 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/3309b4112c9f04a993f2bbdd0274bba1-Abstract-Conference.html) make the serial-computation view explicit.
+- **Statement:** under their construction, constant-depth constant-bit transformers without CoT are bounded by weak parallel classes, while the same models with $T$ CoT steps can solve problems computable by Boolean circuits of size $T$.
+- **Proof idea:** each CoT step carries intermediate results forward through the growing context, so the model can unfold a serial computation over multiple decoding rounds instead of compressing everything into one shallow pass.
+- **Literature survey:** this result complements the hierarchy view above. Merrill and Sabharwal show how longer CoT traces move the architecture toward polynomial-time computation; Li et al. show the same phenomenon from the angle of circuit size and inherently serial tasks.
 
-A representative theorem is [Merrill and Sabharwal 2023](https://arxiv.org/abs/2310.07923). Under their projected-pre-norm and generalized-pre-norm transformer assumptions, they show that CoT creates a genuine expressiveness hierarchy. Logarithmic-length CoT gives only a modest extension over the standard decoder-only model. Linear-length CoT is already strong enough to recognize all regular languages. Linear CoT still remains within the context-sensitive languages. Most importantly, polynomial-length CoT characterizes $\mathsf{P}$ exactly in their setting. This is the cleanest formal statement of the basic intuition: once the model can keep writing and rereading workspace for polynomially many steps, its natural computational class becomes polynomial time.
+### Turing Completeness as the Idealized Limit
 
-The proof has the standard two halves. For the lower bound, they construct transformers that use the generated scratchpad as a work tape. A key ingredient is a layer-norm-based hashing mechanism that lets the model recover and update previously written state. With that in place, one generated token can represent one step of an automaton or Turing-style computation. For the upper bound, they simulate the whole autoregressive process by an ordinary Turing machine and show that if the number of generated tokens is polynomial, then the total computation is also polynomially bounded. The result is not just that CoT helps; it is that CoT changes the asymptotic class. Other major results in the same paper include the near-no-go character of logarithmic CoT, the context-sensitive upper bound for linear-length traces, and the identification of polynomial-length CoT with standard polynomial-time computation.
+- **Sample result:** [Perez, Barcelo, and Marinkovic 2021](https://www.jmlr.org/papers/v22/20-302.html) and [Bhattamishra, Patel, and Goyal 2020](https://aclanthology.org/2020.conll-1.37/) prove Turing-completeness results for transformers under idealized assumptions.
+- **Statement:** with sufficiently expressive numerical encodings and positional access, transformer architectures can simulate arbitrary Turing machines.
+- **Proof idea:** the machine configuration is encoded into token representations or position-indexed slots, and attention plus local updates simulate one machine transition per layer or decoding step.
+- **Why this matters:** these theorems mark the outer boundary of formal expressiveness. They show that transformers are not inherently confined to shallow-circuit behavior, while also relying on stronger assumptions than the finite-precision $\mathsf{P}$-style results.
 
-This theorem is also where the trainable-weight versus frozen-prompt distinction matters most. The characterization is about what the architecture can realize for some choice of parameters. It is not a theorem that a frozen pretrained language model, prompted with "think step by step," thereby acquires the full power of $\mathsf{P}$. The existence claim belongs to architecture-plus-decoding expressiveness, not to prompt elicitation.
+### Prompt-Space CoT Is Different
 
-### 3.3 CoT as Serial Circuit Evaluation
+- **Sample result:** [Wei et al. 2022](https://arxiv.org/abs/2201.11903) popularized CoT prompting as a way to improve reasoning behavior in large language models.
+- **Interpretation:** this is an empirical prompting result, not the same kind of expressiveness theorem as the trainable-weight results above.
+- **Why the distinction matters:** a frozen pretrained model may improve when prompted to produce intermediate reasoning because the prompt changes the distribution of computations the model performs, gives it more tokens for intermediate state, and matches patterns seen during training.
+- **Scope note:** this does not mean that prompting freely adds a new algorithm to the backbone. Unless the prompt itself is allowed to be a powerful learned prefix in a theoretical construction, prompt-space CoT is better viewed as steering or eliciting computations the frozen model can already implement.
 
-A complementary result family makes the same point from the perspective of inherently serial tasks. [Li, Liu, Zhou, and Ma 2024](https://arxiv.org/abs/2402.12875) show that constant-depth, constant-bit transformers with $O(\log n)$-dimensional embeddings can solve any problem computable by Boolean circuits of size $T$ when they are given $T$ CoT steps. Without CoT, the same family is bounded by weak parallel classes such as $\mathsf{AC}^0$ under their assumptions. So the separator is not architectural depth alone; it is the ability to unfold computation across generated intermediate tokens.
-
-Their proof strategy is constructive and easy to interpret. The scratchpad stores intermediate gate values or other partial results, and each decoding step advances the computation by one serial stage. Instead of forcing a full circuit evaluation into one shallow forward pass, the model uses the growing context to carry state from one stage to the next. This gives a direct explanation for why CoT helps on tasks such as iterated squaring, permutation composition, and Circuit Value: these problems are difficult precisely because they require many rounds of dependency propagation. Other major results in this family include the sharp no-CoT upper bounds under constant precision and the empirical demonstrations that the same separator tasks become substantially easier once generated workspace is available.
-
-This viewpoint is pedagogically useful because it isolates what CoT is buying. It is not extra width, and it is not a mysterious "reasoning module." It is additional serial time together with a writable workspace. In complexity terms, CoT lets a constant-depth transformer simulate a long computation by turning many short passes into a sequential program.
-
-### 3.4 Turing Completeness as the Idealized Limit
-
-At the far end of the spectrum are Turing-completeness theorems such as [Perez, Barcelo, and Marinkovic 2021](https://www.jmlr.org/papers/v22/20-302.html) and the related construction of [Bhattamishra, Patel, and Goyal 2020](https://aclanthology.org/2020.conll-1.37/). These papers show that, under idealized assumptions, transformer architectures can simulate arbitrary Turing machines. The assumptions are stronger than in the finite-precision CoT papers: one typically relies on exact or highly expressive numerical encodings, carefully controlled masking, and a construction tailored to machine simulation rather than to realistic pretrained inference.
-
-The proof pattern is standard in computability theory. One encodes the machine configuration, including the control state and tape contents, into the transformer's representations or positions. Attention is used to address the relevant tape location or neighboring cells, and feed-forward updates implement the transition rule. One layer or one decoding step then simulates one Turing-machine step. The importance of these results is conceptual. They show that transformer-like architectures are not inherently confined to shallow-circuit behavior. But they should be read as boundary theorems, not as statements about what ordinary CoT prompting on a frozen model can achieve in practice.
-
-For this reason, Turing completeness and polynomial-time expressiveness should be kept distinct. A $\mathsf{P}$-characterization says that under finite precision and polynomially many steps, the model captures efficient computation. A Turing-completeness theorem says that with stronger idealizations, it can capture arbitrary computation. Both are about general computation, but they answer different questions.
-
-### 3.5 Frozen-Prompt CoT and Empirical Reasoning Are Different Questions
-
-The empirical CoT literature studies something weaker and different. [Wei et al. 2022](https://arxiv.org/abs/2201.11903) showed that few-shot CoT prompting can substantially improve reasoning accuracy in large language models. The support there is not a complexity-theoretic proof but benchmark evidence: prompting the model to emit intermediate steps changes the distribution of computations it performs, often making arithmetic and symbolic tasks easier. This is an execution result for a frozen or nearly frozen backbone, not an architecture-level expressiveness theorem. It shows that the model can be steered into using intermediate text effectively, not that prompting itself freely enlarges the formal function class.
-
-This is why scratchpad training and CoT prompting should not be collapsed into one category. If the model is trained to emit and use a scratchpad, then the weights are being optimized to exploit visible workspace, and the result is closer in spirit to the formal trainable-weight literature. If the model is frozen and only the prompt changes, then CoT is better viewed as elicitation: the prompt selects or stabilizes a computation the backbone can already implement. Unless the prompt itself is a learned high-capacity prefix in a theoretical construction, prompt-space CoT does not by itself prove a new expressiveness theorem.
-
-The clean synthesis is therefore this. In the no-CoT regime, transformers look like bounded parallel machines. In the formal trainable-weight CoT regime, generated tokens become a sequential workspace, and the natural complexity class rises from circuit classes toward $\mathsf{P}$, with Turing completeness as an idealized upper boundary. In the frozen-prompt empirical regime, CoT is a control strategy for a fixed backbone, and the right question is not "what class does the architecture characterize?" but "what computations can the prompt successfully elicit?" Keeping these regimes separate is the only way to make the literature coherent.
+The synthesis is that CoT should be understood as a computation model, not only as a reasoning style. With trainable parameters, scratchpad tokens can enlarge the formal expressive power of the architecture by providing sequential workspace. With a frozen model, CoT prompting is a weaker notion: it changes execution, not the underlying architecture's parameter-level expressiveness.
 
 ## 4. Case Studies
 
-This literature is easiest to read if we separate two regimes from the start.
+The case studies are easiest to organize by **inference regime**.
 
-In the **non-CoT** regime, the model reads the input and answers in one bounded forward pass. The cleanest case studies here are tasks that expose the limits of bounded parallel computation: formal-language recognition, exact counting, associative recall, long-context retrieval, and length generalization. In the **CoT** regime, the model may generate intermediate tokens and then condition on them. The natural case studies shift accordingly: instead of asking what can be done in one pass, we ask what extra computation becomes possible once the model has visible scratch space.
+- In the **non-CoT** setting, the transformer reads the input and answers in one bounded forward pass. The natural probes are tasks that stress bounded parallel computation: formal-language recognition, exact counting, associative recall, long-context retrieval, and length generalization.
+- In the **CoT** setting, the model may generate intermediate tokens and then condition on them. The natural probes shift to tasks that require visible sequential workspace, such as repeated composition, arithmetic derivation, and circuit evaluation.
 
 ### 4.1 Non-CoT: one-pass transformers
 
-#### Formal languages
+- **Formal languages.**
+  Definition: this family asks which languages $L \subseteq \Sigma^\ast$ a transformer can recognize uniformly over all lengths. The standard subfamilies should be separated: regular languages are finite-state languages; star-free languages are the aperiodic regular languages, equivalently those definable in first-order logic over words; Dyck languages are balanced-parentheses languages and are the standard context-free test family when one wants to probe stack-like nesting.
+  Anchor result: [Yang, Chiang, and Angluin 2024](https://proceedings.neurips.cc/paper_files/paper/2024/hash/13d7f172259b11b230cc5da8768abc5f-Abstract-Conference.html) show that masked hard-attention transformers with strict masking and no position embeddings recognize **exactly** the star-free languages.
+  Proof idea: they introduce Boolean RASP as an intermediate symbolic language, show an equivalence between that language and the transformer family under study, and then import the classical characterization of star-free languages via temporal or first-order logic.
+  Other results in the family: [Strobl et al. 2024](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00663/120983/What-Formal-Languages-Can-Transformers-Express-A) survey the area; [Bhattamishra, Ahuja, and Goyal 2020](https://aclanthology.org/2020.emnlp-main.576/) give constructive results for Dyck-style and counter-like languages; [Weiss, Goldberg, and Yahav 2021](https://proceedings.mlr.press/v139/weiss21a.html) make the symbolic side concrete with RASP programs; [Lindner et al. 2023](https://arxiv.org/abs/2301.05062) push this laboratory setup further with Tracr. The main lesson is that "formal languages" is not one benchmark family but several, and they probe different memory resources.
 
-**Definition.** Formal-language tasks ask which languages $L \subseteq \Sigma^\ast$ a transformer can recognize uniformly over all input lengths. The main benchmark families should be kept distinct. **Regular languages** are the finite-state languages. **Star-free** languages are the aperiodic regular languages, equivalently those definable in first-order logic over words or in linear temporal logic. **Dyck** languages are balanced-parentheses languages; Dyck-1 is already a stack-like test, and Dyck-$k$ is the standard context-free family when one wants to probe nesting rather than finite-state memory.
+- **Counting.**
+  Definition: counting tasks ask the model to maintain exact global multiplicities rather than merely detect presence. Canonical examples are token histograms, majority, parity, and occurrence counting.
+  Anchor result: [Yehudai et al. 2024](https://arxiv.org/abs/2407.15160) study exact occurrence counting and identify a sharp dependence on embedding dimension and vocabulary size.
+  Experimental logic: they give a positive construction when the representation dimension is large enough to support effectively independent token directions, and then show that below that regime non-orthogonality creates interference, large required weights, and practical non-learnability. They validate this by varying vocabulary size, context length, and model scale and measuring both in-distribution and out-of-distribution counting accuracy.
+  Other results in the family: counting also appears throughout the logic and circuit characterizations from earlier sections because majority and parity are natural separator tasks. In practice, histogram-style tasks in [Weiss, Goldberg, and Yahav 2021](https://proceedings.mlr.press/v139/weiss21a.html) are a useful symbolic benchmark. The broader point is that exact aggregation is its own expressive bottleneck.
 
-A good anchor result is [Yang, Chiang, and Angluin 2024](https://proceedings.neurips.cc/paper_files/paper/2024/hash/13d7f172259b11b230cc5da8768abc5f-Abstract-Conference.html): masked hard-attention transformers with strict masking and no position embeddings recognize **exactly** the star-free languages. This is stronger than a one-sided upper or lower bound. The proof strategy is especially pedagogical. They introduce Boolean RASP as an intermediate language, show how this transformer family and Boolean RASP simulate each other, and then connect Boolean RASP to linear temporal logic, which is already known to characterize the star-free languages. So the theorem works by reducing transformer expressiveness to a better-understood symbolic formalism and then importing the classical logic result.
+- **Associative recall and mechanistic circuits.**
+  Definition: associative recall asks whether the model can bind keys to values in context and later return the value associated with a queried key. This is the smallest synthetic version of factual recall, entity binding, and content-addressed retrieval.
+  Anchor result: [Nichani, Lee, and Bietti 2024](https://openreview.net/forum?id=PtYojIoW0u) analyze factual recall through associative memory and show that a shallow transformer with one self-attention layer and an MLP can achieve perfect recall when either the attention or MLP parameters scale essentially linearly with the number of stored facts, up to log factors.
+  Proof idea: the model is decomposed into two possible storage mechanisms. Facts can be stored in the value pathway or in the MLP, and the theorem tracks how much capacity each route provides.
+  Other results in the family: [Olsson et al. 2022](https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html) identify induction heads as a concrete circuit for copy-and-continue behavior. Induction heads are narrower than general associative recall, but they are a key mechanistic example of how attention implements retrieval in practice. This makes associative recall a bridge case study: it connects formal expressiveness, in-context factual memory, and mechanistic interpretability.
 
-This family also contains the main positive and negative separator results. [Strobl et al. 2024](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00663/120983/What-Formal-Languages-Can-Transformers-Express-A) survey the area and, importantly, organize the many apparently conflicting claims by architecture, positional encoding, masking, precision, and recognition definition. [Bhattamishra, Ahuja, and Goyal 2020](https://aclanthology.org/2020.emnlp-main.576/) give constructive results for nested and counter-style languages, including Dyck-style examples. [Weiss, Goldberg, and Yahav 2021](https://proceedings.mlr.press/v139/weiss21a.html) make the symbolic side concrete with RASP programs for tasks such as Dyck recognition and histograms. [Lindner et al. 2023](https://arxiv.org/abs/2301.05062) push this compilation viewpoint further with Tracr, which is useful because it turns transformer programs into controlled laboratory objects. The broader lesson is that "formal languages" is not one benchmark family but several: regular, star-free, and Dyck probe genuinely different memory resources.
+- **Long-context retrieval and NIAH.**
+  Definition: long-context retrieval asks whether the model can find and use relevant information in a context long enough that positional encoding, distractor suppression, and attention scaling become part of the task. The minimal probe is **needle in a haystack (NIAH)**: one relevant fact is hidden among many distractors.
+  Representative benchmark result: [RULER](https://arxiv.org/abs/2404.06654) shows why vanilla NIAH is only a starting point. It expands the setting to multiple needles, multiple needle types, tracing tasks, and aggregation tasks over long contexts.
+  Experimental logic: many models score nearly perfectly on the single-needle probe, but performance drops sharply once the context grows longer or the task requires more than one retrieval step. The benchmark therefore isolates the difference between "can find one fact" and "can robustly use long context."
+  Other benchmarks in the family: [LongBench](https://arxiv.org/abs/2308.14508) broadens the evaluation to multi-document QA, summarization, code, synthetic tasks, and bilingual long-context understanding. The main survey point is that NIAH and long-context retrieval should not be conflated: NIAH is the floor, not the full task family.
 
-#### Counting
-
-**Definition.** Counting tasks ask the model to maintain exact global multiplicities, not just detect presence or local patterns. Canonical examples are token histograms, majority, parity, or "how many times has symbol $a$ appeared so far?" These are simple to state but often hard for bounded-depth architectures because they require a stable global summary.
-
-A representative result is [Yehudai et al. 2024](https://arxiv.org/abs/2407.15160), which studies the task of counting token occurrences and identifies a sharp phase transition controlled by embedding dimension and vocabulary size. Their positive construction shows that when the representation dimension is at least as large as the vocabulary, a transformer can maintain exact counts. Their negative story is equally important: when vocabulary size exceeds dimension, non-orthogonal token representations interfere, the required weights scale badly, and the exact counting solution becomes numerically unstable and practically unlearnable. The paper then validates this experimentally by varying vocabulary size, context length, and model size and showing the predicted drop in both in-distribution and out-of-distribution performance.
-
-Counting also appears throughout the circuit-style expressiveness literature because it is the smallest family that already separates weak parallel classes. In practice, histogram tasks in [Weiss, Goldberg, and Yahav 2021](https://proceedings.mlr.press/v139/weiss21a.html) serve as a useful symbolic counting benchmark, while majority and parity recur in logic and circuit characterizations from earlier sections. The survey point is that counting should be treated as its own case-study family rather than folded vaguely into "algorithmic reasoning": exact aggregation is the issue.
-
-#### Associative recall
-
-**Definition.** Associative recall asks whether the model can store key-value associations in context and retrieve the correct value for a queried key. A typical input looks like $(k_1,v_1),\dots,(k_m,v_m),q$, and the target is the value paired with $q$. This is the smallest synthetic form of factual recall, entity binding, and content-addressed retrieval.
-
-A useful anchor result is [Nichani, Lee, and Bietti 2024](https://openreview.net/forum?id=PtYojIoW0u), which analyzes factual recall through the lens of associative memory. They show that a shallow transformer with one self-attention layer followed by an MLP can achieve perfect recall on a synthetic factual-recall task whenever either the attention parameters or the MLP parameters scale essentially linearly with the number of facts, up to log factors. The proof idea is to decompose the model into two possible storage mechanisms: the value matrices can act as an associative memory, or the MLP can do so. The theorem is therefore not just a capacity statement; it identifies where the memory can live inside the architecture.
-
-This family also has a strong mechanistic literature. [Olsson et al. 2022](https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html) identify induction heads, which are not identical to general associative recall but are a nearby circuit for copying and continuing repeated patterns. That matters because it shows one concrete retrieval mechanism learned by real models. Taken together, the theoretical associative-memory papers and the induction-head analyses explain why recall tasks sit naturally between formal expressiveness and mechanistic interpretability: they are simple enough to model exactly, but rich enough to reveal real circuits.
-
-#### Long-context retrieval and NIAH
-
-**Definition.** Long-context retrieval asks whether the model can find and use relevant information when the context is so long that positional encoding, distractor suppression, and attention scaling become part of the problem. The basic probe is **needle in a haystack (NIAH)**: one relevant fact is hidden in a long distractor context, and the model must retrieve it.
-
-The right representative result here is [Hsieh et al. 2024](https://arxiv.org/abs/2404.06654), because it explains why vanilla NIAH is only a starting point. Their benchmark, RULER, explicitly expands NIAH to multiple needles, different needle types, multi-hop tracing, and aggregation tasks. The experimental logic is simple and convincing: many long-context models score nearly perfectly on the vanilla needle test, but performance drops sharply once the context becomes longer or the task requires more than single-fact retrieval. So the paper does not prove a theorem in the formal-language sense; instead, it isolates the gap between "can retrieve one fact somewhere" and "can robustly use long context."
-
-[LongBench](https://arxiv.org/abs/2308.14508) complements this by widening the task distribution to multi-document QA, summarization, code, synthetic tasks, and bilingual long-context understanding. The main organizational point is that NIAH and long-context retrieval are not the same family. NIAH is the minimal sanity check; richer retrieval benchmarks test whether the model can locate, combine, and aggregate information under realistic long-context pressure.
-
-#### Length generalization
-
-**Definition.** Length generalization asks whether a model trained on shorter sequences continues to solve the same task on longer ones. This is not the same as long-context retrieval. Here the issue is not only whether the context fits, but whether the learned solution is algorithmic rather than tied to training length.
-
-A representative result is [Zhou et al. 2024](https://openreview.net/forum?id=AssIuHnmHX), which frames the problem using RASP-L. Their central claim is that length generalization correlates with the existence of a short RASP-L program for the target task. The logic is partly theoretical and partly experimental: if a task admits a short transformer-native symbolic description, then models trained from scratch are more likely to learn a solution that extrapolates in length. The same paper also gives a clean lesson about scratchpads: a scratchpad helps when it simplifies the underlying program, and hurts when it makes the induced program more complicated.
-
-This line is best read together with [Weiss, Goldberg, and Yahav 2021](https://proceedings.mlr.press/v139/weiss21a.html), which introduced RASP as a language for writing transformer programs, and [Lindner et al. 2023](https://arxiv.org/abs/2301.05062), which compile such programs into exact transformers. Those papers do not themselves solve the empirical generalization problem, but they provide the symbolic vocabulary for stating it precisely. The survey takeaway is that length generalization is not only about model scale or context window. It is about whether training finds the short algorithmic solution at all.
+- **Length generalization.**
+  Definition: length generalization asks whether a model trained on shorter sequences still solves the same task on longer ones. This is distinct from long-context retrieval: the issue is not only whether the model can attend far enough, but whether it learned the underlying algorithm instead of a length-specific shortcut.
+  Anchor result: [Zhou et al. 2024](https://openreview.net/forum?id=AssIuHnmHX) study this question through RASP-L and argue that length generalization tracks the existence of a short symbolic transformer-native program for the task.
+  Experimental logic: they compare tasks by the complexity of their RASP-L descriptions and show that tasks with shorter descriptions are more likely to extrapolate in length. They also show that scratchpads help only when they simplify the induced program; otherwise they can make generalization worse.
+  Other results in the family: [Weiss, Goldberg, and Yahav 2021](https://proceedings.mlr.press/v139/weiss21a.html) provide the original RASP language for writing transformer programs, and [Lindner et al. 2023](https://arxiv.org/abs/2301.05062) compile such programs into exact transformers. These papers do not solve length generalization by themselves, but they provide the symbolic vocabulary needed to state the problem precisely.
 
 ### 4.2 CoT: transformers with intermediate workspace
 
-The CoT setting changes the resource model. Once the model may generate intermediate tokens and then attend to them, the question is no longer "what fits in one bounded parallel pass?" but "what can be built by repeated state updates?" This is why the canonical CoT case studies are serial separator tasks.
+- **Why CoT changes the case studies.**
+  In the CoT regime, the model may generate intermediate tokens and then reread them. This changes the resource model: the model is no longer limited to one bounded parallel pass, because the generated tokens act as visible external state.
+  Anchor result: [Merrill and Sabharwal 2023](https://arxiv.org/abs/2310.07923) make this precise. In their framework, logarithmic CoT gives only a modest extension, linear CoT already reaches all regular languages under projected pre-norm assumptions, and polynomially many steps characterize polynomial-time computation.
+  Proof idea: the generated scratchpad is treated as a work tape. The paper then proves upper and lower bounds as a function of scratchpad length, showing how intermediate tokens change the reachable complexity class.
 
-#### CoT as a complexity shift
+- **Regular-language recognition with generated scratchpad.**
+  This is the simplest formal-language example of the CoT advantage. In the no-CoT regime, transformers face sharp limits even on some regular-language recognition tasks. In the CoT regime, the model can explicitly write down and update automaton-like state across generated tokens.
+  The point of this case study is conceptual: it is the smallest example where visible sequential workspace, rather than a wider one-pass network, changes the expressive story.
 
-The cleanest formal result is [Merrill and Sabharwal 2023](https://arxiv.org/abs/2310.07923). They show that the expressive gain from CoT depends strongly on how many intermediate steps are allowed. In their framework, logarithmic CoT gives only a modest extension, linear CoT already reaches all regular languages under projected pre-norm assumptions, and polynomially many steps characterize polynomial-time computation. The proof idea is to treat the generated scratchpad as an external work tape and then prove matching upper and lower bounds as the scratchpad length grows. This is the formal reason CoT deserves its own subsection: it is not just a prompting trick, but a different computational regime.
+- **Serial separator tasks: permutation composition, iterated squaring, circuit value.**
+  Definition: these are the canonical CoT separator tasks because they require repeated dependency propagation. In **permutation composition**, the model must repeatedly update a state by composing permutations. In **iterated squaring**, each step depends on the previous arithmetic state. In **circuit value**, the model must evaluate a Boolean circuit whose internal dependencies cannot be collapsed into a trivial one-shot shortcut.
+  Anchor result: [Li, Liu, Zhou, and Ma 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/3309b4112c9f04a993f2bbdd0274bba1-Abstract-Conference.html) show that constant-depth, constant-bit transformers with $T$ CoT steps can solve any problem computable by Boolean circuits of size $T$.
+  Proof idea: they construct a step-by-step simulation in which generated intermediate tokens encode the evolving computational state. This directly turns visible CoT steps into a serial computation resource.
+  Other results in the family: their experiments use modular addition as a control task and then show large CoT gains on permutation composition, iterated squaring, and circuit value. These tasks are canonical precisely because they isolate repeated state update rather than vague "reasoning."
 
-This perspective also clarifies the simplest CoT formal-language example. In the no-CoT regime, standard transformers have sharp limits even on regular-language recognition. In the CoT regime, the decoder can explicitly carry forward automaton-like state in generated tokens. That is the smallest example of visible sequential workspace changing what the architecture can do.
+- **Arithmetic derivations and dynamic programming.**
+  This family gives a complementary view of the same CoT phenomenon. Instead of formal-language recognition or circuit evaluation, the tasks are arithmetic, equation solving, and dynamic-programming problems whose solution naturally unfolds through intermediate states.
+  Anchor result: [Feng et al. 2023](https://proceedings.neurips.cc/paper_files/paper/2023/hash/dfc310e81992d2e4cedc09ac47eff13e-Abstract-Conference.html) prove that bounded-depth transformers cannot directly solve several basic arithmetic and equation tasks without super-polynomial growth in model size, but autoregressive transformers can solve them by generating CoT derivations in a suitable math-language format.
+  Proof idea: the paper first gives lower bounds for direct-answer prediction, then gives explicit constructive upper bounds once the model is allowed to emit intermediate derivation tokens. The same logic extends to dynamic programming, not just school arithmetic.
+  The main survey point is that arithmetic, dynamic programming, permutation composition, iterated squaring, and circuit value all belong to one broader CoT family: tasks whose hardness comes from serial update, and whose tractability improves once the model can externalize intermediate state.
 
-#### Canonical separator tasks: permutation composition, iterated squaring, circuit value
-
-The most direct benchmark paper here is [Li, Liu, Zhou, and Ma 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/3309b4112c9f04a993f2bbdd0274bba1-Abstract-Conference.html). Their theorem shows that constant-depth, constant-bit transformers with $T$ CoT steps can solve any problem computable by Boolean circuits of size $T$. The constructive proof simulates circuit computation step by step through generated intermediate tokens, so the theorem directly formalizes the intuition that CoT adds serial computation to an otherwise shallow parallel architecture.
-
-Their experiments are just as important for organizing the case studies. They evaluate modular addition, permutation composition, iterated squaring, and circuit value. The first is a control task that already lies in a weak parallel class; the other three are the real separators. **Permutation composition** asks the model to repeatedly update a state by composing permutations, so each step depends on the previous one. **Iterated squaring** is the same repeated-update pattern in an arithmetic form. **Circuit value** is the classical complexity-theoretic separator: evaluate a Boolean circuit on a given input. The experimental finding is exactly what the theory predicts: low-depth transformers without CoT struggle badly on the serial tasks, while the same models improve sharply once CoT is allowed.
-
-These tasks are canonical for a reason. They do not merely demand "reasoning" in a loose sense. They isolate repeated dependency propagation, which is precisely the kind of computation that bounded parallel depth handles poorly.
-
-#### Arithmetic derivations and dynamic programming
-
-A complementary representative result is [Feng et al. 2023](https://proceedings.neurips.cc/paper_files/paper/2023/hash/dfc310e81992d2e4cedc09ac47eff13e-Abstract-Conference.html). They prove impossibility results for direct-answer bounded-depth transformers on basic arithmetic and equation-solving tasks unless the model size grows super-polynomially with input length. They then give constructive upper bounds showing that autoregressive transformers can solve the same tasks by generating CoT derivations in a suitable math-language format. The proof template is especially clean for a tutorial: first a lower bound for direct prediction, then a constructive algorithm in the scratchpad regime.
-
-The same paper also extends the argument to dynamic programming. That matters because it broadens the family beyond school arithmetic. The point is not that CoT is only useful for "math," but that many tasks with an iterative dependency graph become natural once the model can externalize intermediate states. In this sense, arithmetic, equation solving, dynamic programming, permutation composition, and circuit value are all instances of one larger CoT family: tasks whose difficulty lies in serial update rather than one-shot pattern matching.
-
-The big picture is therefore simple. In the non-CoT setting, the best case studies are tasks that expose the limits of bounded parallel computation: formal languages, counting, associative recall, long-context retrieval, and length extrapolation. In the CoT setting, the best case studies are tasks that expose the value of extra sequential workspace: regular-language recognition via scratchpad, arithmetic derivations, dynamic programming, permutation composition, iterated squaring, and circuit value. Keeping these two regimes separate makes the literature much easier to read, and it prevents a common confusion: the same transformer architecture can sit in very different expressiveness classes depending on whether it must answer immediately or may first write down intermediate state.
+- **Summary of the split.**
+  In the non-CoT setting, the cleanest case studies are the ones that expose the limits of bounded parallel computation: formal languages, counting, associative recall, long-context retrieval, and length extrapolation. In the CoT setting, the cleanest case studies are the ones that expose the value of extra sequential workspace: scratchpad-based language recognition, arithmetic derivations, dynamic programming, permutation composition, iterated squaring, and circuit value. Keeping these two lists separate makes the literature easier to scan and prevents a common confusion: the same transformer architecture can fall into very different expressiveness regimes depending on whether it must answer immediately or may first write down intermediate state.
 
 ## 5. Alternative Architectures
 
-Explicit chain of thought adds computation by writing intermediate state into visible tokens. That is only one way to get extra test-time computation. A useful organizing question is: **where does the scratchpad live instead?**
+Explicit CoT is not the only way to add inference-time computation. The general organizing question is:
 
-There are four main answers.
-
-- In **looped depth**: the same transformer block is applied repeatedly, so computation unfolds over iterations rather than over newly generated tokens.
-- In a persistent **hidden state**: a recurrent model carries latent state from one token to the next.
-- In **external memory**: the model reads from and writes to a separate store, or retrieves from an external corpus.
-- In **fast weights**: the model updates a small inner learner at test time, so part of the state lives in parameters rather than activations.
+- Where does the extra computational state live?
+- Is it written into visible tokens, or kept latent?
+- Is the model reusing the same block, carrying a hidden state, consulting external memory, or updating fast weights?
 
 The common theme is the same as in CoT: more computation requires more state. What changes is whether that state is visible text, latent activations, memory slots, or temporary weights.
 
 ### 5.1 Looped Transformers: Reusing Depth as Time
 
-A **looped transformer** reuses the same block of layers for multiple iterations. If we write the hidden sequence at iteration $t$ as $H^{(t)}$, then a looped block has the form
-$$
-H^{(t+1)} = B_\theta(H^{(t)}),
-$$
-where the parameters $\theta$ are shared across iterations. This makes depth behave like time: each loop is another round of computation on the same latent state.
+- `Definition: looped transformer`
+  A looped transformer reuses the same block of layers for multiple iterations. If we write the hidden sequence at iteration $t$ as $H^{(t)}$, then a looped block has the form
+  $$
+  H^{(t+1)} = B_\theta(H^{(t)}),
+  $$
+  where the parameters $\theta$ are shared across iterations. This makes depth behave like time: each loop is another round of computation on the same latent state.
 
-The clean conceptual starting point is the [Universal Transformer](https://arxiv.org/abs/1807.03819), which introduced recurrence across depth. The key expressiveness point is that looping adds computation without forcing the model to emit intermediate tokens.
+- `Why it matters`
+  Looping adds computation without forcing the model to emit intermediate tokens. It is therefore a natural hidden-state alternative to explicit CoT.
 
-**Representative result.** [Giannou et al. 2023](https://proceedings.mlr.press/v202/giannou23a.html) show that looped transformers can be programmed as general-purpose computers.
+- `Sample result`
+  The [Universal Transformer](https://arxiv.org/abs/1807.03819) introduced recurrence across depth, and [Giannou et al. 2023](https://proceedings.mlr.press/v202/giannou23a.html) show that looped transformers can be programmed as general-purpose computers.
 
-**Proof idea.** The proof is constructive. The input is arranged so that some tokens act like instructions and others act like memory. One pass of the shared transformer block simulates one step of an abstract machine: attention routes information between the relevant locations, and the feed-forward sublayers implement the local state transition. Repeating the block then simulates repeated machine steps. The important takeaway is that the extra computational power comes from **iterating on hidden state**, not from generating a visible scratchpad.
+- `Proof idea`
+  The proof is constructive. Some tokens act like instructions and others act like memory. One application of the shared transformer block simulates one computational step: attention routes information to the right locations, and the local update rules implement the step transition. Repeating the block then simulates an arbitrary multi-step computation.
 
-**Other major results.** The original [Universal Transformer](https://arxiv.org/abs/1807.03819) motivated this architecture class, and recent formal work shows that looping can raise expressiveness even when the model remains much more parallel than CoT. In particular, [Merrill and Sabharwal 2025](https://arxiv.org/abs/2505.18948) analyze looping together with padding and show exact characterizations in terms of $\mathsf{TC}^d$ classes. This is useful because it separates two resources cleanly: padding increases available workspace, while looping increases available depth.
+- `Other results`
+  [Merrill and Sabharwal 2025](https://arxiv.org/abs/2505.18948) analyze looping together with padding and show exact characterizations in terms of $\mathsf{TC}^d$ classes. This is useful because it separates two resources cleanly: padding increases workspace, while looping increases computation depth.
 
-### 5.2 Recurrent Hidden State: Computation Stored Latently
+### 5.2 Recurrent Hidden State and Recurrence-Like Variants
 
-A **hidden state** is a latent vector or collection of vectors carried forward during inference. A **recurrent computation** has the form
-$$
-h_{t+1} = F_\theta(h_t, x_t), \qquad y_t = G_\theta(h_t),
-$$
-so the model processes a sequence by updating internal state one step at a time. Here the scratchpad is not written into tokens at all; it stays inside $h_t$.
+- `Definition: recurrent computation`
+  A recurrent model processes a sequence one step at a time, updating an internal state
+  $$
+  h_{t+1} = F_\theta(h_t, x_t), \qquad y_t = G_\theta(h_t).
+  $$
+  Here the scratchpad is not written into tokens at all; it stays inside $h_t$.
 
-This class includes classical RNNs, gated variants such as LSTMs and GRUs, and newer architectures that make the recurrent structure more explicit or more scalable.
+- `Definition: hidden-state alternatives`
+  This family includes classical RNNs, LSTMs, and GRUs, as well as newer architectures such as linear-attention models, RWKV, and Mamba that behave recurrently at inference time.
 
-**Representative result.** [Siegelmann and Sontag 1995](https://doi.org/10.1006/jcss.1995.1013) prove that recurrent neural networks are Turing complete under idealized real-valued precision assumptions.
+- `Sample result`
+  [Siegelmann and Sontag 1995](https://doi.org/10.1006/jcss.1995.1013) prove that recurrent neural networks are Turing complete under idealized real-valued precision assumptions.
 
-**Proof idea.** The proof encodes the configuration of a Turing machine into continuous hidden-state values. The recurrent update is then designed so that one RNN step corresponds to one machine transition: decode the current control state and tape symbol, update them, and re-encode the new configuration back into the hidden state. This shows, at least in principle, that a latent hidden state can play the same computational role as an explicit work tape.
+- `Proof idea`
+  The proof encodes the configuration of a Turing machine into continuous hidden-state values. One RNN update then simulates one machine transition by decoding the current control state and tape symbol, updating them, and re-encoding the new configuration back into the hidden state.
 
-That positive result is idealized, so the next question is what happens under practical precision constraints.
+- `Finite-precision theory`
+  [Weiss, Goldberg, and Yahav 2018](https://aclanthology.org/P18-2117/) show that finite-precision recurrent models fall into a hierarchy: some variants can implement counting, while others cannot. [Merrill et al. 2020](https://aclanthology.org/2020.acl-main.43/) refine this into a broader hierarchy of recurrent architectures for language recognition. These results matter because "recurrent" is not one expressiveness class; gates, precision, and update rules matter.
 
-**Other major results.** [Weiss, Goldberg, and Yahav 2018](https://aclanthology.org/P18-2117/) show that finite-precision recurrent models fall into a hierarchy: some variants can implement counting, while others cannot. [Merrill et al. 2020](https://aclanthology.org/2020.acl-main.43/) refine this into a broader hierarchy of recurrent architectures for language recognition. These papers matter because they show that "recurrent" is not one expressiveness class; gates, precision, and update rules matter.
+- `Bridge back to transformers`
+  [Katharopoulos et al. 2020](https://proceedings.mlr.press/v119/katharopoulos20a.html) show that **linear attention** can be written recurrently. After kernelizing attention, the model can maintain running prefix statistics such as
+  $$
+  S_t = S_{t-1} + \phi(k_t) v_t^\top, \qquad z_t = z_{t-1} + \phi(k_t),
+  $$
+  and compute the current output from $(S_t, z_t, q_t)$. So some transformers are literally recurrent at inference time once the attention mechanism is rewritten in the right algebraic form.
 
-A particularly important bridge back to transformers is [Katharopoulos et al. 2020](https://proceedings.mlr.press/v119/katharopoulos20a.html), which shows that **linear attention** can be written recurrently. After kernelizing attention, the model can maintain running prefix statistics such as
-$$
-S_t = S_{t-1} + \phi(k_t) v_t^\top, \qquad z_t = z_{t-1} + \phi(k_t),
-$$
-and compute the current output from $(S_t, z_t, q_t)$. So some transformers are literally recurrent at inference time once the attention mechanism is rewritten in the right algebraic form.
+- `Newer variants`
+  [RWKV](https://arxiv.org/abs/2305.13048) is an explicit RNN/attention hybrid in which the state tracks decayed key-value summaries. [Mamba](https://arxiv.org/abs/2312.00752) is a selective state-space model whose recurrent update is input-dependent, so the model can decide what to keep and what to forget. [Cirone et al. 2024](https://arxiv.org/abs/2402.19047) argue that selectivity substantially increases what deep state-space models can represent, while [Merrill, Petty, and Sabharwal 2024](https://arxiv.org/abs/2404.08819) show formal limitations for state-tracking tasks.
 
-This viewpoint helps place newer architectures. [RWKV](https://arxiv.org/abs/2305.13048) is an explicit RNN/attention hybrid in which the state tracks decayed key-value summaries, so it behaves like a recurrent model at inference while retaining transformer-like training structure. [Mamba](https://arxiv.org/abs/2312.00752) is a **selective state-space model**: the recurrent state update is input-dependent, so the model can decide what to keep and what to forget based on the current token. The theoretical message in recent work is nuanced. [Cirone et al. 2024](https://arxiv.org/abs/2402.19047) argue that selectivity substantially increases what deep state-space models can represent, while [Merrill, Petty, and Sabharwal 2024](https://arxiv.org/abs/2404.08819) show formal limitations for state-tracking tasks. The right conclusion is not that recurrent hidden-state models are uniformly stronger or weaker than transformers, but that they trade visible workspace for a compressed latent state whose power depends sharply on the update rule.
+- `Takeaway`
+  Recurrent hidden-state models trade visible workspace for a compressed latent state whose power depends sharply on the update rule.
 
 ### 5.3 External Memory and Auxiliary Workspace
 
-An **external memory** is a storage object distinct from the model's ordinary hidden state. If the hidden state is $h_t$, then a memory-augmented model typically has an additional state
-$$
-M_{t+1} = U_\theta(M_t, h_t, x_t),
-$$
-together with a read operation that lets the controller access selected parts of $M_t$. The point is to avoid forcing all relevant information through a fixed-size latent vector.
+- `Definition: external memory`
+  External memory is a storage object distinct from the model's ordinary hidden state. If the hidden state is $h_t$, then a memory-augmented model typically has an additional state
+  $$
+  M_{t+1} = U_\theta(M_t, h_t, x_t),
+  $$
+  together with a read operation that lets the controller access selected parts of $M_t$.
 
-The simplest version is not a separate memory module at all, but **auxiliary workspace tokens**. Padding tokens and pause tokens give the model extra slots in which to stage intermediate variables.
+- `Simplest version`
+  The simplest version is not a separate module at all, but **auxiliary workspace tokens**. Padding tokens and pause tokens give the model extra slots in which to stage intermediate variables.
 
-**Representative result.** [Merrill and Sabharwal 2025](https://arxiv.org/abs/2505.18948) show that padding can strictly increase transformer expressiveness, and characterize padded transformers exactly in terms of circuit classes. Closely related, [London and Kanade 2025](https://arxiv.org/abs/2505.21024) show that pause tokens strictly increase the expressivity of constant-depth transformers.
+- `Sample result`
+  [Merrill and Sabharwal 2025](https://arxiv.org/abs/2505.18948) show that padding can strictly increase transformer expressiveness, and [London and Kanade 2025](https://arxiv.org/abs/2505.21024) show that pause tokens strictly increase the expressivity of constant-depth transformers.
 
-**Proof idea.** The proofs treat extra blank tokens as additional workspace. With enough padding, the transformer can store intermediate quantities across many positions and use them to implement reductions from complete problems for majority-logic and threshold-circuit classes. In other words, padding is not just a convenience for alignment; it is extra computational space. This is the cleanest formal example of the broader idea that **memory slots can replace explicit CoT tokens**.
+- `Proof idea`
+  The extra tokens act as workspace positions. They give the model additional places to store and manipulate intermediate values, even when the model depth is otherwise fixed. The separation results show that this extra workspace can strictly enlarge the class of computations the model can realize.
 
-**Other major results.** In the broader memory-augmented literature, [Neural Turing Machines](https://arxiv.org/abs/1410.5401) introduced differentiable read/write memory controlled by a neural network, and later systems such as memory networks and differentiable neural computers push the same idea further. Transformer-native versions appear in work such as [Token Turing Machines](https://arxiv.org/abs/2211.09119), where a transformer controller reads and writes a bounded set of memory tokens across time.
+- `Other results`
+  In the broader memory-augmented literature, [Neural Turing Machines](https://arxiv.org/abs/1410.5401) introduced differentiable read/write memory controlled by a neural network, and later systems such as differentiable neural computers and memory networks push the same idea further. Transformer-native versions appear in work such as [Token Turing Machines](https://arxiv.org/abs/2211.09119), where a transformer controller reads and writes a bounded set of memory tokens across time.
 
-This is also the right place to define **retrieval-augmented generation (RAG)**. In RAG, the model does not write to external memory; it **retrieves** from a read-only corpus and then conditions generation on the retrieved documents. Formally, one can think of the model as first selecting a latent document variable $z$ from a database and then generating from $(x,z)$, as in [Lewis et al. 2020](https://arxiv.org/abs/2005.11401). From an expressiveness viewpoint, this enlarges the effective state available at inference time. The generator no longer has to store all relevant facts in weights or prompt tokens alone. The caveat is that the formal power of RAG depends heavily on the retriever and the corpus: unlike the cleaner circuit-style theorems above, the computational story is now about a **composed system** rather than a single parametric backbone.
+- `RAG`
+  Retrieval-augmented generation (RAG) should be viewed as external read-only memory. The model retrieves from an external corpus and then generates conditioned on the retrieved documents. Formally, one can think of the model as first selecting a latent document variable $z$ and then generating from $(x,z)$, as in [Lewis et al. 2020](https://arxiv.org/abs/2005.11401). From an expressiveness viewpoint, this enlarges the effective state available at inference time, although the formal power now depends on the retriever and the corpus as well as on the backbone.
 
 ### 5.4 Fast Weights and Test-Time Training
 
-A final alternative keeps the scratchpad in **weight space**. The idea goes back to fast weights, but recent work makes it explicit through **test-time training (TTT)**. Here the model updates a small inner learner during inference:
-$$
-W_{t+1} = W_t - \eta \nabla \ell(W_t; x_t), \qquad y_t = f_{W_t}(x_t).
-$$
-So the temporary state is not just a hidden vector $h_t$; it is a parameter matrix or small model that changes online.
+- `Definition: fast weights / TTT`
+  A final alternative keeps the scratchpad in **weight space**. In test-time training (TTT), the model updates a small inner learner during inference:
+  $$
+  W_{t+1} = W_t - \eta \nabla \ell(W_t; x_t), \qquad y_t = f_{W_t}(x_t).
+  $$
+  The temporary state is not just a hidden vector; it is a parameter matrix or small model that changes online.
 
-This deserves to be separated from ordinary recurrence. In an RNN, the state is a vector passed through a fixed update rule. In TTT, the state is itself a learned predictor, and inference includes an optimization step.
+- `Why it matters`
+  This differs from ordinary recurrence. In an RNN, the state is a vector passed through a fixed update rule. In TTT, the state is itself a learned predictor, and inference includes an optimization step.
 
-**Representative result.** [Sun et al. 2024](https://arxiv.org/abs/2407.04620) introduce TTT layers and make the core expressiveness claim explicit: a model can use test-time learning itself as the hidden-state mechanism.
+- `Sample result`
+  [Sun et al. 2024](https://arxiv.org/abs/2407.04620) introduce TTT layers and make the core expressiveness claim explicit: a model can use test-time learning itself as the hidden-state mechanism.
 
-**Proof idea.** The key argument is by unrolling the inner update. Each token does not merely update activations; it changes the fast weights of a small inner model. That gives the architecture a much richer state space than a fixed-width hidden vector, because the current "memory" is a function approximator learned on the fly from the recent context.
+- `Proof idea`
+  The key argument is by unrolling the inner update. Each token does not merely update activations; it changes the fast weights of a small inner model. That gives the architecture a richer state space than a fixed-width hidden vector, because the current "memory" is a function approximator learned on the fly from the recent context.
 
-**Other major results.** The older fast-weights view appears in [Ba et al. 2016](https://arxiv.org/abs/1610.06258). More recent theory strengthens the connection to in-context computation: [Gozeten et al. 2025](https://arxiv.org/abs/2503.11842) prove that test-time training can strictly improve transformers as in-context learners in a stylized setting. The conceptual message is clear even when the formal assumptions are specialized: if the model can update an inner learner at inference time, then part of the computation moves from forward propagation into the update rule itself.
+- `Other results`
+  The older fast-weights view appears in [Ba et al. 2016](https://arxiv.org/abs/1610.06258). More recent theory strengthens the connection to in-context computation: [Gozeten et al. 2025](https://arxiv.org/abs/2503.11842) prove that test-time training can strictly improve transformers as in-context learners in a stylized setting.
 
-### 5.5 What This Section Adds
+### 5.5 What to Take Away
 
-These architecture classes should not be collapsed into a single slogan such as "more memory helps." They help in different ways.
+The architecture families above differ in where they place the scratchpad:
 
-Looping adds **more latent computation rounds**. Recurrent models add a **persistent hidden state**. Memory-augmented models add a **separate storage mechanism**. RAG adds **read-only external knowledge**. TTT adds **fast adaptive weights**. All are alternatives to explicit CoT because all provide extra state or extra computation at inference time without requiring the model to spell out intermediate reasoning in text.
+- `Looped transformers`: reuse transformer blocks and keep intermediate computation in hidden state.
+- `Recurrent and recurrence-like models`: carry a latent state across sequence steps.
+- `External-memory models and RAG`: add storage outside the ordinary hidden activations.
+- `Fast-weight / TTT models`: keep part of the state in parameters that are updated during inference.
 
-For expressiveness theory, the right comparison is therefore not just transformer versus non-transformer. The sharper question is: **where is the scratchpad stored, how is it updated, and what precision or resource bounds are assumed?** That is what determines whether the model behaves like a bounded parallel circuit, a recurrent state machine, a memory-augmented controller, or a more general adaptive system.
+So the right comparison is not just "CoT versus no CoT." A better question is:
+
+- Does the model get extra computation by looping?
+- By carrying hidden state?
+- By reading or writing memory?
+- By retrieving external information?
+- By updating fast weights?
+
+That is the common thread across these alternatives: they all add computation by adding state, but they store that state in different places.
 
 ## 6. In-Context Learning and Prompt-Space Expressiveness
 
-This section studies a different notion of expressiveness from the one used in Sections 2 to 5. There, the main question was what functions can be represented by changing the model weights. Here, the backbone is typically fixed, and the question is what can be achieved by changing only the context or a small prompt-like interface.
+This section shifts the expressiveness question from **changing the weights** to **changing the context**. The model is usually a fixed transformer backbone, and the question is what computations can be carried out by supplying examples or learned prompt vectors at test time.
 
-Two ideas must be separated from the start.
+### Core concepts
 
-First, **in-context learning (ICL)** asks whether a transformer can use examples in its context as a temporary training set. A typical prompt has the form
-$$
-D=((x_1,y_1),\ldots,(x_k,y_k),x_{\mathrm{query}}),
-$$
-and the model should output a good prediction for $x_{\mathrm{query}}$. No parameter update occurs during this process. If the model is really "learning" here, then the learning algorithm must be implemented inside the forward pass.
+- **In-context learning (ICL).** The prompt contains examples
+  $$
+  D=((x_1,y_1),\ldots,(x_k,y_k),x_{\mathrm{query}}),
+  $$
+  and the model should output a good prediction for $x_{\mathrm{query}}$ without updating its weights.
 
-Second, **prompt-space expressiveness** asks what functions can be induced when the backbone is frozen and only a prompt is allowed to vary. If $B$ is a frozen transformer and $\Pi$ is the allowed prompt family, then the induced function class is
-$$
-\mathcal F_{\mathrm{prompt}}(B,\Pi)
-=
-\{x \mapsto B(p,x): p\in\Pi\}.
-$$
-This is usually much smaller than the full trainable-weight class
-$$
-\mathcal F_{\mathrm{weights}}
-=
-\{x \mapsto B_\theta(x): \theta\in\Theta\}.
-$$
+- **Implements a learning algorithm in-context.** A transformer implements a learning algorithm $\mathcal A$ in-context if its forward pass on $D$ behaves like "run $\mathcal A$ on the support examples, then apply the learned predictor to $x_{\mathrm{query}}$." In this view, the hidden states act as temporary parameters, optimizer state, or sufficient statistics.
 
-The main prompt interfaces are as follows. **Prompt tuning** or **soft prompting** learns continuous prompt embeddings prepended to the input while keeping the backbone fixed; see [Lester, Al-Rfou, and Constant 2021](https://aclanthology.org/2021.emnlp-main.243/). **Prefix tuning** is a stronger interface in which learned vectors are injected as virtual key/value states, often at every layer, again with a frozen backbone; see [Li and Liang 2021](https://aclanthology.org/2021.acl-long.353/). The fixed model itself is the **frozen backbone**.
+- **Frozen backbone.** The transformer's internal weights are fixed. Only the prompt or prefix is allowed to vary.
 
-This is also different from **chain of thought (CoT)**. CoT enlarges the model's test-time workspace by letting it generate intermediate tokens and then attend to them. Prompt tuning and prefix tuning do not change the weight matrix and, by themselves, do not create new sequential workspace in the same sense. So trainable-weight expressiveness, prompt-space expressiveness, and CoT-based expressiveness are related, but they are not the same question.
+- **Prompt tuning / soft prompts.** One learns continuous prompt embeddings prepended to the input while keeping the backbone frozen; see [Lester, Al-Rfou, and Constant 2021](https://aclanthology.org/2021.emnlp-main.243/).
 
-A useful formal phrase is that a transformer **implements a learning algorithm in-context** if there exists an algorithm $\mathcal A$ such that, on prompts $D$ drawn from a task family, the transformer output agrees with $\mathcal A(D)(x_{\mathrm{query}})$. In that view, the model's hidden states act as temporary parameters, sufficient statistics, or optimizer state.
+- **Prefix tuning.** One learns continuous vectors injected as virtual prefix states, typically as extra key/value vectors and often at multiple layers, again with a frozen backbone; see [Li and Liang 2021](https://aclanthology.org/2021.acl-long.353/).
 
-With these distinctions in place, the literature splits naturally into three families: ICL as implicit learning, prompt universality, and prompt limitations.
+- **Prompt-space expressiveness.** For a frozen backbone $B$ and an allowed prompt family $\Pi$, the induced function class is
+  $$
+  \mathcal F_{\mathrm{prompt}}(B,\Pi)=\{x\mapsto B(p,x): p\in\Pi\}.
+  $$
+  This is the "expressive power of prompting" as opposed to the expressive power of changing weights.
+
+- **Different from trainable-weight expressiveness.** In the usual expressiveness problem, we vary $\theta$ over all model parameters. Here we vary only $p$, so $\mathcal F_{\mathrm{prompt}}(B,\Pi)$ is a constrained subfamily controlled by a fixed backbone.
+
+- **Different from chain of thought (CoT).** CoT changes the test-time resource model by letting the model generate intermediate tokens and then reason over them. Prompt tuning and prefix tuning change the conditioning interface to a frozen model, but do not by themselves create the same sequential workspace.
+
+The theory in this area is easiest to read as three families of results: ICL as implicit learning, prompt universality, and prompt limitations.
 
 ### 6.1 In-Context Learning as Implicit Learning
 
-This family asks what algorithm, if any, is being executed inside the forward pass when the model receives labeled examples in context.
+- **Representative result.** [von Oswald et al. 2023](https://proceedings.mlr.press/v202/von-oswald23a.html) show that linear self-attention can implement an update equivalent to gradient descent for linear regression. This is a clean formal example of a transformer carrying out a learning rule inside its forward pass.
 
-A clean starting point is [Garg, Tsipras, Liang, and Valiant 2022](https://openreview.net/forum?id=flNZJ2eOet), which set up ICL as a controlled learning problem: can a transformer trained on prompts of the form $(x_i,f(x_i))$ learn unseen functions from a target class at test time? They show empirically that transformers can in-context learn linear functions, sparse linear functions, small neural networks, and decision trees, often matching task-specific baselines. This paper is not yet a mechanistic theorem, but it makes the question precise.
+- **Proof idea.** The construction stores quantities such as the current predictor and aggregated statistics from the support examples inside the residual stream. Self-attention aggregates information across examples, and the following linear maps implement the update rule for linear regression. The point is not just that the transformer can fit the task, but that it can realize the **algorithmic update** itself.
 
-**Representative result.** [von Oswald et al. 2023](https://proceedings.mlr.press/v202/von-oswald23a.html) show that a single linear self-attention layer can be made equivalent to one step of gradient descent for linear regression. This is one of the sharpest formal statements of the "ICL as learning algorithm" viewpoint.
+- **Setup and nearby results.** [Garg, Tsipras, Liang, and Valiant 2022](https://openreview.net/forum?id=flNZJ2eOet) formulate ICL on controlled function classes such as linear functions and decision trees, showing that trained transformers can learn such tasks from examples in the prompt. [Akyurek et al. 2023](https://openreview.net/forum?id=0g0X4H8yN4I) argue that transformers can implicitly implement estimators such as gradient descent and ridge regression by storing a context-dependent model in their hidden representations.
 
-**Proof idea.** The construction identifies coordinates of the residual stream with quantities such as the current parameter vector, residuals, and aggregated statistics like $X^\top X$ and $X^\top y$. Self-attention is used to collect information from all support examples, and the following linear maps implement the update
-$$
-w_{t+1}=w_t-\eta X^\top(Xw_t-y).
-$$
-So the layer is not merely fitting the input-output relation by a static lookup. It is explicitly carrying out an optimizer step inside the forward computation.
+- **Further theory.** [Mahankali, Hashimoto, and Ma 2024](https://openreview.net/forum?id=8p3fu56lKc) prove that one-layer linear self-attention trained on noisy linear regression implements one-step gradient descent or preconditioned gradient descent depending on the covariance structure. [Fu et al. 2023](https://openreview.net/forum?id=dE5MEi9906) argue that trained transformers can implement higher-order methods close to iterative Newton updates, and [Cheng, Chen, and Sra 2024](https://openreview.net/forum?id=ah1BlQcLv4) extend the picture to functional gradient descent for certain nonlinear in-context learning problems.
 
-This point is sharpened in [Akyurek et al. 2023](https://openreview.net/forum?id=0g0X4H8yN4I), which argue that transformers can implicitly implement standard estimators such as gradient descent and ridge regression by storing a context-dependent model in their hidden representations and updating it as new examples arrive. In this language, the prompt is acting as a dataset and the activations are acting as temporary learned parameters.
-
-**Other major results in this family.** [Mahankali, Hashimoto, and Ma 2024](https://openreview.net/forum?id=8p3fu56lKc) prove that, for one-layer linear self-attention trained on noisy linear regression, the global optimum implements one step of gradient descent under isotropic Gaussian covariates and preconditioned gradient descent under anisotropic covariates. [Fu et al. 2023](https://openreview.net/forum?id=dE5MEi9906) argue that trained transformers can implement higher-order methods close to iterative Newton updates, and prove that $k$ Newton steps can be implemented with $O(k)$ layers. [Cheng, Chen, and Sra 2024](https://openreview.net/forum?id=ah1BlQcLv4) extend the picture beyond linear tasks and show that transformers can implement functional gradient descent for certain nonlinear in-context learning problems.
-
-The main takeaway is that ICL theory is not only about "pattern matching from examples." In the positive results above, the transformer is expressive enough to realize an actual learning rule at inference time.
+- **Takeaway.** In the positive theory papers, ICL is not merely nearest-neighbor lookup or superficial pattern matching. A transformer can be expressive enough to use the prompt as training data and execute a genuine learning rule at inference time.
 
 ### 6.2 Prompt Universality
 
-The second family asks a different question. Suppose the backbone is frozen and only the prompt may change. How large can the induced function class $\mathcal F_{\mathrm{prompt}}(B,\Pi)$ be?
+- **Representative result.** [Petrov, Torr, and Bibi 2024](https://proceedings.mlr.press/v235/petrov24a.html) prove positive universality results for prompting frozen transformers. In particular, they show that prefix tuning a single attention head is sufficient to approximate arbitrary continuous functions, and that with depth growing linearly in the sequence length, a frozen transformer can approximate arbitrary sequence-to-sequence functions through its prefix alone.
 
-**Representative result.** [Petrov, Torr, and Bibi 2024](https://proceedings.mlr.press/v235/petrov24a.html) prove a strong universality statement for prefix tuning. In particular, they show that prefix-tuning a single attention head is enough to approximate any continuous function, and that a transformer whose depth is linear in the sequence length can approximate arbitrary sequence-to-sequence functions.
+- **Proof idea.** The proof is constructive. The learned prefix is chosen so that the frozen attention mechanism acts as a programmable routing and interpolation device. One first builds approximation results for simple continuous functions, then composes these modules to obtain sequence-level universality. The paper also gives quantitative approximation bounds linking the required prefix length to the target error.
 
-This is a striking result because it shows that a sufficiently expressive frozen transformer can be "programmed" through its prefix alone. In that sense, prompt-space expressiveness can be very large even when trainable-weight expressiveness is unavailable.
+- **Other results.** [Wang, Chauhan, Wang, and Hsieh 2023](https://openreview.net/forum?id=zWxKYyW9ik) prove universality results for prompt tuning in stylized transformer settings, showing that a sufficiently expressive frozen backbone plus learned prompts can approximate broad function classes. On the empirical side, [Lester, Al-Rfou, and Constant 2021](https://aclanthology.org/2021.emnlp-main.243/) show that soft prompt tuning becomes more competitive as model scale grows, while [Li and Liang 2021](https://aclanthology.org/2021.acl-long.353/) introduce prefix tuning and show that it can match full fine-tuning on some generation tasks with far fewer trainable parameters.
 
-**Proof idea.** The proof is constructive. The prefix is chosen so that the fixed attention mechanism acts as a programmable routing and interpolation device. First one shows that a small prefixed attention module can approximate scalar continuous functions. Then one lifts this construction to sequence-to-sequence maps by composing such modules across positions and layers. The same paper also gives Jackson-type bounds relating the approximation error to the needed prefix length.
-
-A related universality result appears in [Wang, Chauhan, Wang, and Hsieh 2023](https://openreview.net/forum?id=zWxKYyW9ik), which studies soft prompt tuning rather than prefix tuning. Their positive theorem shows that, for a sufficiently strong fixed transformer, prompt tuning can approximate any Lipschitz sequence-to-sequence function. This is conceptually important because it says universality is not restricted to full fine-tuning.
-
-**Other major results in this family.** The theoretical prompt-universality literature is still small, and the two papers above are the central references. On the empirical side, [Lester, Al-Rfou, and Constant 2021](https://aclanthology.org/2021.emnlp-main.243/) show that soft prompt tuning becomes increasingly competitive as model scale grows, while [Li and Liang 2021](https://aclanthology.org/2021.acl-long.353/) introduce prefix tuning and show that it can match full fine-tuning on some generation tasks with far fewer trainable parameters. These empirical papers are not universality theorems, but they motivate why the frozen-backbone regime is worth studying theoretically.
-
-The right conclusion is therefore conditional. Prompts can be universal controllers only when the frozen backbone already has the computational structure needed for the target function.
+- **Takeaway.** Prompt-space expressiveness can be surprisingly large. A frozen transformer may still be a universal approximator with respect to its prompt interface, but only because the backbone already contains the right computational primitives for the prompt to activate and compose.
 
 ### 6.3 Prompt Limitations
 
-The third family studies the opposite question: what cannot be changed by prompting or prefix tuning when the backbone is frozen?
+- **Representative result.** [Petrov, Torr, and Bibi 2023](https://openreview.net/forum?id=GYOXIRXI7W) show that context-based fine-tuning methods such as prompting and prefix tuning are strictly less expressive than full fine-tuning under their assumptions. In particular, they show that such methods cannot arbitrarily change the relative attention pattern among the content tokens.
 
-**Representative result.** [Petrov, Torr, and Bibi 2023](https://openreview.net/forum?id=GYOXIRXI7W) prove that prompting and prefix tuning are strictly less expressive than full fine-tuning. Their core structural claim is that context-based fine-tuning cannot arbitrarily change the relative attention pattern over the content tokens, and can only bias an attention layer's output in a restricted direction.
+- **Proof idea.** The key invariants come from freezing the backbone. The content-token query and key maps are fixed, so the geometry of content-content attention is also largely fixed. Prompt or prefix vectors can add bias terms and redirect some mass through the prompt tokens, but they cannot freely rewrite all relative attention relationships among the original content tokens. Tasks that require a genuinely new attention pattern are therefore out of reach.
 
-This gives a precise sense in which prompt-space expressiveness can be fundamentally smaller than trainable-weight expressiveness. A prompt can often select or combine capabilities already present in the model, but it may fail on tasks that require a genuinely new attention pattern.
+- **Other results.** [Wang et al. 2023](https://openreview.net/forum?id=zWxKYyW9ik) also prove lower-bound and impossibility results in restricted settings. For example, for some finite-depth frozen models, prompt tuning cannot memorize arbitrary datasets regardless of prompt length, and they derive lower bounds on the amount of tunable prompt capacity needed for certain tasks.
 
-**Proof idea.** The proof isolates quantities that remain invariant when the content-processing weights are frozen. Since the query-key maps for the content tokens are fixed, the geometry of content-content attention is largely fixed as well. Adding prompt or prefix vectors can modify scores and outputs through extra interactions with the prompt tokens, but it cannot freely rewrite the relative ordering among all content-token pairs. Any task that requires a new dependency structure among content tokens therefore lies outside the prompt-induced function class.
-
-This limitation result is complemented by [Wang et al. 2023](https://openreview.net/forum?id=zWxKYyW9ik). In the same paper that proves universality for strong frozen transformers, they also show lower bounds for limited-depth backbones: there are datasets that a prompt of any length cannot memorize for a single encoder layer, and they derive lower bounds on the number of tunable prompt parameters needed in related settings. For deeper models, they also identify conditions under which only tasks induced by invertible functions remain learnable.
-
-**Other major results in this family.** The central negative message is shared across the papers just cited: prompting is powerful when it can exploit existing primitives in the backbone, but weak when the task requires altering the model's internal attention geometry or computation graph. This is the precise sense in which prompting differs from full weight training.
+- **Takeaway.** Prompting is powerful when it can **select, bias, or combine** computations already available in the frozen backbone. It is limited when the task requires changing the backbone's internal computation graph itself, especially the relative attention structure over the content tokens.
 
 ### 6.4 Synthesis
 
-The three families fit together cleanly.
+The synthesis is straightforward.
 
-In-context learning asks whether the forward pass itself can act as a learning procedure on examples in the prompt. Prompt universality asks how large the induced function class can be when the backbone is frozen and only prompt parameters vary. Prompt limitations identify the invariants that survive all such prompt choices.
+- In-context learning asks whether a transformer can **learn from the prompt** without updating weights.
+- Prompt universality asks how large the function class is when only the prompt is trainable.
+- Prompt limitation results identify the invariants that survive all prompt choices.
 
-Keeping these apart avoids a common confusion. A transformer may be expressive enough to implement gradient descent in-context, yet a frozen instance of that transformer may still be impossible to retarget to a new task by short prompts alone. Conversely, a strong universality theorem for prefix tuning does not say that ordinary textual prompts on a practical model are automatically universal. And none of these statements is the same as a CoT statement, because CoT changes the inference-time resource model by adding intermediate workspace.
-
-So the correct conceptual picture is layered: trainable weights determine the largest architecture-level function class; prompts expose only a restricted control surface over a frozen backbone; and ICL studies whether that control surface can itself implement a learning algorithm on the fly.
+Keeping these notions separate is essential. They are related, but they are not the same as full weight training, and they are not the same as CoT-based expressiveness either.
