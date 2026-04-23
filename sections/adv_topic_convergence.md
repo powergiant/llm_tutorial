@@ -16,51 +16,51 @@ where $g_t$ is either the full gradient $\nabla L_n(\theta_t)$ or a stochastic m
 
 1. **Notions of convergence**
 
-   Convergence can mean objective decrease, small gradient norm, approach to a local or global minimizer, convergence of the represented function $f_{\theta_t}$, convergence of learned representations, or improvement of validation loss and downstream metrics. These are not equivalent in deep learning because the parameterization is non-identifiable, the loss is nonconvex, and training often continues long after the training error is zero.
+    Convergence can mean objective decrease, small gradient norm, approach to a local or global minimizer, convergence of the represented function $f_{\theta_t}$, convergence of learned representations, or improvement of validation loss and downstream metrics. These are not equivalent in deep learning because the parameterization is non-identifiable, the loss is nonconvex, and training often continues long after the training error is zero.
 
 2. **Empirical convergence phenomena**
 
-   Before theory, we should describe what practitioners measure: training loss, validation loss, gradient norm, update norm, sharpness, Hessian spectrum, batch-size dependence, seed sensitivity, wall-clock efficiency, and token efficiency. Important empirical facts include fast interpolation, continued improvement after interpolation, large-batch scaling limits, loss spikes, schedule-dependent phase transitions, and the difference between step convergence and compute convergence.
+    Before theory, we should describe what practitioners measure: training loss, validation loss, gradient norm, update norm, sharpness, Hessian spectrum, batch-size dependence, seed sensitivity, wall-clock efficiency, and token efficiency. Important empirical facts include fast interpolation, continued improvement after interpolation, large-batch scaling limits, loss spikes, schedule-dependent phase transitions, and the difference between step convergence and compute convergence. TODO: Double Descent Phenomenon, adding more phenomena, edge-of-stability behavior
 
 3. **Convex optimization background**
 
-   Convex optimization gives the clean reference theory. Gradient descent on smooth convex objectives has $O(1/T)$ objective convergence, strongly convex objectives have linear convergence, stochastic gradients give slower expectation bounds, and Polyak-Lojasiewicz objectives can have linear convergence without full convexity. These results are not directly deep-learning results, but they define the baseline assumptions that deep learning often violates.
+    Convex optimization gives the clean reference theory. Gradient descent on smooth convex objectives has $O(1/T)$ objective convergence, strongly convex objectives have linear convergence, stochastic gradients give slower expectation bounds, and Polyak-Lojasiewicz objectives can have linear convergence without full convexity. These results are not directly deep-learning results, but they define the baseline assumptions that deep learning often violates.
 
 4. **Nonconvex optimization background**
 
-   Generic smooth nonconvex theory usually guarantees convergence only to first-order stationarity, measured by $\|\nabla L(\theta)\|$. Stronger second-order guarantees require escaping saddles. These theorems explain why "convergence" in nonconvex optimization often means reaching an approximate stationary point rather than proving global optimality.
+    Generic smooth nonconvex theory usually guarantees convergence only to first-order stationarity, measured by $\|\nabla L(\theta)\|$. Stronger second-order guarantees require escaping saddles. These theorems explain why "convergence" in nonconvex optimization often means reaching an approximate stationary point rather than proving global optimality.
 
 5. **Saddles, plateaus, symmetries, and loss landscapes**
 
-   Deep networks have many saddle points, flat directions, and equivalent parameterizations. Strict-saddle theory explains why negative-curvature saddles can be escaped by noise or perturbations, but deep-learning landscapes also contain non-isolated manifolds of equivalent solutions and long plateaus caused by scale symmetries, normalization, inactive units, or badly conditioned representations.
+    Deep networks have many saddle points, flat directions, and equivalent parameterizations. Strict-saddle theory explains why negative-curvature saddles can be escaped by noise or perturbations, but deep-learning landscapes also contain non-isolated manifolds of equivalent solutions and long plateaus caused by scale symmetries, normalization, inactive units, or badly conditioned representations.
 
 6. **Overparameterization and global convergence**
 
-   Modern networks often have more parameters than training examples and can drive training loss nearly to zero. The main global-convergence theories include NTK or lazy-training limits, finite-width overparameterized convergence, mean-field limits, deep linear models, and matrix-factorization surrogates. These results are valuable, but each comes with a regime: lazy theory explains function-space kernel dynamics, while mean-field and feature-learning theories allow the representation itself to move.
+    Modern networks often have more parameters than training examples and can drive training loss nearly to zero. The main global-convergence theories include NTK or lazy-training limits, finite-width overparameterized convergence, mean-field limits, deep linear models, and matrix-factorization surrogates. These results are valuable, but each comes with a regime: lazy theory explains function-space kernel dynamics, while mean-field and feature-learning theories allow the representation itself to move.
 
 7. **Implicit bias, interpolation, noise, and geometry**
 
-   In overparameterized models, many parameters interpolate the data. Gradient methods therefore do more than minimize the loss; they select a particular interpolating solution. This section covers max-margin bias, norm and rank bias, post-interpolation dynamics, flat and sharp minima, stochastic gradient noise, batch size, neural collapse, mode connectivity, and spectral bias.
+    In overparameterized models, many parameters interpolate the data. Gradient methods therefore do more than minimize the loss; they select a particular interpolating solution. This section covers max-margin bias, norm and rank bias, post-interpolation dynamics, flat and sharp minima, stochastic gradient noise, batch size, neural collapse, mode connectivity, and spectral bias.
 
 8. **Optimizers: momentum, adaptive methods, and Muon**
 
-   Momentum changes the effective dynamics by accumulating velocity, adaptive methods such as AdaGrad, RMSProp, Adam, AMSGrad, and AdamW rescale coordinates, and matrix-structured methods such as K-FAC, Shampoo, SOAP, Muon, and Newton-Muon use richer geometry. These methods can speed convergence, stabilize training, or change implicit bias, but their theoretical guarantees are usually narrower than their empirical use.
+    Momentum changes the effective dynamics by accumulating velocity, adaptive methods such as AdaGrad, RMSProp, Adam, AMSGrad, and AdamW rescale coordinates, and matrix-structured methods such as K-FAC, Shampoo, SOAP, Muon, and Newton-Muon use richer geometry. These methods can speed convergence, stabilize training, or change implicit bias, but their theoretical guarantees are usually narrower than their empirical use.
 
 9. **Multi-objective and multitask convergence**
 
-   Many deep-learning objectives are sums of several losses: task losses, auxiliary losses, regularizers, alignment objectives, domain losses, and safety or preference terms. Optimizing a scalar sum is not the same as improving every component. The useful theory here is multi-objective optimization, Pareto stationarity, gradient conflict, and methods such as MGDA, PCGrad, CAGrad, and Nash-MTL.
+    Many deep-learning objectives are sums of several losses: task losses, auxiliary losses, regularizers, alignment objectives, domain losses, and safety or preference terms. Optimizing a scalar sum is not the same as improving every component. The useful theory here is multi-objective optimization, Pareto stationarity, gradient conflict, and methods such as MGDA, PCGrad, CAGrad, and Nash-MTL.
 
 10. **Learning-rate schedules and phase behavior**
 
-   Learning-rate schedules are not cosmetic. Constant learning rates, step decay, cosine decay, inverse-square-root decay, one-cycle schedules, warmup, and Warmup-Stable-Decay (WSD) can lead to different convergence paths. Large learning rates produce catapult dynamics, progressive sharpening, and edge-of-stability behavior; decay phases can be smooth, or they can reveal instability through spikes and oscillations.
+    Learning-rate schedules are not cosmetic. Constant learning rates, step decay, cosine decay, inverse-square-root decay, one-cycle schedules, warmup, and Warmup-Stable-Decay (WSD) can lead to different convergence paths. Large learning rates produce catapult dynamics, progressive sharpening, and edge-of-stability behavior; decay phases can be smooth, or they can reveal instability through spikes and oscillations.
 
 11. **LLM-specific convergence**
 
-   Large language model training is usually judged by tokens, compute, wall-clock time, and scaling-law extrapolation rather than by asymptotic convergence to a training-set minimizer. Important phenomena include compute-optimal stopping, warmup and WSD schedules, data-mixture effects, grokking or delayed generalization, epoch-wise and model-wise double descent, and non-monotone or multi-phase loss curves. The phrase "double maximum of the loss curve" is not standard; a better survey label is "non-monotone and multi-phase loss curves."
+    Large language model training is usually judged by tokens, compute, wall-clock time, and scaling-law extrapolation rather than by asymptotic convergence to a training-set minimizer. Important phenomena include compute-optimal stopping, warmup and WSD schedules, data-mixture effects, grokking or delayed generalization, epoch-wise and model-wise double descent, and non-monotone or multi-phase loss curves. The phrase "double maximum of the loss curve" is not standard; a better survey label is "non-monotone and multi-phase loss curves."
 
 12. **Methodology and open problems**
 
-   A convergence claim should specify the optimizer, schedule, batch size, normalization, initialization, width/depth regime, data order, compute budget, and diagnostic. Open problems include feature-learning theory at scale, optimizer-dependent implicit bias, Muon-style orthogonalized updates, LLM-specific phase transitions, multitask convergence criteria that predict transfer, and diagnostics that connect training convergence to downstream generalization.
+    A convergence claim should specify the optimizer, schedule, batch size, normalization, initialization, width/depth regime, data order, compute budget, and diagnostic. Open problems include feature-learning theory at scale, optimizer-dependent implicit bias, Muon-style orthogonalized updates, LLM-specific phase transitions, multitask convergence criteria that predict transfer, and diagnostics that connect training convergence to downstream generalization.
 
 ## 1. Notions of Convergence
 
