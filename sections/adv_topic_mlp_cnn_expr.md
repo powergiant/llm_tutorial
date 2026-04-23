@@ -71,16 +71,55 @@ required model size scales.
 
 ## 2. Universal Approximation
 
-If we do not know anything about the ground truth, the broadest question is
-whether an architecture can approximate every function in a large function
-space. For MLPs this usually means approximating every continuous function on a
-compact subset of $\mathbb{R}^d$, under a norm such as $L^\infty$.
+If we do not know anything about the ground truth, the broadest question is whether an architecture can approximate every function in a large function space. For MLPs this usually means approximating every continuous function on a compact subset of $\mathbb{R}^d$, under a norm such as $L^\infty$.
 
-Universal approximation is a qualitative baseline. It says that the model class
-is not fundamentally missing functions in the chosen target space. It does not
-say that the approximation is efficient. In high dimension, approximating an
-arbitrary function can require exponentially many parameters, so universal
-approximation by itself does not solve the practical expressiveness question.
+### A Standard Universal Approximation Theorem
+
+Let $K \subset \mathbb{R}^d$ be compact. Let $\sigma:\mathbb{R}\to\mathbb{R}$ be continuous and non-polynomial. Consider the one-hidden-layer network class
+$$
+\mathcal{N}_\sigma
+= \left\{
+x \mapsto \sum_{j=1}^m a_j \sigma(w_j \cdot x + b_j)
+:\; m \in \mathbb{N},\; a_j,b_j \in \mathbb{R},\; w_j \in \mathbb{R}^d
+\right\}.
+$$
+Then $\mathcal{N}_\sigma$ is dense in $C(K)$ with respect to the uniform norm: for every $f \in C(K)$ and every $\epsilon>0$, there exists $g \in \mathcal{N}_\sigma$ such that
+$$
+\sup_{x\in K} |f(x)-g(x)| \leq \epsilon.
+$$
+
+This is the simplest modern form of the universal approximation theorem. Older versions assumed a sigmoidal activation such as the logistic function; see [Cybenko 1989](https://doi.org/10.1007/BF02551274). The non-polynomial condition is the standard sharp condition for continuous activations; see [Leshno, Lin, Pinkus, and Schocken 1993](https://doi.org/10.1016/S0893-6080(05)80131-5). If $\sigma$ is a polynomial, then a one-hidden-layer network with activation $\sigma$ can only produce polynomials of bounded degree determined by $\sigma$, so it cannot be dense in $C(K)$.
+
+### Proof Sketch
+
+The proof is usually done by contradiction and uses a separation theorem from functional analysis. Let
+$$
+\mathcal{M}
+= \operatorname{span}\{\sigma(w\cdot x+b): w\in\mathbb{R}^d,\ b\in\mathbb{R}\}
+\subset C(K).
+$$
+We want to show that the uniform closure of $\mathcal{M}$ is all of $C(K)$. Suppose not. By the Hahn-Banach theorem, there exists a nonzero continuous linear functional $L$ on $C(K)$ such that $L(g)=0$ for all $g\in\mathcal{M}$. By the Riesz representation theorem, this functional has the form
+$$
+L(g)=\int_K g(x)\,d\mu(x)
+$$
+for some nonzero finite signed Borel measure $\mu$ on $K$. Therefore
+$$
+\int_K \sigma(w\cdot x+b)\,d\mu(x)=0
+\quad
+\text{for all } w\in\mathbb{R}^d,\ b\in\mathbb{R}.
+$$
+
+The key mathematical fact is that a non-polynomial activation has enough one-dimensional shifts and scalings to separate signed measures. For smooth activations, the intuition is that differentiating $\int_K \sigma(w\cdot x+b)\,d\mu(x)=0$ with respect to $w$ at $w=0$ produces equations involving all moments $\int_K x^\alpha\,d\mu(x)$, and a non-polynomial $\sigma$ supplies enough nonzero derivative orders to force all those moments, hence $\mu$, to vanish. In other words, if the above integral is zero for every ridge function $x\mapsto \sigma(w\cdot x+b)$, then $\mu$ must be the zero measure. This contradicts the choice of a nonzero $\mu$. Hence no nonzero continuous linear functional can annihilate the closure of $\mathcal{M}$, so the closure must be all of $C(K)$.
+
+For sigmoidal activations, this separating-measures step is often proved using limits. A large rescaling of $\sigma(w\cdot x+b)$ approaches an indicator of a half-space. If a measure integrates to zero over all such soft half-space indicators, then it assigns zero mass to all half-spaces, and hence must be the zero measure. For general non-polynomial continuous activations, the proof uses a more refined density result for ridge functions.
+
+The important conceptual point is that universal approximation is not proved by constructing the exact network we would train in practice. It is an existence argument: finite linear combinations of ridge functions are rich enough that no nonzero measure can be orthogonal to all of them.
+
+### What Universal Approximation Does and Does Not Say
+
+Universal approximation is a qualitative baseline. It says that the model class is not fundamentally missing functions in the chosen target space. It does not say that the approximation is efficient, stable, learnable, or easy to find by gradient descent.
+
+In high dimension, approximating an arbitrary continuous function can require exponentially many parameters. This is not a defect of the theorem; it is the curse of dimensionality. The theorem says that approximation is possible after allowing the width $m$ to grow, but it gives no useful guarantee that $m$ grows polynomially in $d$ or $1/\epsilon$ for an arbitrary target.
 
 When reading a universal approximation theorem, record:
 
@@ -89,6 +128,30 @@ When reading a universal approximation theorem, record:
 - the activation function;
 - the norm or topology;
 - whether depth, width, or both are allowed to grow.
+
+### Generalizations
+
+There are many universal approximation theorems. They differ mainly in the target function space, the activation assumptions, the architecture class, and the topology of approximation.
+
+**Activation and target-space variants.** Universal approximation depends both on the activation and on the topology of approximation. [Cybenko 1989](https://doi.org/10.1007/BF02551274) covers continuous sigmoidal activations, [Hornik, Stinchcombe, and White 1989](https://doi.org/10.1016/0893-6080(89)90020-8) treats broad feedforward-network approximation, and [Leshno, Lin, Pinkus, and Schocken 1993](https://doi.org/10.1016/S0893-6080(05)80131-5) gives the standard one-hidden-layer characterization: roughly, a locally bounded piecewise continuous activation gives density in $C(K)$ exactly when it is not an algebraic polynomial almost everywhere.
+
+- Common activations: sigmoid and tanh are covered by Cybenko's theorem because they are continuous sigmoidal functions; ReLU, leaky ReLU, ELU, and GELU are covered by the Leshno-Lin-Pinkus-Schocken characterization because each is locally bounded, piecewise continuous or continuous, and not equal almost everywhere to any algebraic polynomial. ReLU and leaky ReLU are piecewise linear but not a single global polynomial because the slope changes at $0$; ELU is piecewise-defined with an exponential branch; GELU contains the Gaussian CDF factor, so it is smooth but not polynomial.
+- $L^p$: Instead of uniform approximation on $C(K)$, one can ask for density in $L^p(K)$ for $1\leq p<\infty$. This is often easier because $L^p$ ignores sets of measure zero, but it is weaker than uniform approximation because it does not control the pointwise worst-case error.
+- Sobolev/Besov/Holder: Many theorems quantify how ReLU or piecewise-polynomial networks approximate functions in smoothness classes. [Yarotsky 2017](https://doi.org/10.1016/j.neunet.2017.07.002) is a canonical Sobolev-style reference for deep ReLU approximation, and [Petersen and Voigtlaender 2018](https://doi.org/10.1016/j.neunet.2018.08.019) studies optimal approximation of piecewise smooth functions, including discontinuities across smooth hypersurfaces.
+- Non-continuous targets: ReLU, sigmoid, and tanh networks are continuous functions of the input, so they cannot uniformly approximate a discontinuous function on a compact domain. They can approximate discontinuous functions in $L^p$, or uniformly away from the discontinuity set; this matters for classification, where the label function may be discontinuous but the score or probability function is often modeled continuously.
+
+
+**Vector-valued functions.** For functions $f:K\to\mathbb{R}^q$, universality usually follows by approximating each coordinate separately and stacking the outputs. The deep narrow network result of [Kidger and Lyons 2020](https://proceedings.mlr.press/v125/kidger20a.html) states a vector-valued version directly: for input dimension $n$ and output dimension $m$, width $n+m+2$ is enough under mild nonaffine activation assumptions. The parameter count may still scale at least linearly with $q$ unless the coordinates share structure.
+
+**Approximation rates and parameter counts.** Qualitative universality does not give rates. Quantitative approximation theory asks for the number of parameters $N(\epsilon,\mathcal{F})$ needed so that every $f$ in a target class $\mathcal{F}$ can be approximated to error $\epsilon$. For generic $s$-smooth functions on $[0,1]^d$, rates typically scale like
+$$
+N(\epsilon,\mathcal{F}) \approx \epsilon^{-d/s}
+$$
+up to architecture- and norm-dependent details. This exponential dependence on $d$ is the curse of dimensionality. [Yarotsky 2017](https://doi.org/10.1016/j.neunet.2017.07.002) and [Yarotsky 2018](https://proceedings.mlr.press/v75/yarotsky18a.html) are representative ReLU approximation-rate papers with matching or near-matching upper and lower bounds. Better rates require additional structure, such as low intrinsic dimension, sparsity, compositional form, locality, or symmetry.
+
+### Takeaway
+
+The universal approximation theorem justifies MLPs as a very general ansatz: with a standard non-polynomial activation, even one hidden layer can approximate any continuous function on a compact domain. But universality alone is a weak guarantee. For deep learning, the main question is quantitative: which functions can be approximated with a reasonable number of parameters, and which architectural biases reduce the dependence on dimension?
 
 ## 3. Expressiveness of MLPs
 
@@ -141,6 +204,12 @@ Special test cases make these issues concrete:
 Useful complexity measures include depth, width, number of neurons, number of
 nonzero parameters, weight magnitude, and number of linear regions. These should
 not be conflated.
+
+### TODO: Approximation Rates and MLP Resource Tradeoffs
+
+**Fixed-depth versus growing-depth networks.** The theorem above already shows that depth two, meaning one hidden layer plus a linear output layer, is enough for qualitative universality. Deeper networks are not needed for mere density in $C(K)$. Depth matters for efficiency: [Yarotsky 2017](https://doi.org/10.1016/j.neunet.2017.07.002) gives upper and lower approximation bounds for deep ReLU networks on Sobolev-type smoothness classes, while [Telgarsky 2016](https://proceedings.mlr.press/v49/telgarsky16.html) gives depth-separation examples where deeper networks represent oscillatory functions much more efficiently than shallow networks.
+
+**Minimal width results.** For ReLU networks on compact subsets of $\mathbb{R}^d$, depth can grow while width is fixed. [Lu, Pu, Wang, Hu, and Wang 2017](https://arxiv.org/abs/1709.02540) studies universality from the viewpoint of width, and [Hanin and Sellke 2017](https://arxiv.org/abs/1710.11278) shows the sharp scalar ReLU threshold: width $d+1$ is enough for universal approximation of continuous functions on compact domains, while width at most $d$ is not enough in general. Thus universality can be achieved by either making a shallow network very wide or making a narrow network sufficiently deep.
 
 ## 5. Expressiveness of CNNs
 
@@ -215,3 +284,11 @@ These examples suggest a better way to organize CNN expressiveness:
 - Compare CNNs with locally connected networks and fully connected networks to separate the effects of locality and sharing.
 
 This is closer to the real picture than asking only whether CNNs are universal. The main question is: for which image-inspired ground-truth classes do CNNs achieve better parameter or sample complexity than less structured networks?
+
+### TODO: CNN Universality and Symmetry-Constrained Universality
+
+**CNNs and structured architectures.** CNNs can also be universal, but the statement depends on padding, channel count, pooling, boundary handling, and whether fully connected layers are allowed at the end. [Zhou 2020](https://doi.org/10.1016/j.acha.2019.06.004) proves a universality theorem for deep CNNs, showing that depth can compensate for convolutional weight sharing in a qualitative approximation sense. The more interesting question is not universality itself, but whether the CNN approximates translation-structured or local functions with fewer parameters than an unconstrained MLP.
+
+**Invariant and equivariant networks.** If the target is known to be invariant or equivariant under a group action, then the relevant universal approximation theorem should be restricted to that function class. [Zaheer et al. 2017](https://papers.nips.cc/paper/6931-deep-sets) characterizes permutation-invariant set functions and motivates the Deep Sets architecture, while [Keriven and Peyre 2019](https://arxiv.org/abs/1905.04943) proves universality results for invariant and equivariant graph networks. These theorems are more useful than unrestricted universality when the ground truth has symmetry.
+
+**Residual networks and other modern architectures.** ResNets, neural ODE models, graph neural networks, and transformers each have their own universality results under suitable assumptions. For example, [Yun et al. 2020](https://arxiv.org/abs/1912.10077) proves universal approximation results for transformers as sequence-to-sequence models. The same lesson applies: qualitative density is usually only the first test. The central expressiveness question is whether the architecture gives an efficient representation of the target family we actually care about.
