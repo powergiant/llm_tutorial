@@ -2,450 +2,216 @@
 
 ## Outline
 
+As discussed in the basic machine learning section, the learning problem starts from an unknown ground-truth function $f$. We choose a parametric model family, or ansatz $\{f_\theta : \theta \in \Theta\}$, collect data $\{(x_i, y_i)\}_{i=1}^n$ related to $f$ such that $y_i = f(x_i)$, and then use the data to select a parameter $\theta$. Expressiveness asks a question that comes before optimization and generalization: can some $f_\theta$ in the chosen family represent or approximate the ground truth $f$ at all?
+
 1. Notions of expressiveness
+
+   First we clarify what it means for an architecture to be expressive. The most direct question is whether the model family can approximate any ground truth $f$. A stronger question is whether it can approximate every function in a smaller target class $\mathcal{F}$, and how many parameters are needed to achieve a given accuracy. This section also discusses how to design simple controlled experiments for testing expressiveness: choose a known target family, match parameter budgets, and measure approximation error against the known ground truth.
+
 2. Universal approximation
+
+   If we do not know anything about the ground truth, the natural question is whether the architecture can approximate any function in a large ambient function space. This is the universal approximation problem. Universal approximation is a qualitative baseline: it tells us that the model family is not missing whole classes of targets, but it usually does not tell us whether the required number of parameters is reasonable.
+
 3. Expressiveness of MLPs
-4. Expressiveness of CNNs
-5. Locality, weight sharing, pooling, and receptive fields
-6. Equivariance, invariance, and group-symmetric architectures
-7. Metadata to record when surveying papers
 
-TODO: revise this section according to the following
-
-first explain that as discussed in the basic machine learning section, the basic task is we have ground truth $f$, we choose ansatz, ..., data, find parameter from data. question is if the family can really repr or approx the ground truth. 
-
-so we first intro Notions of expressiveness, approximate the ground truth and for small family of ground truth if can cover all in the family using how many parameters 1
-
-if we do not know anything about ground truth, we ask if the family is able to approximate any function this is universal app 2
-
-as in xxx, universal app often requies exponential params, then if we know the ground truth is compositional can we save parameter? also if no prior for any function can mlp improve? 3 (also Depth, width, and representation tradeoffs, and for special examples of functions Step functions, Boolean functions, and finite-sample memorization)
-
-what is locality? what is invariance? if ground truth local and invariance, can cnn save parameters? also analyze expressiveness in some simple cases capture the real picture
-
-## 1. Notions of Expressiveness 
-
-
-
-
-The word "expressiveness" is used in several different ways. For this topic, the
-useful notions are the ones that directly compare a network class with a target
-function class. A survey should state the notion first; otherwise two papers may
-look comparable even though they answer different questions.
-
-### Exact Representability
-
-Exact representability asks whether a target function \(f\) belongs exactly to a
-network class \(\mathcal{N}\). In other words, does there exist a choice of
-architecture parameters such that \(N(x) = f(x)\) on the whole domain?
-
-This is the strongest notion. It is natural for finite domains, Boolean
-functions, piecewise-linear functions, polynomial-like constructions, and
-architecture-specific algebraic analyses. It is less natural for discontinuous
-functions on continuous domains when the network class is continuous. For
-example, a ReLU network cannot exactly represent a discontinuous step function on
-all of \(\mathbb{R}^d\), because every ReLU network is continuous.
-
-When reading an exact-representation result, record the domain carefully. Exact
-representation on \(\{0,1\}^d\) is very different from exact representation on a
-continuous subset of \(\mathbb{R}^d\).
-
-### Universal Approximation
-
-Universal approximation asks whether a network class can approximate every
-function in a target function space arbitrarily well. Formally, for each target
-function \(f\), error tolerance \(\epsilon > 0\), and norm or metric \(d\), does
-there exist a network \(N\) such that \(d(N, f) < \epsilon\)?
-
-This notion answers a qualitative question: is the architecture expressive
-enough in principle? It does not say whether the required network is small,
-trainable, stable, or practical. A one-hidden-layer MLP may be universal, but the
-width required for a given accuracy can be enormous.
-
-Important details:
-
-- Target space: continuous functions, \(L^p\) functions, measurable functions,
-  invariant functions, equivariant functions, or another class
-- Domain: compact subset of \(\mathbb{R}^d\), discrete cube, image grid, or group
-  domain
-- Error notion: uniform norm, \(L^p\) norm, weak approximation, or finite-sample
-  error
-- Architecture constraints: fixed depth, bounded width, convolutional structure,
-  equivariance, pooling, or channel restrictions
-
-### Quantitative Approximation
-
-Quantitative approximation asks how efficiently a network approximates a target
-function class. Instead of only asking whether approximation is possible, it asks
-how the error decreases as the network size increases.
-
-A typical result has the form: functions in some class \(\mathcal{F}\) can be
-approximated to error \(\epsilon\) by networks with depth \(L\), width \(W\), or
-parameter count \(P\), where these quantities scale in a specified way with
-\(\epsilon\), dimension \(d\), and smoothness or structural assumptions on
-\(\mathcal{F}\).
-
-This is often more informative than universal approximation because it exposes
-the cost of approximation. It can show, for example, whether an architecture
-suffers from the curse of dimensionality, whether compositional structure helps,
-or whether convolutional locality gives a parameter advantage for spatially
-structured functions.
-
-When comparing quantitative results, do not compare only the final rate. Also
-record the target function class, norm, allowed weight sizes, depth, width,
-number of parameters, and whether the construction is explicit.
-
-### Efficient Representation and Separation
-
-Separation results compare two architectures or two resource regimes. The goal is
-to show that one network class represents or approximates some functions much
-more efficiently than another.
-
-Typical examples:
-
-- Deep networks versus shallow networks
-- Narrow deep networks versus wide shallow networks
-- CNNs versus fully connected networks
-- CNNs versus locally connected networks without weight sharing
-- Overlapping convolutional architectures versus non-overlapping ones
-
-A separation result usually has two parts: an upper bound for the stronger
-architecture and a lower bound for the weaker architecture. For example, a deep
-network may approximate a function with polynomially many parameters, while any
-shallow network needs exponentially many parameters.
-
-These results are useful because they formalize statements such as "depth helps"
-or "locality helps." However, the hard functions used in separations may be
-special constructions, so the survey should distinguish worst-case separation
-from evidence about typical practical tasks.
-
-### Finite-Sample Interpolation and Memorization
-
-Finite-sample interpolation asks whether a network can fit arbitrary labels on a
-finite set of inputs. Given samples \((x_i, y_i)_{i=1}^n\), does there exist a
-network \(N\) such that \(N(x_i) = y_i\) for every sample?
-
-This notion is useful for understanding overparameterization and memorization.
-It is not the same as universal approximation. Interpolating finitely many
-points says that the network can fit a dataset, but it says little by itself
-about behavior away from those points or about generalization.
-
-Important assumptions include:
-
-- Whether the inputs are distinct, separated, or in general position
-- Whether labels are scalar, vector-valued, Boolean, or real-valued
-- How many parameters or neurons are needed as a function of sample size
-- Whether the interpolation construction is robust to perturbations
-
-### Auxiliary Proxies
-
-Some papers use proxies such as number of linear regions, trajectory length,
-oscillation count, tensor rank, or separation rank. These quantities are useful
-diagnostics, but they should not be treated as expressiveness itself unless they
-are connected to an approximation or representation theorem.
-
-For example, a larger number of linear regions suggests greater geometric
-complexity, but it does not automatically imply better approximation of a target
-function class. In this note, such quantities should be recorded as supporting
-tools rather than primary notions.
-
-## 2. Expressiveness of MLPs
-
-### Classical Universality
-
-The first MLP topic is the classical universal approximation theorem. Important
-questions include:
-
-- Which activation functions are sufficient for universality?
-- Is the target function continuous, measurable, or in an \(L^p\) space?
-- Is the domain compact or non-compact?
-- Does the theorem require one hidden layer, arbitrary width, or arbitrary depth?
-
-This section should include Cybenko, Hornik, Leshno-type results, and later
-refinements.
-
-### Minimal Conditions for Universality
-
-Beyond the existence of universal approximation, a sharper question is what
-architectural conditions are necessary.
-
-- Minimal width needed for ReLU networks to be universal
-- How depth can compensate for limited width
-- What fails when width is below the critical threshold
-- Whether bounded-width networks can still be universal with sufficient depth
-
-### Quantitative Approximation Theory
-
-Universality alone does not explain efficiency. A more informative theory asks
-how many neurons or parameters are needed to approximate structured function
-classes.
-
-Important target classes include:
-
-- Barron or Fourier-type function classes
-- Sobolev, Besov, and Holder classes
-- Analytic functions
-- Functions supported near low-dimensional manifolds
-- Compositional or hierarchical functions
-
-## 3. Depth, Width, and Representation Tradeoffs
-
-### Depth-Separation Results
-
-This is the main formal version of the claim that multiple layers improve
-expressiveness. The goal is to identify functions that a deep network represents
-efficiently but any shallow network represents only with exponentially many
-units or parameters.
-
-Representative themes:
-
-- Eldan-Shamir type separation between two-layer and three-layer networks
-- Telgarsky oscillation and sawtooth constructions
-- Safran-Shamir style separations for natural geometric functions
-- Radial, ball-indicator, or compositional hard examples
-
-### Compositional Structure
-
-Depth is especially useful when the target function has a hierarchical or
-compositional structure. A deep network can mirror the structure of the target,
-while a shallow network may need many more units.
-
-Survey questions:
-
-- What compositional assumptions are made?
-- Are the approximation rates dimension-dependent or dimension-free?
-- Is the result constructive?
-- Does the theorem distinguish depth from parameter count?
-
-### Complexity Measures
-
-Different papers measure network size differently. A useful survey should record
-which measure is used.
-
-- Depth
-- Width
-- Number of neurons
-- Number of nonzero parameters
-- Weight magnitude or bit complexity
-- Number of linear regions
-- Rank or separation rank
-
-## 4. Step Functions, Boolean Functions, and Memorization
-
-The original topic "MLP fits finite step function, finite step Boolean function"
-should be split into several separate questions.
-
-### Step, Indicator, and Piecewise-Constant Functions
-
-ReLU networks are continuous functions on \(\mathbb{R}^d\), so discontinuous
-step functions are usually approximation targets rather than exact
-representation targets on continuous domains.
-
-Topics to separate:
-
-- Indicators of intervals, halfspaces, balls, and polytopes
-- Piecewise-constant functions on continuous domains
-- Approximation in \(L^p\), uniform, or weak senses
-- Exact representation after restricting the domain or using discontinuous
-  activations
-
-### Boolean Functions
-
-Boolean functions on \(\{0,1\}^d\) are different from continuous-domain step
-functions. Since the domain is finite, exact representation becomes possible in
-ways that do not contradict continuity on \(\mathbb{R}^d\).
-
-Important connections:
-
-- Threshold circuits
-- Parity, majority, disjointness, and inner-product functions
-- Exact representation of arbitrary Boolean functions
-- Lower bounds for shallow threshold, ReLU, or polynomial threshold circuits
-
-### Finite-Sample Interpolation and Memorization
-
-This line studies the ability of a network to fit arbitrary labels on a finite
-set of samples.
-
-Questions to track:
-
-- How many samples can a network memorize?
-- How many neurons, layers, or parameters are needed?
-- Does depth reduce the interpolation cost?
-- Are the inputs assumed to be in general position?
-- Is the construction stable or merely existential?
+   Universal approximation for MLPs can require exponentially many parameters when the target is an arbitrary high-dimensional function. Therefore the next question is whether MLPs become efficient when the ground truth has additional structure. A central example is compositional structure: if $f$ is built from simpler lower-dimensional functions, can a deep MLP represent or approximate it with far fewer parameters than a shallow model? Even without assuming that the target function itself has a known compositional structure, the Kolmogorov-Arnold theorem shows that continuous multivariate functions can be represented through compositions of univariate functions, giving a different perspective on the expressive power of composition.
+
+4. More on expressiveness of MLPs
+
+   After the basic MLP results, we study depth, width, and parameter tradeoffs. The same function may be easy for a deep network but expensive for a shallow one, or easy with enough width but impossible below a width threshold. Special test cases such as step functions, Boolean functions, and finite-sample memorization help make these questions concrete. They should be separated because approximation on continuous domains, exact representation on $\{0,1\}^d$, and interpolation of finite datasets are different problems.
+
+5. Expressiveness of CNNs
+
+   CNNs are motivated by structured ground truths. Locality means the target depends mainly on nearby variables or local patterns. Invariance means the output should not change under certain transformations, while equivariance means the output transforms predictably when the input is transformed. If the ground truth has locality, translation structure, invariance, or equivariance, CNNs may approximate it with fewer parameters than fully connected networks.
+
+6. More on expressiveness of CNNs
+
+   To understand what CNNs really gain, we should analyze simple image-inspired
+   function classes rather than only arbitrary functions. The useful toy models
+   are functions of patches, functions that detect a local feature appearing at
+   any location, local compositional functions, and translation-invariant or
+   shift-equivariant maps. Recent theory studies such classes directly, for
+   example by comparing CNNs, locally connected networks, and fully connected
+   networks on patch-based image tasks. These results help isolate when the gain
+   comes from locality, when it comes from weight sharing, and when it comes from
+   pooling or equivariant structure.
+
+## 1. Notions of Expressiveness
+
+Expressiveness asks whether the chosen ansatz can represent or approximate the
+ground truth. The basic object is the approximation error
+$$
+\inf_{\theta \in \Theta} d(f_\theta, f),
+$$
+where $d$ is a task-appropriate metric, such as $L^2$, $L^\infty$,
+classification error, or empirical error on samples.
+
+For a single target $f$, expressiveness means that this error can be made
+small. For a target family $\mathcal{F}$, expressiveness asks whether every
+$f \in \mathcal{F}$ can be approximated and how many parameters are needed:
+$$
+\forall f \in \mathcal{F}, \quad \exists f_\theta
+\quad \text{such that} \quad d(f_\theta, f) \leq \epsilon.
+$$
+The parameter count needed as a function of $\epsilon$, dimension, and the
+structure of $\mathcal{F}$ is the main quantitative measure.
+
+There are three useful levels:
+
+- Exact representation: some $f_\theta$ equals $f$ on the relevant domain.
+- Approximation: some $f_\theta$ is within error $\epsilon$ of $f$.
+- Efficient approximation: the required depth, width, or parameter count grows
+  slowly with dimension and $1/\epsilon$.
+
+To test expressiveness experimentally, choose a known target family, generate
+data from it, train several architectures under matched parameter budgets, and
+measure error against the known ground truth rather than only training loss.
+Varying dimension, smoothness, locality, or compositional depth reveals how the
+required model size scales.
+
+## 2. Universal Approximation
+
+If we do not know anything about the ground truth, the broadest question is
+whether an architecture can approximate every function in a large function
+space. For MLPs this usually means approximating every continuous function on a
+compact subset of $\mathbb{R}^d$, under a norm such as $L^\infty$.
+
+Universal approximation is a qualitative baseline. It says that the model class
+is not fundamentally missing functions in the chosen target space. It does not
+say that the approximation is efficient. In high dimension, approximating an
+arbitrary function can require exponentially many parameters, so universal
+approximation by itself does not solve the practical expressiveness question.
+
+When reading a universal approximation theorem, record:
+
+- the function space being approximated;
+- the domain;
+- the activation function;
+- the norm or topology;
+- whether depth, width, or both are allowed to grow.
+
+## 3. Expressiveness of MLPs
+
+For MLPs, the first question is classical universality: under what conditions on
+the activation function and architecture can an MLP approximate arbitrary
+continuous functions? This explains why MLPs are a reasonable general ansatz,
+but it does not explain when they are parameter-efficient.
+
+The next question is whether MLPs exploit structure in the ground truth. If
+$f$ is compositional, hierarchical, sparse, smooth, or low-dimensional in some
+sense, an MLP may approximate it with fewer parameters than would be needed for
+an arbitrary function. Depth is especially relevant for compositional structure:
+a deep network can mirror the nested structure of the target.
+
+There is also a separate composition viewpoint from the Kolmogorov-Arnold
+theorem. Even without assuming that the target comes with a known compositional
+structure, continuous multivariate functions admit representations using
+compositions of univariate functions. This gives a conceptual reason to study
+composition as a source of expressiveness, though it does not by itself settle
+practical approximation rates for standard neural networks.
+
+Main MLP questions:
+
+- Which activation functions give universality?
+- What target classes admit efficient approximation?
+- How do approximation rates depend on dimension and smoothness?
+- When does depth reduce the number of required parameters?
+
+## 4. More on Expressiveness of MLPs
+
+Depth, width, and parameter count should be treated as different resources. A
+function may be easy for a deep network but expensive for a shallow one; another
+function may require a minimum width before approximation is possible. Depth
+separation results formalize this by giving functions that deep networks
+represent or approximate with far fewer parameters than shallow networks.
+
+Special test cases make these issues concrete:
+
+- Step and indicator functions test approximation of discontinuities or sharp
+  decision boundaries on continuous domains. Since ReLU networks are continuous,
+  discontinuous step functions are usually approximation targets, not exact
+  representation targets, on $\mathbb{R}^d$.
+- Boolean functions on $\{0,1\}^d$ are finite-domain problems. Exact
+  representation is possible in ways that are different from continuous-domain
+  approximation, and the topic connects to threshold circuits.
+- Finite-sample memorization asks whether a network can fit arbitrary labels
+  $(x_i, y_i)$. This measures interpolation capacity, but it does not imply
+  good approximation away from the sample points.
+
+Useful complexity measures include depth, width, number of neurons, number of
+nonzero parameters, weight magnitude, and number of linear regions. These should
+not be conflated.
 
 ## 5. Expressiveness of CNNs
 
-### CNN Universality
+CNNs are designed for ground truths with spatial structure. The key question is
+not only whether CNNs are universal, but whether they approximate structured
+functions more efficiently than fully connected networks.
 
-The first CNN question is whether convolutional architectures are universal
-approximators under suitable assumptions.
+The relevant structures are:
 
-Important variables:
+- Locality: the output depends on nearby variables or local patterns.
+- Weight sharing: the same local rule is reused across positions.
+- Invariance: transforming the input should not change the output.
+- Equivariance: transforming the input should transform the output in a
+  predictable way.
 
-- Kernel size
-- Number of channels
-- Depth
-- Padding and boundary treatment
-- Downsampling or pooling
-- Whether the final layers are convolutional or fully connected
+For example, image classification often benefits from approximate translation invariance, while segmentation benefits from translation equivariance. A CNN can save parameters when the same local pattern matters at many positions, because convolution reuses weights rather than learning separate parameters for each location.
 
-### Approximation Advantages on Structured Targets
+Main CNN questions:
 
-CNNs are most compelling when the target function has spatial or local
-structure. This section should focus on when convolutional networks approximate
-such functions more efficiently than generic fully connected networks.
+- Under what conditions are CNNs universal?
+- Which structured target classes do CNNs approximate efficiently?
+- Which gains come from locality and which come from weight sharing?
+- How much depth is needed for local information to combine into global
+  information?
 
-Examples of structure:
+## 6. More on Expressiveness of CNNs
 
-- Local interactions
-- Translation-related patterns
-- Sparse or hierarchical spatial dependencies
-- Radial or compositional functions
-- Multiscale structure
+To understand CNN expressiveness, it is useful to study simple function classes inspired by pictures. The goal is not to model natural images perfectly. The goal is to isolate the structures that make CNNs useful: local patches, repeated features, spatial composition, and translation symmetry.
 
-### CNN Linear-Region Complexity
+### Patch-Based Image Functions
 
-For ReLU CNNs, one can study expressiveness through the number of linear
-regions, similar to the MLP literature.
+A simple image model divides the input into $k$ patches, each of dimension
+$d$. The label may depend on whether a signal or feature appears in one of the patches. This captures two basic properties of image tasks:
 
-Key questions:
+- locality: the relevant signal is contained in a small patch;
+- translation structure: the same signal may appear at many possible locations.
 
-- How many linear regions can a CNN create?
-- How does this compare with a fully connected ReLU network using the same
-  number of parameters?
-- How do convolution, channel count, and depth affect the count?
+One relevant result is the Dynamic Signal Distribution task in Lahoti, Karp, Winston, Singh, and Li. The task models an image as $k$ patches with a sparse signal that can appear in any patch. Their ICLR 2024 result gives a sample complexity separation: CNNs need about $\tilde O(k+d)$ samples, while locally connected networks need $\Omega(kd)$ samples; they also separate locally connected networks from fully connected networks. This is a clean theoretical model for the benefits of weight sharing and locality in image-like tasks. See [Lahoti et al. 2024](https://proceedings.iclr.cc/paper_files/paper/2024/hash/71b17f00017da0d73823ccf7fbce2d4f-Abstract-Conference.html).
 
-## 6. Locality, Weight Sharing, Pooling, and Receptive Fields
+### Local Compositional Functions
 
-CNN expressiveness should not be treated as one single phenomenon. Several
-architectural ingredients should be separated.
+Another simple class consists of functions built by repeatedly combining nearby features. This resembles the way CNN layers combine local edges or textures into larger patterns. In this setting, depth is important because each layer expands the effective receptive field and combines local information into more global features.
 
-### Locality
+Approximation results for CNNs show that convolutional architectures can be advantageous for target classes with compositional form. Bao, Li, Shen, Tai, Wu, and Xiang analyze CNN approximation and show that, for certain compositional target classes, CNNs can be more parameter-efficient than fully connected networks. See [Bao et al. 2023](https://global-sci.org/index.php/EAJAM/article/view/9619).
 
-Locality means each unit only sees a local neighborhood of the previous layer.
-It can reduce the number of parameters and match local structure, but may also
-restrict information flow unless depth is sufficient.
+### Translation-Invariant and Shift-Equivariant Functions
 
-Survey questions:
+For classification, the desired output is often approximately invariant to
+translation: moving an object should not change the class. For dense prediction tasks such as segmentation, the desired map is often shift-equivariant: shifting the input should shift the output.
 
-- When does locality help approximation efficiency?
-- When does locality restrict representability?
-- How much depth is needed for global interactions?
+This distinction matters. Convolutions are naturally translation-equivariant, not translation-invariant. Invariance usually requires additional operations such as pooling, global aggregation, or training over translated examples. Empirical work also shows that standard CNN classifiers are not automatically translation invariant in all settings, although they can learn invariance from suitable data. See [Biscione and Bowers 2021](https://www.jmlr.org/papers/v22/21-0019.html).
 
-### Weight Sharing
+There are also approximation results for invariant function classes. For example, Li, Lin, and Shen study approximation of permutation-invariant functions, including translation-invariant functions relevant to image tasks, using symmetry-constrained deep architectures. See [Li, Lin, and Shen 2024](https://www.jmlr.org/papers/v25/22-0982.html).
 
-Weight sharing distinguishes CNNs from locally connected networks. It imposes a
-translation-related structural constraint and can improve parameter efficiency.
+### Feature-Detection Models
 
-Compare:
+A picture-inspired expressiveness question is whether a CNN can implement
+feature extraction: detect whether a local pattern appears somewhere in the
+image and then classify based on the detected feature. This is the simplest
+abstraction of many visual tasks.
 
-- Fully connected networks
-- Locally connected networks without weight sharing
-- Convolutional networks with shared weights
+Some recent preprints study mathematical models of image classification based on feature extraction and construct CNNs that realize such feature-detection functions. These are useful as toy models, even when they are not yet canonical theorems. See the OpenReview preprint [Revisiting the expressiveness of CNNs](https://openreview.net/forum?id=BDUB1wWR1X).
 
-### Overlapping Receptive Fields
+### What to Take From These Simple Classes
 
-Overlapping receptive fields are not merely an implementation detail. They can
-change the expressive power of the architecture.
+These examples suggest a better way to organize CNN expressiveness:
 
-Questions:
+- Use patch tasks to test locality and weight sharing.
+- Use local compositional functions to test the role of depth.
+- Use translation-invariant functions to test classification-style symmetry.
+- Use shift-equivariant maps to test dense-prediction-style symmetry.
+- Compare CNNs with locally connected networks and fully connected networks to separate the effects of locality and sharing.
 
-- Do overlapping filters give exponential gains over non-overlapping filters?
-- How does overlap affect depth efficiency?
-- How does it interact with pooling?
-
-### Pooling
-
-Pooling choices can change what functions a CNN can represent efficiently.
-
-Topics:
-
-- Max pooling versus average pooling
-- Pooling as a source of invariance
-- Pooling in tensor-decomposition analyses
-- Whether pooling loses information needed for exact representation
-
-### Tensor and Rank Viewpoints
-
-Some CNN expressiveness results are best understood through tensor
-decompositions and rank measures.
-
-Important notions:
-
-- Convolutional arithmetic circuits
-- Separation rank
-- Hierarchical tensor decompositions
-- Complete and incomplete depth efficiency
-
-## 7. Equivariance, Invariance, and Group-Symmetric Architectures
-
-### Shift-Equivariant CNNs
-
-Fully convolutional networks naturally represent shift-equivariant maps. This
-should be separated from generic CNN universality.
-
-Questions:
-
-- Which shift-equivariant functions can fully convolutional networks
-  approximate?
-- What channel and kernel-size conditions are necessary?
-- When is a fully convolutional architecture universal within the class of
-  equivariant functions?
-
-### Group-Equivariant and Invariant Networks
-
-The broader equivariant-network literature extends CNN ideas from translations
-to general groups.
-
-Topics:
-
-- Universality for invariant networks
-- Universality for equivariant networks
-- When higher-order tensor features are required
-- Distinction between separating group orbits and approximating all continuous
-  invariant functions
-
-## 8. Metadata for Paper Survey
-
-For every paper in the eventual survey, record the following information.
-
-- Architecture: MLP, CNN, locally connected network, fully convolutional
-  network, group-equivariant network, or another variant
-- Activation function: ReLU, sigmoid, threshold, polynomial, maxout, or other
-- Domain: \(\mathbb{R}^d\), compact subset of \(\mathbb{R}^d\),
-  \(\{0,1\}^d\), grid/image domain, or group domain
-- Target function class: continuous, \(L^p\), Sobolev, Boolean,
-  compositional, invariant, equivariant, finite sample labels
-- Expressiveness notion: exact representation, universal approximation,
-  quantitative rate, interpolation, linear regions, rank, or separation theorem
-- Error metric: uniform norm, \(L^p\), classification error, weak
-  approximation, finite-sample loss, or another metric
-- Complexity measure: depth, width, neurons, parameters, nonzero parameters,
-  channels, kernel size, rank, or weight magnitude
-- Result type: upper bound, lower bound, equivalence, separation, or
-  construction
-- Main limitation: restrictive assumptions, nonconstructive proof, large
-  constants, special target function, or mismatch with practical CNNs
-
-## Condensed Survey Map
-
-- MLP universality
-- Minimal width and depth conditions for MLP universality
-- Quantitative MLP approximation rates
-- Depth-separation theorems
-- Compositional and hierarchical target functions
-- Exact versus approximate representation of step and indicator functions
-- Boolean functions and circuit-complexity connections
-- Finite-sample interpolation and memorization
-- Linear-region and geometric expressiveness proxies
-- CNN universality
-- CNN approximation advantages on structured targets
-- Locality, weight sharing, and comparisons with fully connected or locally
-  connected networks
-- Overlapping receptive fields
-- Pooling effects
-- Tensor and rank formulations of CNN expressiveness
-- CNN linear-region complexity
-- Shift-equivariant fully convolutional universality
-- Group-equivariant and invariant universality
+This is closer to the real picture than asking only whether CNNs are universal. The main question is: for which image-inspired ground-truth classes do CNNs achieve better parameter or sample complexity than less structured networks?

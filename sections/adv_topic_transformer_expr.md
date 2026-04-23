@@ -1,5 +1,7 @@
 # Expressiveness of transformers
 
+expressiveness of long context test, niah
+
 no cot as a bounded circuit
 
 has cot parameter expressiveness
