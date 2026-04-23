@@ -7,7 +7,7 @@ As in the MLP and CNN section, the basic expressiveness question starts from a g
 
 1. Model assumptions and resource regime
 
-   The first task is to specify the computational regime. The most important distinction is between sequence length and model size, together with the form of inference: one-pass prediction or iterative generation, with or without chain of thought, prompting, tool use, or more agentic multi-step interaction. A second distinction is architectural: encoder versus decoder, encoder-decoder versus decoder-only, and transformer versus recurrent or other sequential models. A third distinction concerns lower-level structural assumptions such as positional information, masking, numerical precision, and whether context length is fixed or grows. These choices determine which complexity-theoretic comparison is relevant, and they explain why different transformer models are connected to different function classes, ranging from low-depth circuit classes such as $\mathsf{AC}^0$ and $\mathsf{TC}^0$ to polynomial-time computation and, in more idealized settings, Turing completeness.
+   We first specify the computational regime. The most important distinction is between sequence length and model size, together with the form of inference: one-pass prediction or iterative generation, with or without chain of thought, prompting, or more agentic interaction. A second distinction is architectural: encoder versus decoder, encoder-decoder versus decoder-only, and transformer versus recurrent or other sequential models. A third distinction concerns structural assumptions such as positional information, masking, and numerical precision. We will also explain the relevant complexity classes and roughly which assumptions lead to classes ranging from $\mathsf{AC}^0$ and $\mathsf{TC}^0$ to polynomial-time computation and, in more idealized settings, Turing completeness.
 
 2. No-CoT transformers as bounded parallel computation
 
@@ -15,52 +15,39 @@ As in the MLP and CNN section, the basic expressiveness question starts from a g
 
 3. Chain of thought as a general computation
 
-    distinguish parameter expressiveness and prompt expressiveness the first one correspond to learning and second one correspond to execution
-
-    CoT changes the resource model because the model can write intermediate tokens and then attend to them. With trainable parameters, this can strictly increase computational expressiveness: $T$ generated steps act like $T$ rounds of sequential workspace. With a frozen pretrained model, CoT prompting is better viewed as steering or eliciting computations that the backbone can already implement, unless the prompt is allowed to be a powerful learned prefix in a theoretical construction.
+   We distinguish parameter expressiveness and prompt expressiveness: the first corresponds more to learning, while the second corresponds more to execution. CoT changes the resource model because the model can write intermediate tokens and then attend to them, so the transformer is no longer only a bounded parallel computation. With trainable parameters, CoT can simulate much more general sequential machines; in the formal literature this is what leads from circuit-style expressiveness toward polynomial-time computation, and in more idealized settings toward Turing completeness. With a frozen pretrained model, CoT prompting is better viewed as steering or eliciting computations that the backbone can already implement, unless the prompt is allowed to be a powerful learned prefix in a theoretical construction.
 
 4. Case studies
 
-    case studies in non-cot and cot case. 
-    
-    Formal languages, logic, and counting Memory, associative recall, and mechanistic circuits
+   We study case studies separately in the non-CoT and CoT settings.
 
-    * non-cot
+   * non-CoT
 
-        Formal-language recognition gives the cleanest discrete theory. Results range from limitations on periodic languages and Dyck languages, to exact characterizations of restricted masked hard-attention transformers as star-free languages, to broader logic characterizations for finite- and log-precision models. Counting deserves special attention because many lower bounds and benchmark failures reduce to the difficulty of maintaining exact global counts.
+        Formal languages, logic, and counting give the cleanest discrete theory. Results range from limitations on periodic languages and Dyck languages, to exact characterizations of restricted masked hard-attention transformers as star-free languages, to broader logic characterizations for finite- and log-precision models. Counting deserves special attention because many lower bounds and benchmark failures reduce to the difficulty of maintaining exact global counts.
 
-        Associative recall asks whether the model can bind keys to values in context and retrieve the value associated with a query key. This connects formal expressiveness, long-context retrieval, in-context learning, and mechanistic interpretability. Induction heads are one concrete circuit for copy-and-continue behavior; associative-memory analyses study how attention and MLPs can store and retrieve facts.
+        Associative recall and mechanistic circuits ask whether the model can bind keys to values in context and retrieve the value associated with a query key. This connects formal expressiveness, long-context retrieval, in-context learning, and mechanistic interpretability. Induction heads are one concrete circuit for copy-and-continue behavior; associative-memory analyses study how attention and MLPs can store and retrieve facts.
 
-        Long context, NIAH, and retrieval expressiveness
+        Long context raises an expressiveness question because the model must preserve useful positional information as the sequence becomes long, so failures of positional encoding or attention scaling can already break simple retrieval; Needle-in-a-haystack (NIAH) is the standard basic probe for this. A separate but related issue is length generalization: a model trained on shorter sequences may be expressive enough in principle yet still fail on longer ones because it learned a shortcut tied to the training length rather than the underlying algorithm.
 
-        Long context length is a resource, not a guarantee that all tokens are used well. Needle-in-a-haystack (NIAH) tests measure a simple retrieval function: can the model recover a planted fact from many distractors? This probes one important ability, but it is weaker than compositional long-context reasoning. Stronger evaluations vary needle position, require multi-hop tracing, require aggregation, or mix retrieval with conflicting evidence.
+   * CoT
 
+        We revisit the same kinds of case studies when intermediate tokens are allowed, and ask how the additional sequential workspace changes the complexity class and the practical behavior.
 
-        length generalization, benchmarks
+5. Alternative architectures
 
-        Expressiveness is not learnability. A transformer may be able to represent an algorithm while gradient descent learns a shortcut that fails out of distribution. RASP-style program descriptions, compiled transformers, synthetic algorithmic tasks, and long-context benchmarks help separate representability from training dynamics and length generalization. The main open problem is still to characterize models close to real decoder-only LLMs, with realistic precision, positional encodings such as RoPE, normalization, finite context, and autoregressive decoding.
-    * cot
+   We also compare alternative architectures and alternative ways of carrying state, because explicit CoT is not the only way to add inference-time computation.
 
-5. Alternatives architectures
+   One direction stays close to transformers themselves: looped transformers and architectures that rely more heavily on persistent hidden states.
 
-    looped transformer, transformer hidden states
+   A second direction compares transformers with recurrent models, including classical RNN-style systems and newer variants such as Mamba, RWKV, TTT and etc., as well as viewpoints in which transformers can be interpreted as RNN-like systems.
 
-    RNN (gap, transformers are RNNs, several variance of RNN, mamba, rwkv, )
+   A third direction adds external or auxiliary computation, such as transformers with memory, and RAG.
 
-    TTT
-
-    transformer with memory, rag
-
-    these use hidden state to Alternatives to explicit CoT
-
-    CoT is not the only way to add inference-time computation. Looped transformers repeatedly apply the same block; padding or pause tokens provide extra positions that can serve as workspace; recurrence-like variants and linear-attention models trade off parallel attention for stateful processing. These mechanisms should be compared as different test-time compute budgets rather than collapsed into a single notion of "reasoning."
-
+   The common theme is that these models use hidden state, recurrence, or memory as alternatives to explicit CoT.
 
 6. In-context learning and prompt-space expressiveness
 
-
-
-    In-context learning treats the context as a training set and asks whether a frozen transformer can map examples to a prediction without weight updates. Prompt tuning and prefix tuning ask a related but distinct question: how much can a frozen backbone be controlled by learnable or textual prompt tokens? The literature contains both positive universality constructions and negative limitations; the assumptions about the frozen backbone and allowed prompt length are decisive.
+   In-context learning treats the context as a training set and asks whether a frozen transformer can map examples to a prediction without weight updates. Prompt tuning and prefix tuning ask a related but distinct question: how much can a frozen backbone be controlled by learnable or textual prompt tokens? The literature contains both positive universality constructions and negative limitations; the assumptions about the frozen backbone and allowed prompt length are decisive.
 
 ## 1. Notions of Expressiveness for Transformers
 
