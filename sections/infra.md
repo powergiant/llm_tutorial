@@ -17,3 +17,6 @@ Kubernetes/Slurm
 division tensor problem: associativity commutativity is wrong
 
 flash attention, Triton
+
+
+inference infra paged attention

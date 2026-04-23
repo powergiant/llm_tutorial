@@ -23,3 +23,7 @@ llama-factory
 adversarial prompt, obscure but effective: classical chinese jailbreak prompt optimization via bio-inspired search
 
 niah transformer expensiveness
+
+length generalization
+
+the relation of performance and activation parameters and number of experts
